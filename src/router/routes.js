@@ -3,6 +3,7 @@ import Login from "../login/Login.vue";
 import Register from "../login/Register.vue";
 import Dashboard from "../dashboard/Dashboard.vue";
 import SafetyModules from "../dashboard/views/SafetyModules.vue";
+import InspectionK3L from "../dashboard/views/InspectionK3L.vue";
 
 const routes = [
   { path: "/", redirect: "/login" },
@@ -14,7 +15,8 @@ const routes = [
     children: [
       { path: "", redirect: "/dashboard/modules" },
       { path: "modules", name: "SafetyModules", component: SafetyModules },
-      { path: "reports", name: "Reports", component: { template: "<div style='padding:32px'><h2>Reports coming soon</h2></div>" } },
+      { path: "reports", redirect: "/dashboard/reports/inspection-k3l" },
+      { path: "reports/inspection-k3l", name: "InspectionK3L", component: InspectionK3L },
       { path: "settings", name: "Settings", component: { template: "<div style='padding:32px'><h2>Settings coming soon</h2></div>" } },
     ],
   },

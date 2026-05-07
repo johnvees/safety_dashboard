@@ -45,22 +45,23 @@
         Safety Modules
       </router-link>
 
-      <router-link
-        to="/dashboard/reports"
-        class="nav-item"
-        active-class="active"
-      >
-        <svg
-          class="nav-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-        </svg>
-        Reports
-      </router-link>
+      <!-- Reports with submenu -->
+      <div class="nav-group" :class="{ open: reportsOpen }">
+        <div class="nav-item nav-parent" :class="{ active: isReportsActive }" @click="reportsOpen = !reportsOpen">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+          Reports
+          <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+        <div class="nav-submenu" v-show="reportsOpen">
+          <router-link to="/dashboard/reports/inspection-k3l" class="nav-subitem" active-class="active">
+            Inspection K3L
+          </router-link>
+        </div>
+      </div>
 
       <router-link
         to="/dashboard/settings"
@@ -84,6 +85,15 @@
     </nav>
   </aside>
 </template>
+
+<script setup>
+import { ref, computed } from "vue";
+import { useRoute } from "vue-router";
+
+const route = useRoute();
+const reportsOpen = ref(true);
+const isReportsActive = computed(() => route.path.startsWith("/dashboard/reports"));
+</script>
 
 <style scoped>
 .sidebar {
@@ -153,5 +163,58 @@
   width: 18px;
   height: 18px;
   flex-shrink: 0;
+}
+
+/* Submenu styles */
+.nav-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-parent {
+  cursor: pointer;
+  user-select: none;
+}
+
+.nav-chevron {
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  transition: transform 0.2s;
+}
+
+.nav-group.open .nav-chevron {
+  transform: rotate(180deg);
+}
+
+.nav-submenu {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: 20px;
+  margin-top: 2px;
+}
+
+.nav-subitem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+
+.nav-subitem:hover {
+  background: rgba(255,255,255,0.07);
+  color: #e2e8f0;
+}
+
+.nav-subitem.active {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
 }
 </style>

@@ -4,7 +4,10 @@
     <div class="topbar-right">
       <div class="user-info">
         <div class="avatar">{{ initials }}</div>
-        <span class="user-email">{{ user?.email }}</span>
+        <div class="user-details">
+          <span class="user-email">{{ user?.email }}</span>
+          <span class="user-meta">{{ user?.role || 'user' }} · {{ user?.businessUnit || '-' }}</span>
+        </div>
       </div>
       <button class="btn-logout" @click="handleLogout">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -82,9 +85,21 @@ const handleLogout = () => {
   justify-content: center;
 }
 
+.user-details {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
 .user-email {
   font-size: 14px;
   color: #475569;
+}
+
+.user-meta {
+  font-size: 12px;
+  color: #94a3b8;
+  text-transform: capitalize;
 }
 
 .btn-logout {
