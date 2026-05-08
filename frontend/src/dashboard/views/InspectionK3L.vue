@@ -368,7 +368,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
-import { inspectionK3LService } from '@/services/inspectionK3LService.js';
+import { inspectionK3LService, uploadImage } from '@/services/inspectionK3LService.js';
 
 const showForm = ref(false);
 const submitting = ref(false);
@@ -512,19 +512,19 @@ async function loadLocationOptions(silent = false) {
 async function submitForm() {
   submitting.value = true;
   try {
-    // Convert all photos to base64, join with separator for storage
+    // Upload new files to Cloudinary; keep existing URLs as-is
     let fotoSebelum = null;
     if (photos.value.length > 0) {
-      const base64Photos = [];
+      const urls = [];
       for (const photo of photos.value) {
         if (photo.file) {
-          base64Photos.push(await fileToBase64(photo.file));
+          urls.push(await uploadImage(photo.file));
         } else if (photo.preview) {
-          // Existing photo from edit (already a URL/base64)
-          base64Photos.push(photo.preview);
+          // Already a Cloudinary URL from a previous save
+          urls.push(photo.preview);
         }
       }
-      fotoSebelum = JSON.stringify(base64Photos);
+      fotoSebelum = JSON.stringify(urls);
     }
 
     const payload = {
@@ -558,14 +558,6 @@ async function submitForm() {
   }
 }
 
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
 
 function editRecord(item) {
   editingId.value = item.id;

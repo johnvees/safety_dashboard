@@ -1,4 +1,6 @@
-const GRAPHQL_URL = "http://localhost:8000/graphql";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+const GRAPHQL_URL = `${API_BASE}/graphql`;
+const UPLOAD_URL = `${API_BASE}/upload`;
 
 async function gql(query, variables = {}) {
   const token = localStorage.getItem("token");
@@ -15,6 +17,26 @@ async function gql(query, variables = {}) {
   const { data, errors } = await res.json();
   if (errors?.length) throw new Error(errors[0].message);
   return data;
+}
+
+export async function uploadImage(file) {
+  const token = localStorage.getItem("token");
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(UPLOAD_URL, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Upload failed: ${res.status}`);
+  }
+
+  const { url } = await res.json();
+  return url;
 }
 
 export const inspectionK3LService = {

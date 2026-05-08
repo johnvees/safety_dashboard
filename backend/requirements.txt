@@ -8,3 +8,5 @@ python-jose[cryptography]
 python-dotenv
 alembic
 email-validator
+cloudinary
+python-multipart
