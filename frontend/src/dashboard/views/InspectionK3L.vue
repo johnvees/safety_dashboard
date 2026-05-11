@@ -281,9 +281,24 @@
     <div class="table-card">
       <div class="table-header">
         <h3>Data Temuan</h3>
-        <button class="btn btn-sm" @click="loadData" :disabled="loading">
-          {{ loading ? 'Loading...' : 'Refresh' }}
-        </button>
+        <div class="table-header-actions">
+          <button
+            class="btn btn-sm btn-export"
+            @click="exportCsv"
+            :disabled="records.length === 0"
+            title="Export semua data ke CSV"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Export CSV
+          </button>
+          <button class="btn btn-sm" @click="loadData" :disabled="loading">
+            {{ loading ? 'Loading...' : 'Refresh' }}
+          </button>
+        </div>
       </div>
       <div class="table-wrapper">
         <table v-if="records.length > 0">
@@ -369,6 +384,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { inspectionK3LService, uploadImage } from '@/services/inspectionK3LService.js';
+import { exportToCsv } from '@/services/exportCsvService.js';
 
 const showForm = ref(false);
 const submitting = ref(false);
@@ -601,6 +617,64 @@ async function deleteRecord(id) {
   } catch (e) {
     showMessage(e.message, 'error');
   }
+}
+
+function exportCsv() {
+  // Parse all photo URL arrays upfront to determine column count
+  const parsedPhotos = records.value.map((row) => {
+    if (!row.fotoSebelum) return [];
+    try {
+      const parsed = JSON.parse(row.fotoSebelum);
+      return Array.isArray(parsed) ? parsed : [row.fotoSebelum];
+    } catch {
+      return [row.fotoSebelum];
+    }
+  });
+
+  const maxPhotos = parsedPhotos.reduce((max, p) => Math.max(max, p.length), 0);
+
+  const rows = records.value.map((row, idx) => {
+    const photos = parsedPhotos[idx];
+    const photoFields = {};
+    for (let i = 0; i < maxPhotos; i++) {
+      // =IMAGE("url") renders the image inline in Excel 365
+      photoFields[`foto_${i + 1}`] = photos[i] ? `=IMAGE("${photos[i]}")` : '';
+    }
+    return {
+      no: idx + 1,
+      tanggal: row.tanggal || '',
+      kategoriTemuan: row.kategoriTemuan || '',
+      deskripsiTemuan: row.deskripsiTemuan || '',
+      lokasi: row.lokasi || '',
+      tindakanPerbaikan: row.tindakanPerbaikan || '',
+      targetSelesai: row.targetSelesai || '',
+      status: row.status || '',
+      aktualClose: row.aktualClose || '',
+      ...photoFields,
+    };
+  });
+
+  const photoColumnDefs = Array.from({ length: maxPhotos }, (_, i) => ({
+    label: `Foto ${i + 1}`,
+    key: `foto_${i + 1}`,
+    formula: true,
+  }));
+
+  const columns = [
+    { label: 'No', key: 'no' },
+    { label: 'Tanggal', key: 'tanggal' },
+    { label: 'Kategori Temuan', key: 'kategoriTemuan' },
+    { label: 'Deskripsi Temuan', key: 'deskripsiTemuan' },
+    { label: 'Lokasi', key: 'lokasi' },
+    { label: 'Tindakan Perbaikan', key: 'tindakanPerbaikan' },
+    { label: 'Target Selesai', key: 'targetSelesai' },
+    { label: 'Status', key: 'status' },
+    { label: 'Aktual Close', key: 'aktualClose' },
+    ...photoColumnDefs,
+  ];
+
+  const today = new Date().toISOString().slice(0, 10);
+  exportToCsv(`inspection-k3l-${today}.csv`, columns, rows);
 }
 
 onMounted(() => {
@@ -1049,6 +1123,31 @@ onMounted(() => {
   font-weight: 700;
   color: #1e293b;
   margin: 0;
+}
+
+.table-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-export {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.btn-export:hover:not(:disabled) {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.btn-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .table-wrapper {
