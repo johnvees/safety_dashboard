@@ -1,5 +1,5 @@
 <template>
-  <aside class="sidebar">
+  <aside class="sidebar" :class="{ collapsed: !open }">
     <div class="brand">
       <img src="@/assets/CPIN.JK.png" alt="CP Logo" class="brand-logo" />
       <span class="brand-name">Safety Portal</span>
@@ -90,9 +90,11 @@
 import { ref, computed } from "vue";
 import { useRoute } from "vue-router";
 
+defineProps({ open: { type: Boolean, default: true } });
+
 const route = useRoute();
-const reportsOpen = ref(true);
 const isReportsActive = computed(() => route.path.startsWith("/dashboard/reports"));
+const reportsOpen = ref(isReportsActive.value);
 </script>
 
 <style scoped>
@@ -103,6 +105,31 @@ const isReportsActive = computed(() => route.path.startsWith("/dashboard/reports
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  overflow: hidden;
+  transition: width 0.25s ease;
+}
+
+.sidebar.collapsed {
+  width: 0;
+}
+
+/* On mobile: sidebar floats over content, doesn't push layout */
+@media (max-width: 767px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 240px;
+    z-index: 200;
+    transform: translateX(0);
+    transition: transform 0.25s ease;
+  }
+
+  .sidebar.collapsed {
+    width: 240px;
+    transform: translateX(-100%);
+  }
 }
 
 .brand {

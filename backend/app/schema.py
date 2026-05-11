@@ -1,4 +1,5 @@
 import strawberry
+import json
 from strawberry.fastapi import GraphQLRouter
 from typing import Optional, List
 from sqlalchemy.orm import Session
@@ -6,6 +7,7 @@ from datetime import date
 
 from app import models, auth
 from app.database import get_db
+from app.cloudinary_utils import delete_image
 
 
 def _get_db() -> Session:
@@ -384,8 +386,30 @@ class Mutation:
             record = db.query(models.InspectionK3L).filter(models.InspectionK3L.id == id).first()
             if not record:
                 return InspectionK3LPayload(success=False, message="Record not found")
+
+            # Collect all Cloudinary URLs before deleting the DB record
+            photo_urls = []
+            for field in (record.foto_sebelum, record.foto_sesudah):
+                if field:
+                    try:
+                        parsed = json.loads(field)
+                        if isinstance(parsed, list):
+                            photo_urls.extend(parsed)
+                        else:
+                            photo_urls.append(field)
+                    except (json.JSONDecodeError, TypeError):
+                        photo_urls.append(field)
+
             db.delete(record)
             db.commit()
+
+            # Delete from Cloudinary after successful DB delete (best-effort)
+            for url in photo_urls:
+                try:
+                    delete_image(url)
+                except Exception:
+                    pass
+
             return InspectionK3LPayload(success=True, message="Inspection K3L deleted successfully")
         except Exception as e:
             db.rollback()

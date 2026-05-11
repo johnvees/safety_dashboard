@@ -1,6 +1,11 @@
 <template>
   <header class="topbar">
-    <div class="page-title">{{ title }}</div>
+    <div class="topbar-left">
+      <button class="btn-hamburger" @click="emit('toggle-sidebar')" aria-label="Toggle sidebar">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="page-title">{{ title }}</div>
+    </div>
     <div class="topbar-right">
       <div class="user-info">
         <div class="avatar">{{ initials }}</div>
@@ -30,6 +35,8 @@ const props = defineProps({
   title: { type: String, default: "Dashboard" },
 });
 
+const emit = defineEmits(["toggle-sidebar"]);
+
 const router = useRouter();
 const user = authService.getCurrentUser();
 const initials = computed(() =>
@@ -52,6 +59,40 @@ const handleLogout = () => {
   justify-content: space-between;
   padding: 0 24px;
   flex-shrink: 0;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.btn-hamburger:hover {
+  background: #f1f5f9;
+}
+
+.btn-hamburger span {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: #475569;
+  border-radius: 2px;
+  transition: background 0.15s;
 }
 
 .page-title {

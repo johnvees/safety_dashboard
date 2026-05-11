@@ -1,4 +1,5 @@
 import os
+import re
 import cloudinary
 import cloudinary.uploader
 
@@ -17,3 +18,15 @@ def upload_image(file_bytes: bytes, folder: str = "safety_dashboard") -> str:
         resource_type="image",
     )
     return result["secure_url"]
+
+
+def _extract_public_id(url: str) -> str | None:
+    # Cloudinary URL: .../upload/v1234567890/folder/name.ext  OR  .../upload/folder/name.ext
+    match = re.search(r"/upload/(?:v\d+/)?(.+?)(?:\.[a-zA-Z0-9]+)?$", url)
+    return match.group(1) if match else None
+
+
+def delete_image(url: str) -> None:
+    public_id = _extract_public_id(url)
+    if public_id:
+        cloudinary.uploader.destroy(public_id, resource_type="image")

@@ -1,8 +1,13 @@
 <template>
   <div class="layout">
-    <Sidebar />
+    <Sidebar :open="sidebarOpen" />
+    <div
+      v-if="sidebarOpen"
+      class="sidebar-backdrop"
+      @click="sidebarOpen = false"
+    />
     <div class="main">
-      <Topbar :title="pageTitle" />
+      <Topbar :title="pageTitle" @toggle-sidebar="sidebarOpen = !sidebarOpen" />
       <div class="content">
         <router-view />
       </div>
@@ -11,10 +16,12 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { ref, computed } from "vue";
 import { useRoute } from "vue-router";
 import Sidebar from "./Sidebar.vue";
 import Topbar from "./Topbar.vue";
+
+const sidebarOpen = ref(window.innerWidth >= 768);
 
 const route = useRoute();
 const pageTitles = {
@@ -39,10 +46,26 @@ const pageTitle = computed(() => pageTitles[route.path] ?? "Dashboard");
   display: flex;
   flex-direction: column;
   min-width: 0;
+  width: 100%;
 }
 
 .content {
   flex: 1;
   overflow-y: auto;
+}
+
+/* Backdrop — only visible/interactive on mobile */
+.sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 199;
+  }
 }
 </style>
