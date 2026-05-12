@@ -14,6 +14,7 @@ const routes = [
   {
     path: "/dashboard",
     component: Dashboard,
+    meta: { requiresAuth: true },
     children: [
       { path: "", name: "DashboardHome", component: DashboardHome },
       { path: "modules", name: "SafetyModules", component: SafetyModules },
@@ -28,6 +29,17 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+});
+
+router.beforeEach((to, _from, next) => {
+  const token = localStorage.getItem("token");
+  if (to.meta.requiresAuth && !token) {
+    next({ name: "Login" });
+  } else if ((to.name === "Login" || to.name === "Register") && token) {
+    next({ name: "DashboardHome" });
+  } else {
+    next();
+  }
 });
 
 export default router;

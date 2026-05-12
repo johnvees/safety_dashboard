@@ -286,8 +286,9 @@ const calendarDate = ref(new Date());
 
 const user = authService.getCurrentUser();
 const userName = computed(() => {
-  const email = user?.email || '';
-  return email.split('@')[0] || 'there';
+  if (user?.fullName) return user.fullName.split(' ')[0];
+  if (user?.username) return user.username;
+  return (user?.email || '').split('@')[0] || 'there';
 });
 
 const greeting = computed(() => {

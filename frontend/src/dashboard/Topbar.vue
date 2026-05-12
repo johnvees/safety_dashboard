@@ -10,8 +10,8 @@
       <div class="user-info">
         <div class="avatar">{{ initials }}</div>
         <div class="user-details">
-          <span class="user-email">{{ user?.email }}</span>
-          <span class="user-meta">{{ user?.role || 'user' }} · {{ user?.businessUnit || '-' }}</span>
+          <span class="user-name">{{ displayName }}</span>
+          <span class="user-meta">{{ user?.role || '-' }}{{ user?.businessUnit ? ' · ' + user.businessUnit : '' }}</span>
         </div>
       </div>
       <button class="btn-logout" @click="handleLogout">
@@ -39,9 +39,17 @@ const emit = defineEmits(["toggle-sidebar"]);
 
 const router = useRouter();
 const user = authService.getCurrentUser();
-const initials = computed(() =>
-  user?.email ? user.email[0].toUpperCase() : "U",
-);
+
+const displayName = computed(() => user?.fullName || user?.username || user?.email || "");
+
+const initials = computed(() => {
+  const name = user?.fullName || user?.username || user?.email || "U";
+  return name
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join("");
+});
 
 const handleLogout = () => {
   authService.logout();
@@ -132,9 +140,10 @@ const handleLogout = () => {
   line-height: 1.3;
 }
 
-.user-email {
+.user-name {
   font-size: 14px;
-  color: #475569;
+  font-weight: 600;
+  color: #1e293b;
 }
 
 .user-meta {

@@ -4,7 +4,7 @@
     <div class="page-header">
       <div>
         <h2 class="page-title">Master Data</h2>
-        <p class="page-sub">Kelola data Business Unit dan Plant</p>
+        <p class="page-sub">Kelola data Business Unit, Plant, dan User</p>
       </div>
     </div>
 
@@ -23,6 +23,20 @@
         @click="activeTab = 'plant'"
       >
         Plant
+      </button>
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === 'user' }"
+        @click="activeTab = 'user'"
+      >
+        Users
+      </button>
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === 'role' }"
+        @click="activeTab = 'role'"
+      >
+        Roles
       </button>
     </div>
 
@@ -283,6 +297,268 @@
       </div>
     </div>
 
+    <!-- ── User Tab ─────────────────────────────────────────────── -->
+    <div v-if="activeTab === 'user'">
+      <div class="section-bar">
+        <div class="filter-group">
+          <span class="total-badge">{{ filteredUsers.length }} data</span>
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input v-model="userSearch" type="text" placeholder="Cari nama, email, username…" class="search-input" />
+            <button v-if="userSearch" class="search-clear" @click="userSearch = ''">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <button class="btn-primary" @click="openUserForm()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          Tambah User
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Nama Lengkap</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Business Unit</th>
+                <th>Plant</th>
+                <th>Status</th>
+                <th class="th-action">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="userLoading">
+                <td colspan="9" class="td-empty">Memuat data…</td>
+              </tr>
+              <tr v-else-if="!filteredUsers.length">
+                <td colspan="9" class="td-empty">
+                  {{ userSearch ? 'Tidak ada hasil untuk "' + userSearch + '"' : 'Belum ada data User' }}
+                </td>
+              </tr>
+              <tr v-for="(item, idx) in filteredUsers" :key="item.id">
+                <td class="td-num">{{ idx + 1 }}</td>
+                <td class="td-name">{{ item.fullName || '-' }}</td>
+                <td><span class="code-badge">{{ item.username || '-' }}</span></td>
+                <td class="td-email">{{ item.email }}</td>
+                <td>{{ roleNameMap[item.roleId] || '-' }}</td>
+                <td>{{ buNameMap[item.businessUnitId] || '-' }}</td>
+                <td>{{ plantNameMap[item.plantId] || '-' }}</td>
+                <td>
+                  <span :class="['status-pill', item.isActive ? 'pill-active' : 'pill-inactive']">
+                    {{ item.isActive ? 'Aktif' : 'Nonaktif' }}
+                  </span>
+                </td>
+                <td class="td-action">
+                  <button class="btn-icon-sm btn-edit" title="Edit" @click="openUserForm(item)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                  </button>
+                  <button class="btn-icon-sm btn-delete" title="Hapus" @click="confirmDeleteUser(item)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+                      <path d="M10 11v6"/><path d="M14 11v6"/>
+                      <path d="M9 6V4h6v2"/>
+                    </svg>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Roles Tab ─────────────────────────────────────────────── -->
+    <div v-if="activeTab === 'role'">
+      <div class="section-bar">
+        <div class="filter-group">
+          <span class="total-badge">{{ filteredRoles.length }} data</span>
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input v-model="roleSearch" type="text" placeholder="Cari nama role…" class="search-input" />
+            <button v-if="roleSearch" class="search-clear" @click="roleSearch = ''">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <button class="btn-primary" @click="openRoleForm()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          Tambah Role
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Nama Role</th>
+                <th>Level</th>
+                <th>Deskripsi</th>
+                <th class="th-action">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="roleLoading">
+                <td colspan="5" class="td-empty">Memuat data…</td>
+              </tr>
+              <tr v-else-if="!filteredRoles.length">
+                <td colspan="5" class="td-empty">
+                  {{ roleSearch ? 'Tidak ada hasil untuk "' + roleSearch + '"' : 'Belum ada data Role' }}
+                </td>
+              </tr>
+              <tr v-for="(item, idx) in filteredRoles" :key="item.id">
+                <td class="td-num">{{ idx + 1 }}</td>
+                <td class="td-name">{{ item.name }}</td>
+                <td><span class="level-badge">Level {{ item.level }}</span></td>
+                <td class="td-desc">{{ item.description || '-' }}</td>
+                <td class="td-action">
+                  <button class="btn-icon-sm btn-edit" title="Edit" @click="openRoleForm(item)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                  </button>
+                  <button class="btn-icon-sm btn-delete" title="Hapus" @click="confirmDeleteRole(item)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+                      <path d="M10 11v6"/><path d="M14 11v6"/>
+                      <path d="M9 6V4h6v2"/>
+                    </svg>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Role Modal ───────────────────────────────────────────── -->
+    <div v-if="roleModal.show" class="modal-overlay" @click.self="closeRoleModal">
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <h3>{{ roleModal.editId ? 'Edit Role' : 'Tambah Role' }}</h3>
+          <button class="btn-close" @click="closeRoleModal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Nama Role <span class="req">*</span></label>
+            <input v-model="roleForm.name" type="text" placeholder="Contoh: Admin, Viewer" class="form-input" maxlength="50" />
+          </div>
+          <div class="form-group">
+            <label>Level <span class="req">*</span>
+              <span class="field-hint">— angka unik, makin kecil makin tinggi (0 = Admin/tertinggi)</span>
+            </label>
+            <input v-model.number="roleForm.level" type="number" min="0" placeholder="Contoh: 0, 1, 2, 3…" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Deskripsi</label>
+            <textarea v-model="roleForm.description" placeholder="Deskripsi role (opsional)" class="form-input form-textarea" rows="3" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" @click="closeRoleModal" :disabled="roleModal.saving">Batal</button>
+          <button class="btn-primary" @click="saveRole" :disabled="roleModal.saving">
+            {{ roleModal.saving ? 'Menyimpan…' : 'Simpan' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── User Modal ──────────────────────────────────────────── -->
+    <div v-if="userModal.show" class="modal-overlay" @click.self="closeUserModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>{{ userModal.editId ? 'Edit User' : 'Tambah User' }}</h3>
+          <button class="btn-close" @click="closeUserModal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Nama Lengkap</label>
+            <input v-model="userForm.fullName" type="text" placeholder="Nama lengkap" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Email <span class="req">*</span></label>
+            <input v-model="userForm.email" type="email" placeholder="email@cp.co.id" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Username</label>
+            <input v-model="userForm.username" type="text" placeholder="Username (opsional)" class="form-input" maxlength="50" />
+          </div>
+          <div class="form-group">
+            <label>Password <span v-if="!userModal.editId" class="req">*</span></label>
+            <input v-model="userForm.password" type="password"
+              :placeholder="userModal.editId ? 'Kosongkan jika tidak ingin mengubah' : 'Password (min. 6 karakter)'"
+              class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Role</label>
+            <select v-model="userForm.roleId" class="form-input">
+              <option :value="null">Tidak ada role</option>
+              <option v-for="r in roleList" :key="r.id" :value="r.id">{{ r.name }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Business Unit</label>
+            <select v-model="userForm.businessUnitId" class="form-input" @change="userForm.plantId = null">
+              <option :value="null">Tidak ada</option>
+              <option v-for="bu in buList" :key="bu.id" :value="bu.id">{{ bu.name }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Plant</label>
+            <select v-model="userForm.plantId" class="form-input">
+              <option :value="null">Tidak ada</option>
+              <option v-for="p in plantsForUserForm" :key="p.id" :value="p.id">{{ p.name }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select v-model="userForm.isActive" class="form-input">
+              <option :value="true">Aktif</option>
+              <option :value="false">Nonaktif</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" @click="closeUserModal" :disabled="userModal.saving">Batal</button>
+          <button class="btn-primary" @click="saveUser" :disabled="userModal.saving">
+            {{ userModal.saving ? 'Menyimpan…' : 'Simpan' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Delete Confirm Modal ──────────────────────────────────── -->
     <div v-if="deleteModal.show" class="modal-overlay" @click.self="deleteModal.show = false">
       <div class="modal modal-sm">
@@ -331,6 +607,14 @@ const plantLoading = ref(false);
 const plantFilterBu = ref(null);
 const plantSearch = ref("");
 
+const roleList = ref([]);
+const roleLoading = ref(false);
+const roleSearch = ref("");
+
+const userList = ref([]);
+const userLoading = ref(false);
+const userSearch = ref("");
+
 // ── Computed ─────────────────────────────────────────────────────────────
 const buNameMap = computed(() => {
   const map = {};
@@ -363,6 +647,39 @@ const filteredPlants = computed(() => {
   );
 });
 
+const roleNameMap = computed(() => {
+  const map = {};
+  roleList.value.forEach((r) => (map[r.id] = r.name));
+  return map;
+});
+
+const filteredRoles = computed(() => {
+  const q = roleSearch.value.trim().toLowerCase();
+  if (!q) return [...roleList.value].sort((a, b) => a.level - b.level);
+  return [...roleList.value]
+    .filter((r) => r.name.toLowerCase().includes(q) || (r.description || "").toLowerCase().includes(q))
+    .sort((a, b) => a.level - b.level);
+});
+
+const plantNameMap = computed(() => {
+  const map = {};
+  plantList.value.forEach((p) => (map[p.id] = p.name));
+  return map;
+});
+
+const filteredUsers = computed(() => {
+  const q = userSearch.value.trim().toLowerCase();
+  if (!q) return userList.value;
+  return userList.value.filter(
+    (u) =>
+      (u.fullName || "").toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      (u.username || "").toLowerCase().includes(q) ||
+      (roleNameMap.value[u.roleId] || "").toLowerCase().includes(q) ||
+      (buNameMap.value[u.businessUnitId] || "").toLowerCase().includes(q),
+  );
+});
+
 // ── Load data ────────────────────────────────────────────────────────────
 async function loadBu() {
   buLoading.value = true;
@@ -386,9 +703,33 @@ async function loadPlants() {
   }
 }
 
+async function loadRoles() {
+  roleLoading.value = true;
+  try {
+    roleList.value = await masterDataService.listRoles();
+  } catch (e) {
+    console.error("[MasterData] loadRoles:", e);
+  } finally {
+    roleLoading.value = false;
+  }
+}
+
+async function loadUsers() {
+  userLoading.value = true;
+  try {
+    userList.value = await masterDataService.listUsers();
+  } catch (e) {
+    console.error("[MasterData] loadUsers:", e);
+  } finally {
+    userLoading.value = false;
+  }
+}
+
 onMounted(() => {
   loadBu();
   loadPlants();
+  loadRoles();
+  loadUsers();
 });
 
 // ── Business Unit form ───────────────────────────────────────────────────
@@ -484,6 +825,112 @@ async function savePlant() {
   }
 }
 
+// ── Role form ────────────────────────────────────────────────────────────
+const roleModal = reactive({ show: false, editId: null, saving: false });
+const roleForm = reactive({ name: "", level: null, description: "" });
+
+function openRoleForm(item = null) {
+  roleModal.editId = item?.id ?? null;
+  roleForm.name = item?.name ?? "";
+  roleForm.level = item?.level ?? null;
+  roleForm.description = item?.description ?? "";
+  roleModal.show = true;
+}
+
+function closeRoleModal() {
+  roleModal.show = false;
+}
+
+async function saveRole() {
+  if (!roleForm.name.trim()) return showToast("Nama role wajib diisi", "error");
+  if (roleForm.level === null || roleForm.level === "" || roleForm.level < 0) return showToast("Level wajib diisi (angka ≥ 0)", "error");
+
+  roleModal.saving = true;
+  try {
+    const payload = {
+      name: roleForm.name.trim(),
+      level: roleForm.level,
+      description: roleForm.description.trim() || null,
+    };
+    if (roleModal.editId) {
+      await masterDataService.updateRole(roleModal.editId, payload);
+      showToast("Role berhasil diperbarui");
+    } else {
+      await masterDataService.createRole(payload);
+      showToast("Role berhasil ditambahkan");
+    }
+    closeRoleModal();
+    await loadRoles();
+  } catch (e) {
+    showToast(e.message, "error");
+  } finally {
+    roleModal.saving = false;
+  }
+}
+
+// ── User form ────────────────────────────────────────────────────────────
+const userModal = reactive({ show: false, editId: null, saving: false });
+const userForm = reactive({
+  email: "", password: "", username: "", fullName: "",
+  roleId: null, businessUnitId: null, plantId: null, isActive: true,
+});
+
+const plantsForUserForm = computed(() =>
+  userForm.businessUnitId
+    ? plantList.value.filter((p) => p.businessUnitId === userForm.businessUnitId)
+    : plantList.value,
+);
+
+function openUserForm(item = null) {
+  userModal.editId = item?.id ?? null;
+  userForm.email = item?.email ?? "";
+  userForm.password = "";
+  userForm.username = item?.username ?? "";
+  userForm.fullName = item?.fullName ?? "";
+  userForm.roleId = item?.roleId ?? null;
+  userForm.businessUnitId = item?.businessUnitId ?? null;
+  userForm.plantId = item?.plantId ?? null;
+  userForm.isActive = item?.isActive ?? true;
+  userModal.show = true;
+}
+
+function closeUserModal() {
+  userModal.show = false;
+}
+
+async function saveUser() {
+  if (!userForm.email.trim()) return showToast("Email wajib diisi", "error");
+  if (!userModal.editId && !userForm.password.trim()) return showToast("Password wajib diisi", "error");
+
+  userModal.saving = true;
+  try {
+    const payload = {
+      email: userForm.email.trim(),
+      username: userForm.username.trim() || null,
+      fullName: userForm.fullName.trim() || null,
+      roleId: userForm.roleId,
+      businessUnitId: userForm.businessUnitId,
+      plantId: userForm.plantId,
+      isActive: userForm.isActive,
+    };
+    if (userModal.editId) {
+      if (userForm.password.trim()) payload.password = userForm.password.trim();
+      await masterDataService.updateUser(userModal.editId, payload);
+      showToast("User berhasil diperbarui");
+    } else {
+      payload.password = userForm.password.trim();
+      await masterDataService.createUser(payload);
+      showToast("User berhasil ditambahkan");
+    }
+    closeUserModal();
+    await loadUsers();
+  } catch (e) {
+    showToast(e.message, "error");
+  } finally {
+    userModal.saving = false;
+  }
+}
+
 // ── Delete ───────────────────────────────────────────────────────────────
 const deleteModal = reactive({ show: false, name: "", type: "", id: null, loading: false });
 
@@ -501,6 +948,20 @@ function confirmDeletePlant(item) {
   deleteModal.show = true;
 }
 
+function confirmDeleteRole(item) {
+  deleteModal.type = "role";
+  deleteModal.id = item.id;
+  deleteModal.name = item.name;
+  deleteModal.show = true;
+}
+
+function confirmDeleteUser(item) {
+  deleteModal.type = "user";
+  deleteModal.id = item.id;
+  deleteModal.name = item.fullName || item.email;
+  deleteModal.show = true;
+}
+
 async function executeDelete() {
   deleteModal.loading = true;
   try {
@@ -509,10 +970,18 @@ async function executeDelete() {
       showToast("Business unit berhasil dihapus");
       await loadBu();
       await loadPlants();
-    } else {
+    } else if (deleteModal.type === "plant") {
       await masterDataService.deletePlant(deleteModal.id);
       showToast("Plant berhasil dihapus");
       await loadPlants();
+    } else if (deleteModal.type === "role") {
+      await masterDataService.deleteRole(deleteModal.id);
+      showToast("Role berhasil dihapus");
+      await loadRoles();
+    } else {
+      await masterDataService.deleteUser(deleteModal.id);
+      showToast("User berhasil dihapus");
+      await loadUsers();
     }
     deleteModal.show = false;
   } catch (e) {
@@ -715,6 +1184,7 @@ function formatDate(val) {
 .td-name { font-weight: 600; color: #1e293b; }
 .td-desc { color: #64748b; max-width: 220px; }
 .td-date { color: #64748b; white-space: nowrap; }
+.td-email { color: #64748b; font-size: 12px; }
 .td-empty { text-align: center; color: #94a3b8; padding: 40px 0; font-size: 13px; }
 .th-action { text-align: center; width: 90px; }
 .td-action { text-align: center; white-space: nowrap; }
@@ -728,6 +1198,20 @@ function formatDate(val) {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.3px;
+}
+.level-badge {
+  display: inline-block;
+  background: #f0fdf4;
+  color: #16a34a;
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.field-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: #94a3b8;
 }
 .status-pill {
   display: inline-block;

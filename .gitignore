@@ -36,3 +36,6 @@ node_modules/
 
 # Vite
 dist/
+
+#seed
+seeds.py

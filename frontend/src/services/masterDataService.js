@@ -129,4 +129,118 @@ export const masterDataService = {
     if (!r.success) throw new Error(r.message);
     return r;
   },
+
+  // ── Roles ─────────────────────────────────────────────────────────────
+
+  async listRoles() {
+    const data = await gql(`
+      query {
+        roles { id name level description }
+      }
+    `);
+    return data.roles;
+  },
+
+  async createRole(input) {
+    const data = await gql(
+      `mutation CreateRole($name: String!, $level: Int!, $description: String) {
+        createRole(name: $name, level: $level, description: $description) {
+          success message
+          role { id name level description }
+        }
+      }`,
+      input,
+    );
+    const r = data.createRole;
+    if (!r.success) throw new Error(r.message);
+    return r;
+  },
+
+  async updateRole(id, input) {
+    const data = await gql(
+      `mutation UpdateRole($id: Int!, $name: String, $level: Int, $description: String) {
+        updateRole(id: $id, name: $name, level: $level, description: $description) {
+          success message
+          role { id name level description }
+        }
+      }`,
+      { id, ...input },
+    );
+    const r = data.updateRole;
+    if (!r.success) throw new Error(r.message);
+    return r;
+  },
+
+  async deleteRole(id) {
+    const data = await gql(
+      `mutation DeleteRole($id: Int!) {
+        deleteRole(id: $id) { success message }
+      }`,
+      { id },
+    );
+    const r = data.deleteRole;
+    if (!r.success) throw new Error(r.message);
+    return r;
+  },
+
+  // ── Users ─────────────────────────────────────────────────────────────
+
+  async listUsers() {
+    const data = await gql(`
+      query {
+        users { id email username fullName roleId businessUnitId plantId isActive createdAt updatedAt }
+      }
+    `);
+    return data.users;
+  },
+
+  async createUser(input) {
+    const data = await gql(
+      `mutation CreateUser(
+        $email: String!, $password: String!, $username: String, $fullName: String,
+        $roleId: Int, $businessUnitId: Int, $plantId: Int, $isActive: Boolean
+      ) {
+        createUser(email: $email, password: $password, username: $username, fullName: $fullName,
+          roleId: $roleId, businessUnitId: $businessUnitId, plantId: $plantId, isActive: $isActive) {
+          success message
+          user { id email username fullName roleId businessUnitId plantId isActive createdAt }
+        }
+      }`,
+      input,
+    );
+    const r = data.createUser;
+    if (!r.success) throw new Error(r.message);
+    return r;
+  },
+
+  async updateUser(id, input) {
+    const data = await gql(
+      `mutation UpdateUser(
+        $id: Int!, $email: String, $password: String, $username: String, $fullName: String,
+        $roleId: Int, $businessUnitId: Int, $plantId: Int, $isActive: Boolean
+      ) {
+        updateUser(id: $id, email: $email, password: $password, username: $username, fullName: $fullName,
+          roleId: $roleId, businessUnitId: $businessUnitId, plantId: $plantId, isActive: $isActive) {
+          success message
+          user { id email username fullName roleId businessUnitId plantId isActive createdAt }
+        }
+      }`,
+      { id, ...input },
+    );
+    const r = data.updateUser;
+    if (!r.success) throw new Error(r.message);
+    return r;
+  },
+
+  async deleteUser(id) {
+    const data = await gql(
+      `mutation DeleteUser($id: Int!) {
+        deleteUser(id: $id) { success message }
+      }`,
+      { id },
+    );
+    const r = data.deleteUser;
+    if (!r.success) throw new Error(r.message);
+    return r;
+  },
 };
