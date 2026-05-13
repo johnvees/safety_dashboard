@@ -365,6 +365,30 @@ class Query:
         finally:
             db.close()
 
+    @strawberry.field
+    def safety_modules(self, info: strawberry.types.Info) -> List[SafetyModuleType]:
+        user = _get_current_user(info)
+        if not user:
+            return []
+        db = _get_db()
+        try:
+            records = db.query(models.SafetyModule).order_by(models.SafetyModule.created_at.desc()).all()
+            return [_module_to_type(r) for r in records]
+        finally:
+            db.close()
+
+    @strawberry.field
+    def safety_module_by_id(self, info: strawberry.types.Info, id: int) -> Optional[SafetyModuleType]:
+        user = _get_current_user(info)
+        if not user:
+            return None
+        db = _get_db()
+        try:
+            record = db.query(models.SafetyModule).filter(models.SafetyModule.id == id).first()
+            return _module_to_type(record) if record else None
+        finally:
+            db.close()
+
 
 @strawberry.type
 class Mutation:

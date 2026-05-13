@@ -15,9 +15,9 @@
       </button>
     </div>
 
-    <div v-if="loading" class="state-msg">Loading modules...</div>
+    <div v-if="loading" class="state-msg">Memuat modul...</div>
     <div v-else-if="error" class="state-msg error">{{ error }}</div>
-    <div v-else-if="modules.length === 0" class="state-msg">No modules uploaded yet.</div>
+    <div v-else-if="modules.length === 0" class="state-msg">Belum ada modul yang diunggah.</div>
     <div v-else class="modules-grid">
       <div v-for="mod in modules" :key="mod.id" class="module-card">
         <div class="card-thumb" @click="openWatchModal(mod)">
@@ -54,7 +54,7 @@
     </div>
 
     <!-- Upload Modal -->
-    <div v-if="showUploadModal" class="modal-overlay" @click.self="closeUploadModal">
+    <div v-if="showUploadModal" class="modal-overlay" @click.self="tryCloseUploadModal">
       <div class="modal">
         <div class="modal-header">
           <h3>Upload Module</h3>
@@ -88,11 +88,32 @@
           <div v-if="uploadError" class="form-error">{{ uploadError }}</div>
         </div>
         <div class="modal-footer">
-          <button class="btn-cancel" @click="closeUploadModal" :disabled="uploading">Cancel</button>
+          <button class="btn-cancel" @click="tryCloseUploadModal" :disabled="uploading">Cancel</button>
           <button class="btn-submit" @click="submitUpload" :disabled="uploading">
             <span v-if="uploading">Uploading...</span>
             <span v-else>Upload</span>
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Discard Confirm Dialog -->
+    <div v-if="showDiscardConfirm" class="modal-overlay" style="z-index:1001">
+      <div class="modal modal-confirm">
+        <div class="modal-body" style="padding:28px 24px 20px">
+          <div class="confirm-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <h4 class="confirm-title">Batalkan perubahan?</h4>
+          <p class="confirm-desc">Anda memiliki data yang belum disimpan. Apakah yakin ingin menutup form ini?</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="showDiscardConfirm = false">Kembali</button>
+          <button class="btn-discard" @click="forceClose">Ya, Batalkan</button>
         </div>
       </div>
     </div>
@@ -135,6 +156,7 @@ const uploading = ref(false);
 const uploadError = ref(null);
 const uploadForm = ref({ title: "", file: null, description: "" });
 const fileInputRef = ref(null);
+const showDiscardConfirm = ref(false);
 
 const watchingModule = ref(null);
 
@@ -155,7 +177,26 @@ onMounted(fetchModules);
 function openUploadModal() {
   uploadForm.value = { title: "", file: null, description: "" };
   uploadError.value = null;
+  showDiscardConfirm.value = false;
   showUploadModal.value = true;
+}
+
+function hasUploadChanges() {
+  return !!(uploadForm.value.title.trim() || uploadForm.value.file || uploadForm.value.description.trim());
+}
+
+function tryCloseUploadModal() {
+  if (uploading.value) return;
+  if (hasUploadChanges()) {
+    showDiscardConfirm.value = true;
+  } else {
+    showUploadModal.value = false;
+  }
+}
+
+function forceClose() {
+  showDiscardConfirm.value = false;
+  showUploadModal.value = false;
 }
 
 function closeUploadModal() {
@@ -511,6 +552,7 @@ function closeWatchModal() {
   border-radius: 7px;
   font-size: 14px;
   color: #1e293b;
+  background: #fff;
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.15s;
@@ -592,6 +634,52 @@ function closeWatchModal() {
   background: #000;
   max-height: 400px;
 }
+
+.modal-confirm {
+  max-width: 360px;
+}
+
+.confirm-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.confirm-icon svg {
+  width: 40px;
+  height: 40px;
+  color: #f59e0b;
+}
+
+.confirm-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  text-align: center;
+  margin: 0 0 8px;
+}
+
+.confirm-desc {
+  font-size: 13px;
+  color: #64748b;
+  text-align: center;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.btn-discard {
+  padding: 9px 18px;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-discard:hover { background: #dc2626; }
 
 .video-desc {
   font-size: 13px;

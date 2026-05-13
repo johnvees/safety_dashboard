@@ -17,13 +17,13 @@
     <!-- ── Input / Edit Form Modal ── -->
     <Teleport to="body">
       <Transition name="modal">
-        <div v-if="showForm" class="modal-overlay" @click.self="cancelForm">
+        <div v-if="showForm" class="modal-overlay" @click.self="tryCloseForm">
           <div class="modal-container">
             <div class="modal-header">
               <h3 class="modal-title">
                 {{ editingId ? 'Edit Temuan' : 'Input Temuan Baru' }}
               </h3>
-              <button class="modal-close" @click="cancelForm">
+              <button class="modal-close" @click="tryCloseForm">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -479,7 +479,7 @@
                   <button
                     type="button"
                     class="btn btn-secondary"
-                    @click="cancelForm"
+                    @click="tryCloseForm"
                   >
                     Batal
                   </button>
@@ -859,6 +859,31 @@
       </Transition>
     </Teleport>
 
+    <!-- Discard Confirm Dialog -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showDiscardConfirm" class="modal-overlay" style="z-index:1100">
+          <div class="modal-container modal-sm">
+            <div class="modal-body" style="padding:28px 24px 20px">
+              <div class="discard-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="36" height="36">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
+              <h4 class="discard-title">Batalkan perubahan?</h4>
+              <p class="discard-desc">Anda memiliki data yang belum disimpan. Apakah yakin ingin menutup form ini?</p>
+            </div>
+            <div class="discard-footer">
+              <button class="btn btn-secondary" @click="showDiscardConfirm = false">Kembali</button>
+              <button class="btn btn-discard-confirm" @click="forceCloseForm">Ya, Batalkan</button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- Toast notification -->
     <Teleport to="body">
       <Transition name="toast">
@@ -1131,6 +1156,8 @@ const showForm = ref(false);
 const submitting = ref(false);
 const loading = ref(false);
 const editingId = ref(null);
+const showDiscardConfirm = ref(false);
+const originalForm = ref(null);
 const records = ref([]);
 const businessUnits = ref([]);
 const plants = ref([]);
@@ -1345,10 +1372,54 @@ const defaultForm = () => ({
 
 const form = ref(defaultForm());
 
+function hasFormChanges() {
+  if (!editingId.value) {
+    const f = form.value;
+    return !!(
+      f.tanggal || f.kategoriTemuan || f.deskripsiTemuan || f.lokasi ||
+      f.tindakanPerbaikan || f.targetSelesai || f.businessUnitId ||
+      f.plantId || f.departmentId || photos.value.length > 0
+    );
+  } else {
+    if (!originalForm.value) return false;
+    const f = form.value;
+    const o = originalForm.value;
+    return (
+      f.tanggal !== o.tanggal ||
+      f.kategoriTemuan !== o.kategoriTemuan ||
+      f.deskripsiTemuan !== o.deskripsiTemuan ||
+      f.lokasi !== o.lokasi ||
+      f.tindakanPerbaikan !== o.tindakanPerbaikan ||
+      f.targetSelesai !== o.targetSelesai ||
+      f.status !== o.status ||
+      f.businessUnitId !== o.businessUnitId ||
+      f.plantId !== o.plantId ||
+      f.departmentId !== o.departmentId ||
+      photosAfter.value.some((p) => p.file !== null)
+    );
+  }
+}
+
+function tryCloseForm() {
+  if (submitting.value) return;
+  if (hasFormChanges()) {
+    showDiscardConfirm.value = true;
+  } else {
+    cancelForm();
+  }
+}
+
+function forceCloseForm() {
+  showDiscardConfirm.value = false;
+  cancelForm();
+}
+
 function cancelForm() {
   showForm.value = false;
   editingId.value = null;
   form.value = defaultForm();
+  originalForm.value = null;
+  showDiscardConfirm.value = false;
   clearPhotos();
   clearPhotosAfter();
 }
@@ -1442,7 +1513,7 @@ async function submitForm() {
 
 function editRecord(item) {
   editingId.value = item.id;
-  form.value = {
+  const formValues = {
     tanggal: item.tanggal,
     kategoriTemuan: item.kategoriTemuan,
     deskripsiTemuan: item.deskripsiTemuan || '',
@@ -1455,6 +1526,8 @@ function editRecord(item) {
     plantId: item.plantId || null,
     departmentId: item.departmentId || null,
   };
+  form.value = { ...formValues };
+  originalForm.value = { ...formValues };
   clearPhotos();
   clearPhotosAfter();
   if (item.fotoSebelum) {
@@ -2591,6 +2664,47 @@ tbody tr:hover {
   color: #94a3b8;
   font-size: 14px;
 }
+
+/* ── Discard confirm ── */
+.discard-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+  color: #f59e0b;
+}
+.discard-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  text-align: center;
+  margin: 0 0 8px;
+}
+.discard-desc {
+  font-size: 13px;
+  color: #64748b;
+  text-align: center;
+  margin: 0;
+  line-height: 1.6;
+}
+.discard-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 24px 20px;
+  border-top: 1px solid #f1f5f9;
+}
+.btn-discard-confirm {
+  padding: 9px 18px;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-discard-confirm:hover { background: #dc2626; }
 
 /* ── Mobile responsive ── */
 @media (max-width: 640px) {
