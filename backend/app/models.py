@@ -95,3 +95,15 @@ class InspectionK3L(Base):
     __table_args__ = (
         CheckConstraint("status IN ('Open', 'In Progress', 'Closed')", name="reports_inspectionk3l_status_check"),
     )
+
+
+class SafetyModule(Base):
+    __tablename__ = "safety_modules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(200), nullable=False)
+    video_url = Column(String(500))
+    description = Column(Text)
+    created_by = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, server_default=func.current_timestamp())
+    updated_at = Column(DateTime, server_default=func.current_timestamp(), onupdate=func.current_timestamp())

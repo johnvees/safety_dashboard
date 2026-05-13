@@ -8,7 +8,7 @@ from datetime import date
 
 from app import models, auth
 from app.database import get_db
-from app.cloudinary_utils import delete_image
+from app.cloudinary_utils import delete_image, delete_video
 
 
 def _get_db() -> Session:
@@ -39,6 +39,7 @@ class UserType:
     business_unit: str
     full_name: Optional[str] = None
     username: Optional[str] = None
+    role_id: Optional[int] = None
 
 
 @strawberry.type
@@ -147,6 +148,36 @@ class InspectionK3LPayload:
     inspection: Optional[InspectionK3LType] = None
 
 
+@strawberry.type
+class SafetyModuleType:
+    id: int
+    title: str
+    video_url: Optional[str] = None
+    description: Optional[str] = None
+    created_by: Optional[int] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
+@strawberry.type
+class SafetyModulePayload:
+    success: bool
+    message: str
+    module: Optional[SafetyModuleType] = None
+
+
+def _module_to_type(r: models.SafetyModule) -> SafetyModuleType:
+    return SafetyModuleType(
+        id=r.id,
+        title=r.title,
+        video_url=r.video_url,
+        description=r.description,
+        created_by=r.created_by,
+        created_at=str(r.created_at) if r.created_at else None,
+        updated_at=str(r.updated_at) if r.updated_at else None,
+    )
+
+
 def _bu_to_type(r: models.BusinessUnit) -> BusinessUnitType:
     return BusinessUnitType(
         id=r.id,
@@ -213,7 +244,19 @@ class Query:
         user = _get_current_user(info)
         if not user:
             return None
-        return UserType(id=user.id, email=user.email, role=user.role, business_unit=user.business_unit)
+        return UserType(id=user.id, email=user.email, role=user.role, business_unit=user.business_unit, role_id=user.role_id)
+
+    @strawberry.field
+    def safety_modules(self, info: strawberry.types.Info) -> List[SafetyModuleType]:
+        user = _get_current_user(info)
+        if not user:
+            return []
+        db = _get_db()
+        try:
+            records = db.query(models.SafetyModule).order_by(models.SafetyModule.created_at.desc()).all()
+            return [_module_to_type(r) for r in records]
+        finally:
+            db.close()
 
     @strawberry.field
     def inspection_k3l_list(self, info: strawberry.types.Info) -> List[InspectionK3LType]:
@@ -328,6 +371,7 @@ class Mutation:
                     business_unit=bu_name.name if bu_name else user.business_unit,
                     full_name=user.full_name,
                     username=user.username,
+                    role_id=user.role_id,
                 ),
             )
         except Exception as e:
@@ -362,6 +406,7 @@ class Mutation:
                     business_unit=bu_name.name if bu_name else user.business_unit,
                     full_name=user.full_name,
                     username=user.username,
+                    role_id=user.role_id,
                 ),
             )
         finally:
@@ -987,6 +1032,101 @@ class Mutation:
         except Exception as e:
             db.rollback()
             return UserPayload(success=False, message=f"Failed to delete: {str(e)}")
+        finally:
+            db.close()
+
+
+    # ── Safety Module mutations ──────────────────────────────────────────
+
+    @strawberry.mutation
+    def create_safety_module(
+        self,
+        info: strawberry.types.Info,
+        title: str,
+        video_url: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> SafetyModulePayload:
+        user = _get_current_user(info)
+        if not user:
+            return SafetyModulePayload(success=False, message="Authentication required")
+        if user.role_id != 1:
+            return SafetyModulePayload(success=False, message="Admin access required")
+        db = _get_db()
+        try:
+            record = models.SafetyModule(
+                title=title,
+                video_url=video_url,
+                description=description,
+                created_by=user.id,
+            )
+            db.add(record)
+            db.commit()
+            db.refresh(record)
+            return SafetyModulePayload(success=True, message="Module created", module=_module_to_type(record))
+        except Exception as e:
+            db.rollback()
+            return SafetyModulePayload(success=False, message=f"Failed to create: {str(e)}")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def update_safety_module(
+        self,
+        info: strawberry.types.Info,
+        id: int,
+        title: Optional[str] = None,
+        video_url: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> SafetyModulePayload:
+        user = _get_current_user(info)
+        if not user:
+            return SafetyModulePayload(success=False, message="Authentication required")
+        if user.role_id != 1:
+            return SafetyModulePayload(success=False, message="Admin access required")
+        db = _get_db()
+        try:
+            record = db.query(models.SafetyModule).filter(models.SafetyModule.id == id).first()
+            if not record:
+                return SafetyModulePayload(success=False, message="Module not found")
+            if title is not None:
+                record.title = title
+            if video_url is not None:
+                record.video_url = video_url
+            if description is not None:
+                record.description = description
+            db.commit()
+            db.refresh(record)
+            return SafetyModulePayload(success=True, message="Module updated", module=_module_to_type(record))
+        except Exception as e:
+            db.rollback()
+            return SafetyModulePayload(success=False, message=f"Failed to update: {str(e)}")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def delete_safety_module(self, info: strawberry.types.Info, id: int) -> SafetyModulePayload:
+        user = _get_current_user(info)
+        if not user:
+            return SafetyModulePayload(success=False, message="Authentication required")
+        if user.role_id != 1:
+            return SafetyModulePayload(success=False, message="Admin access required")
+        db = _get_db()
+        try:
+            record = db.query(models.SafetyModule).filter(models.SafetyModule.id == id).first()
+            if not record:
+                return SafetyModulePayload(success=False, message="Module not found")
+            video_url = record.video_url
+            db.delete(record)
+            db.commit()
+            if video_url:
+                try:
+                    delete_video(video_url)
+                except Exception:
+                    pass
+            return SafetyModulePayload(success=True, message="Module deleted")
+        except Exception as e:
+            db.rollback()
+            return SafetyModulePayload(success=False, message=f"Failed to delete: {str(e)}")
         finally:
             db.close()
 

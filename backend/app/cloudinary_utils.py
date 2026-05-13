@@ -30,3 +30,18 @@ def delete_image(url: str) -> None:
     public_id = _extract_public_id(url)
     if public_id:
         cloudinary.uploader.destroy(public_id, resource_type="image")
+
+
+def upload_video(file_bytes: bytes, folder: str = "safety_dashboard/videos") -> str:
+    result = cloudinary.uploader.upload(
+        file_bytes,
+        folder=folder,
+        resource_type="video",
+    )
+    return result["secure_url"]
+
+
+def delete_video(url: str) -> None:
+    public_id = _extract_public_id(url)
+    if public_id:
+        cloudinary.uploader.destroy(public_id, resource_type="video")
