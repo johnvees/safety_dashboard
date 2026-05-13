@@ -102,26 +102,22 @@
 
       <!-- Charts row -->
       <div class="charts-row">
-        <!-- Monthly bar chart -->
+        <!-- Monthly grouped bar chart -->
         <div class="chart-card chart-wide">
           <div class="chart-header">
             <div>
               <div class="chart-title">Monthly Trend</div>
-              <div class="chart-subtitle">Reports filed per month (last 6 months)</div>
+              <div class="chart-subtitle">Reports by category per month (last 6 months)</div>
+            </div>
+            <div class="grouped-legend">
+              <span v-for="s in activeCategories" :key="s.label" class="gl-item">
+                <span class="gl-dot" :style="{ background: s.color }"></span>{{ s.label }}
+              </span>
             </div>
           </div>
-          <div class="chart-body">
+          <div class="chart-body chart-grouped-wrap">
+            <div class="bar-scroll-outer" ref="barScrollRef" @mousemove="onChartMouseMove" @mouseleave="hideTooltip">
             <svg viewBox="0 0 520 185" class="bar-svg" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#3b82f6"/>
-                  <stop offset="100%" stop-color="#bfdbfe"/>
-                </linearGradient>
-                <linearGradient id="barGradHov" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#2563eb"/>
-                  <stop offset="100%" stop-color="#93c5fd"/>
-                </linearGradient>
-              </defs>
               <!-- Horizontal grid lines -->
               <line v-for="gl in gridLines" :key="gl.y"
                 x1="44" :y1="gl.y" x2="512" :y2="gl.y"
@@ -130,26 +126,57 @@
               <text v-for="gl in gridLines" :key="`y${gl.y}`"
                 x="38" :y="gl.y + 4"
                 text-anchor="end" font-size="10" fill="#94a3b8">{{ gl.label }}</text>
-              <!-- Bars -->
-              <g v-for="(bar, i) in barData" :key="i">
+              <!-- Groups -->
+              <g
+                v-for="(grp, i) in groupedBarData" :key="i"
+                @mouseenter="showGroupTooltip(grp)"
+                @mouseleave="hideTooltip"
+                style="cursor:default"
+              >
+                <!-- hover hit area -->
                 <rect
-                  :x="bar.x" :y="bar.y" :width="bar.w" :height="Math.max(bar.h, 2)"
-                  rx="5"
-                  :fill="bar.h > 0 ? 'url(#barGrad)' : '#f1f5f9'"
+                  :x="grp.bars[0].x - 4"
+                  y="0"
+                  :width="grp.groupW + 8"
+                  height="165"
+                  fill="transparent"
                 />
-                <text v-if="bar.count > 0"
-                  :x="bar.x + bar.w / 2" :y="bar.y - 7"
-                  text-anchor="middle" font-size="11" font-weight="700" fill="#3b82f6">
-                  {{ bar.count }}
+                <rect
+                  v-for="(bar, j) in grp.bars" :key="j"
+                  :x="bar.x" :y="bar.y" :width="bar.w" :height="Math.max(bar.h, 2)"
+                  rx="4"
+                  :fill="bar.color"
+                  :opacity="tooltipData && tooltipData.label !== grp.label ? 0.4 : 1"
+                  style="transition: opacity 0.15s"
+                />
+                <!-- Total above group -->
+                <text v-if="grp.total > 0"
+                  :x="grp.labelX" :y="grp.topY"
+                  text-anchor="middle" font-size="11" font-weight="700" fill="#475569">
+                  {{ grp.total }}
                 </text>
                 <!-- Month label -->
                 <text
-                  :x="bar.x + bar.w / 2" :y="175"
+                  :x="grp.labelX" :y="178"
                   text-anchor="middle" font-size="11" fill="#64748b">
-                  {{ bar.label }}
+                  {{ grp.label }}
                 </text>
               </g>
             </svg>
+            <!-- Tooltip -->
+            <div
+              v-if="tooltipData"
+              class="bar-tooltip"
+              :style="{ left: tooltipPos.x + 'px', top: tooltipPos.y + 'px' }"
+            >
+              <div class="tt-month">{{ tooltipData.label }}</div>
+              <div v-for="s in activeCategories" :key="s.key" class="tt-row">
+                <span class="tt-dot" :style="{ background: s.color }"></span>
+                <span class="tt-label">{{ s.label }}</span>
+                <span class="tt-val">{{ tooltipData[s.key] }}</span>
+              </div>
+            </div>
+            </div><!-- end bar-scroll-outer -->
           </div>
         </div>
 
@@ -161,7 +188,7 @@
               <div class="chart-subtitle">Finding distribution</div>
             </div>
           </div>
-          <div class="donut-body">
+          <div class="donut-body" @mousemove="onDonutMouseMove" @mouseleave="hideDonutTooltip">
             <svg viewBox="0 0 200 200" class="donut-svg" xmlns="http://www.w3.org/2000/svg">
               <circle cx="100" cy="100" r="65" fill="none" stroke="#f1f5f9" stroke-width="30"/>
               <circle
@@ -174,10 +201,24 @@
                 :stroke-dashoffset="-seg.offset"
                 transform="rotate(-90 100 100)"
                 stroke-linecap="butt"
+                :opacity="hoveredDonut && hoveredDonut.category !== seg.category ? 0.3 : 1"
+                style="transition: opacity 0.15s; cursor: pointer"
+                @mouseenter="hoveredDonut = seg"
+                @mouseleave="hoveredDonut = null"
               />
               <text x="100" y="95" text-anchor="middle" font-size="26" font-weight="800" fill="#1e293b">{{ stats.total }}</text>
               <text x="100" y="113" text-anchor="middle" font-size="10" fill="#94a3b8" letter-spacing="1">REPORTS</text>
             </svg>
+            <div
+              v-if="hoveredDonut"
+              class="donut-tooltip"
+              :style="{ left: donutTooltipPos.x + 'px', top: donutTooltipPos.y + 'px' }"
+            >
+              <span class="dt-dot" :style="{ background: hoveredDonut.color }"></span>
+              <span class="dt-cat">{{ hoveredDonut.category }}</span>
+              <span class="dt-count">{{ hoveredDonut.count }}</span>
+              <span class="dt-pct">{{ stats.total ? Math.round(hoveredDonut.count / stats.total * 100) : 0 }}%</span>
+            </div>
             <div class="donut-legend">
               <div v-for="seg in donutSegments" :key="seg.category" class="legend-item">
                 <span class="legend-dot" :style="{ background: seg.color }"></span>
@@ -211,7 +252,7 @@
               </button>
             </div>
           </div>
-          <div class="cal-body">
+          <div class="cal-body" @mousemove="onCalMouseMove" @mouseleave="hoveredDay = null">
             <div class="cal-weekdays">
               <div v-for="d in ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']" :key="d" class="cal-wd">{{ d }}</div>
             </div>
@@ -224,9 +265,25 @@
                   'cal-today': day.isToday,
                   'cal-active': day.currentMonth && day.count > 0,
                 }"
+                @mouseenter="day.currentMonth && day.count > 0 ? hoveredDay = day : null"
+                @mouseleave="hoveredDay = null"
               >
                 <span class="cal-num">{{ day.date }}</span>
-                <span v-if="day.count > 0 && day.currentMonth" class="cal-badge" :title="`${day.count} report(s)`">{{ day.count }}</span>
+                <span v-if="day.count > 0 && day.currentMonth" class="cal-badge">{{ day.count }}</span>
+              </div>
+            </div>
+            <!-- Day tooltip -->
+            <div
+              v-if="hoveredDay"
+              class="cal-tooltip"
+              :style="{ left: dayTooltipPos.x + 'px', top: dayTooltipPos.y + 'px' }"
+            >
+              <div class="cal-tt-date">{{ calendarMonthYear.split(' ')[0] }} {{ hoveredDay.date }}</div>
+              <div class="cal-tt-total">{{ hoveredDay.count }} report{{ hoveredDay.count !== 1 ? 's' : '' }}</div>
+              <div v-for="(cnt, cat) in hoveredDay.cats" :key="cat" class="cal-tt-row">
+                <span class="cal-tt-dot" :style="{ background: categoryColor(cat) }"></span>
+                <span class="cal-tt-cat">{{ cat }}</span>
+                <span class="cal-tt-cnt">{{ cnt }}</span>
               </div>
             </div>
           </div>
@@ -257,7 +314,7 @@
               </svg>
               <p>No reports yet</p>
             </div>
-            <div v-for="rec in recentRecords" :key="rec.id" class="recent-item">
+            <div v-for="rec in recentRecords" :key="rec.id" class="recent-item" @click="openRecord(rec.id)" style="cursor:pointer">
               <div class="recent-cat-dot" :style="{ background: categoryColor(rec.kategoriTemuan) }"></div>
               <div class="recent-info">
                 <div class="recent-cat">{{ rec.kategoriTemuan }}</div>
@@ -276,13 +333,17 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
+import { useRouter } from 'vue-router';
 import { inspectionK3LService } from '@/services/inspectionK3LService.js';
 import { authService } from '@/services/authService.js';
+
+const router = useRouter();
 
 const records = ref([]);
 const loading = ref(true);
 const calendarDate = ref(new Date());
+const barScrollRef = ref(null);
 
 const user = authService.getCurrentUser();
 const userName = computed(() => {
@@ -315,62 +376,124 @@ const resolutionRate = computed(() => {
   return Math.round((stats.value.closed / stats.value.total) * 100);
 });
 
-// ── Bar chart ──────────────────────────────────────────────────────
+// ── Grouped bar chart (by category) ───────────────────────────────
+const CAT_COLORS = {
+  'Low':    '#4ade80',
+  'Medium': '#fbbf24',
+  'High':   '#f87171',
+};
+
+const activeCategories = computed(() => {
+  const seen = new Set(records.value.map(r => r.kategoriTemuan).filter(Boolean));
+  const ordered = Object.keys(CAT_COLORS).filter(c => seen.has(c));
+  seen.forEach(c => { if (!CAT_COLORS[c]) ordered.push(c); });
+  return ordered.map(cat => ({ key: cat, label: cat, color: CAT_COLORS[cat] || '#94a3b8' }));
+});
+
 const monthlyData = computed(() => {
   const now = new Date();
+  const cats = activeCategories.value;
   const months = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-    return { label: d.toLocaleString('default', { month: 'short' }), year: d.getFullYear(), month: d.getMonth(), count: 0 };
+    const counts = {};
+    cats.forEach(c => { counts[c.key] = 0; });
+    return { label: d.toLocaleString('default', { month: 'short' }), year: d.getFullYear(), month: d.getMonth(), counts };
   });
   records.value.forEach(r => {
-    if (!r.tanggal) return;
+    if (!r.tanggal || !r.kategoriTemuan) return;
     const d = new Date(r.tanggal);
     const idx = months.findIndex(m => m.year === d.getFullYear() && m.month === d.getMonth());
-    if (idx >= 0) months[idx].count++;
+    if (idx >= 0 && months[idx].counts[r.kategoriTemuan] !== undefined) {
+      months[idx].counts[r.kategoriTemuan]++;
+    }
   });
   return months;
 });
 
-const BAR_W = 54;
-const BAR_GAP = 22;
-const CHART_TOP = 15;
+const CHART_TOP = 30;
 const CHART_H = 140;
 const CHART_LEFT = 48;
 
-const barData = computed(() => {
+const barLayout = computed(() => {
+  const n = Math.max(1, activeCategories.value.length);
+  const plotW = 464; // 520 - CHART_LEFT - 8
+  const groupGap = 16;
+  const groupW = Math.floor((plotW - 5 * groupGap) / 6);
+  const barInnerGap = n > 1 ? 2 : 0;
+  const barW = Math.max(4, Math.floor((groupW - (n - 1) * barInnerGap) / n));
+  const actualGroupW = n * barW + (n - 1) * barInnerGap;
+  return { barW, barInnerGap, groupGap, groupW: actualGroupW };
+});
+
+const groupedBarData = computed(() => {
   const data = monthlyData.value;
-  const maxCount = Math.max(...data.map(d => d.count), 1);
+  const cats = activeCategories.value;
+  const { barW, barInnerGap, groupGap, groupW } = barLayout.value;
+  const maxVal = Math.max(...data.flatMap(d => cats.map(c => d.counts[c.key] || 0)), 1);
   return data.map((d, i) => {
-    const h = (d.count / maxCount) * CHART_H;
-    return {
-      x: CHART_LEFT + i * (BAR_W + BAR_GAP),
-      y: CHART_TOP + CHART_H - h,
-      w: BAR_W,
-      h,
-      label: d.label,
-      count: d.count,
-    };
+    const gx = CHART_LEFT + i * (groupW + groupGap);
+    const bars = cats.map((c, j) => {
+      const count = d.counts[c.key] || 0;
+      const h = (count / maxVal) * CHART_H;
+      return { x: gx + j * (barW + barInnerGap), y: CHART_TOP + CHART_H - h, w: barW, h, count, color: c.color };
+    });
+    const total = cats.reduce((s, c) => s + (d.counts[c.key] || 0), 0);
+    const topY = Math.min(...bars.map(b => b.y)) - 8;
+    const catCounts = {};
+    cats.forEach(c => { catCounts[c.key] = d.counts[c.key] || 0; });
+    return { bars, label: d.label, labelX: gx + groupW / 2, groupW, total, topY, ...catCounts };
   });
 });
 
 const gridLines = computed(() => {
-  const maxCount = Math.max(...monthlyData.value.map(d => d.count), 1);
-  return [0, 1, 2, 3, 4].map(i => ({
-    y: CHART_TOP + CHART_H - (i / 4) * CHART_H,
-    label: Math.round((i / 4) * maxCount),
-  }));
+  const cats = activeCategories.value;
+  const maxVal = Math.max(...monthlyData.value.flatMap(d => cats.map(c => d.counts[c.key] || 0)), 1);
+  const step = maxVal <= 4 ? 1 : Math.ceil(maxVal / 4);
+  const ticks = [];
+  for (let v = 0; v <= maxVal; v += step) {
+    ticks.push({ y: CHART_TOP + CHART_H - (v / maxVal) * CHART_H, label: v });
+  }
+  if (ticks[ticks.length - 1].label !== maxVal) {
+    ticks.push({ y: CHART_TOP, label: maxVal });
+  }
+  return ticks;
 });
 
+// ── Tooltip ────────────────────────────────────────────────────────
+const tooltipData = ref(null);
+const tooltipPos  = ref({ x: 0, y: 0 });
+
+function showGroupTooltip(grp) {
+  tooltipData.value = grp;
+}
+function hideTooltip() {
+  tooltipData.value = null;
+}
+function onChartMouseMove(e) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const TT_W = 155;
+  let x = e.clientX - rect.left + 14;
+  let y = e.clientY - rect.top - 65;
+  if (x + TT_W > rect.width) x = e.clientX - rect.left - TT_W - 14;
+  if (y < 4) y = 4;
+  tooltipPos.value = { x, y };
+}
+
 // ── Donut chart ────────────────────────────────────────────────────
-const CAT_COLORS = {
-  'Unsafe Action':    '#ef4444',
-  'Unsafe Condition': '#f59e0b',
-  'Lingkungan':       '#10b981',
-  'Kesehatan Kerja':  '#3b82f6',
-  'APD':              '#8b5cf6',
-  'Housekeeping':     '#06b6d4',
-  'Lainnya':          '#94a3b8',
-};
+const hoveredDonut = ref(null);
+const donutTooltipPos = ref({ x: 0, y: 0 });
+
+function onDonutMouseMove(e) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  donutTooltipPos.value = {
+    x: e.clientX - rect.left + 12,
+    y: e.clientY - rect.top - 44,
+  };
+}
+
+function hideDonutTooltip() {
+  hoveredDonut.value = null;
+}
 
 function categoryColor(cat) {
   return CAT_COLORS[cat] || '#94a3b8';
@@ -383,8 +506,13 @@ const donutSegments = computed(() => {
   const counts = {};
   records.value.forEach(r => { counts[r.kategoriTemuan] = (counts[r.kategoriTemuan] || 0) + 1; });
   let cumulative = 0;
+  const order = Object.keys(CAT_COLORS);
   return Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => {
+      const ai = order.indexOf(a[0]);
+      const bi = order.indexOf(b[0]);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    })
     .map(([cat, count]) => {
       const fullLen = (count / stats.value.total) * CIRC;
       const seg = {
@@ -401,6 +529,18 @@ const donutSegments = computed(() => {
 });
 
 // ── Calendar ───────────────────────────────────────────────────────
+const hoveredDay = ref(null);
+const dayTooltipPos = ref({ x: 0, y: 0 });
+
+function onCalMouseMove(e) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const TT_W = 150;
+  let x = e.clientX - rect.left + 12;
+  let y = e.clientY - rect.top - 60;
+  if (x + TT_W > rect.width) x = e.clientX - rect.left - TT_W - 12;
+  if (y < 4) y = 4;
+  dayTooltipPos.value = { x, y };
+}
 const calendarMonthYear = computed(() =>
   calendarDate.value.toLocaleString('default', { month: 'long', year: 'numeric' })
 );
@@ -419,17 +559,20 @@ const calendarDays = computed(() => {
     if (!r.tanggal) return;
     const d = new Date(r.tanggal + 'T00:00:00');
     if (d.getFullYear() === year && d.getMonth() === month) {
-      reportMap[d.getDate()] = (reportMap[d.getDate()] || 0) + 1;
+      const key = d.getDate();
+      if (!reportMap[key]) reportMap[key] = { count: 0, cats: {} };
+      reportMap[key].count++;
+      if (r.kategoriTemuan) reportMap[key].cats[r.kategoriTemuan] = (reportMap[key].cats[r.kategoriTemuan] || 0) + 1;
     }
   });
 
   const days = [];
-  for (let i = firstDow - 1; i >= 0; i--) days.push({ date: daysInPrev - i, currentMonth: false, isToday: false, count: 0 });
+  for (let i = firstDow - 1; i >= 0; i--) days.push({ date: daysInPrev - i, currentMonth: false, isToday: false, count: 0, cats: {} });
   for (let d = 1; d <= daysInMonth; d++) {
     const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
-    days.push({ date: d, currentMonth: true, isToday, count: reportMap[d] || 0 });
+    days.push({ date: d, currentMonth: true, isToday, count: reportMap[d]?.count || 0, cats: reportMap[d]?.cats || {} });
   }
-  for (let d = 1; days.length < 42; d++) days.push({ date: d, currentMonth: false, isToday: false, count: 0 });
+  for (let d = 1; days.length < 42; d++) days.push({ date: d, currentMonth: false, isToday: false, count: 0, cats: {} });
   return days;
 });
 
@@ -451,6 +594,10 @@ const recentRecords = computed(() =>
     .slice(0, 6)
 );
 
+function openRecord(id) {
+  router.push({ path: '/dashboard/reports/inspection-k3l', query: { view: id } });
+}
+
 function formatDate(s) {
   if (!s) return '—';
   return new Date(s + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -463,6 +610,10 @@ onMounted(async () => {
     console.error(e);
   } finally {
     loading.value = false;
+    await nextTick();
+    if (barScrollRef.value) {
+      barScrollRef.value.scrollLeft = barScrollRef.value.scrollWidth;
+    }
   }
 });
 </script>
@@ -698,38 +849,171 @@ onMounted(async () => {
   padding: 8px 16px 12px;
 }
 
+.chart-grouped-wrap {
+  position: relative;
+}
+
+.bar-scroll-outer {
+  position: relative;
+}
+
+@media (max-width: 640px) {
+  .bar-scroll-outer {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .bar-scroll-outer .bar-svg {
+    width: 700px;
+    height: auto;
+  }
+}
+
 .bar-svg {
   width: 100%;
   height: auto;
   display: block;
 }
 
+/* ── Grouped chart legend ────────────────────────────────────────── */
+.grouped-legend {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.gl-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.gl-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* ── Tooltip ─────────────────────────────────────────────────────── */
+.bar-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: #1e293b;
+  border-radius: 10px;
+  padding: 10px 14px;
+  min-width: 140px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  z-index: 10;
+}
+
+.tt-month {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.tt-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.tt-row:last-child { margin-bottom: 0; }
+
+.tt-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.tt-label {
+  flex: 1;
+  color: #94a3b8;
+}
+
+.tt-val {
+  font-weight: 700;
+  color: #fff;
+}
+
 /* ── Donut chart ────────────────────────────────────────────────── */
 .donut-body {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
   padding: 12px 16px 18px;
+  position: relative;
 }
 
 .donut-svg {
-  width: 140px;
+  width: 160px;
   flex-shrink: 0;
 }
 
 .donut-legend {
-  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px 4px;
+  margin-top: 14px;
+  width: 100%;
+}
+
+.donut-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: #1e293b;
+  border-radius: 10px;
+  padding: 7px 12px;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  z-index: 10;
+  white-space: nowrap;
+}
+
+.dt-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.dt-cat {
+  font-size: 12px;
+  color: #94a3b8;
+  flex: 1;
+}
+
+.dt-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.dt-pct {
+  font-size: 11px;
+  color: #64748b;
+  margin-left: 2px;
 }
 
 .legend-item {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   font-size: 12px;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 8px 6px;
 }
 
 .legend-dot {
@@ -740,18 +1024,17 @@ onMounted(async () => {
 }
 
 .legend-label {
-  flex: 1;
-  color: #475569;
-  font-size: 12px;
+  color: #64748b;
+  font-size: 11px;
+  text-align: center;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .legend-count {
-  font-weight: 700;
+  font-weight: 800;
   color: #1e293b;
-  font-size: 12px;
+  font-size: 16px;
+  line-height: 1;
 }
 
 /* ── Bottom row ─────────────────────────────────────────────────── */
@@ -759,6 +1042,62 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+}
+
+/* ── Calendar tooltip ───────────────────────────────────────────── */
+.cal-body {
+  position: relative;
+}
+
+.cal-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: #1e293b;
+  border-radius: 10px;
+  padding: 9px 13px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  z-index: 10;
+  min-width: 130px;
+}
+
+.cal-tt-date {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+.cal-tt-total {
+  font-size: 11px;
+  color: #64748b;
+  margin-bottom: 7px;
+}
+
+.cal-tt-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  margin-bottom: 3px;
+}
+
+.cal-tt-row:last-child { margin-bottom: 0; }
+
+.cal-tt-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.cal-tt-cat {
+  flex: 1;
+  color: #94a3b8;
+}
+
+.cal-tt-cnt {
+  font-weight: 700;
+  color: #fff;
 }
 
 /* ── Calendar ───────────────────────────────────────────────────── */

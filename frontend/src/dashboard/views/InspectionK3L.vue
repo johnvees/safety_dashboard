@@ -482,12 +482,12 @@
         <div
           v-if="showViewModal && viewingRecord"
           class="modal-overlay"
-          @click.self="showViewModal = false"
+          @click.self="closeViewModal()"
         >
           <div class="modal-container modal-lg">
             <div class="modal-header">
               <h3 class="modal-title">Detail Temuan</h3>
-              <button class="modal-close" @click="showViewModal = false">
+              <button class="modal-close" @click="closeViewModal()">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -1094,11 +1094,15 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import {
   inspectionK3LService,
   uploadImage,
 } from '@/services/inspectionK3LService.js';
 import { exportToCsv } from '@/services/exportCsvService.js';
+
+const route = useRoute();
+const router = useRouter();
 
 const showForm = ref(false);
 const submitting = ref(false);
@@ -1164,6 +1168,12 @@ const viewingRecord = ref(null);
 function viewRecord(item) {
   viewingRecord.value = item;
   showViewModal.value = true;
+}
+
+function closeViewModal() {
+  showViewModal.value = false;
+  viewingRecord.value = null;
+  if (route.query.view) router.replace({ query: {} });
 }
 
 // ── Photo lightbox ──
@@ -1513,9 +1523,13 @@ function exportCsv() {
   exportToCsv(`inspection-k3l-${today}.csv`, columns, rows);
 }
 
-onMounted(() => {
-  loadData(true);
+onMounted(async () => {
+  await loadData(true);
   loadLocationOptions(true);
+  if (route.query.view) {
+    const target = records.value.find(r => String(r.id) === String(route.query.view));
+    if (target) viewRecord(target);
+  }
 });
 </script>
 
