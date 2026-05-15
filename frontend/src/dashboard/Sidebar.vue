@@ -60,6 +60,9 @@
           <router-link to="/dashboard/reports/inspection-k3l" class="nav-subitem" active-class="active">
             Inspection K3L
           </router-link>
+          <router-link to="/dashboard/reports/hse-daily" class="nav-subitem" active-class="active">
+            HSE Daily Report
+          </router-link>
         </div>
       </div>
 

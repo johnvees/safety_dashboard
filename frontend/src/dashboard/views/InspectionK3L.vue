@@ -672,6 +672,10 @@
           v-if="showPhotoModal"
           class="lightbox-overlay"
           @click.self="showPhotoModal = false"
+          @keydown.left="photoModalIndex = (photoModalIndex - 1 + photoModalImages.length) % photoModalImages.length"
+          @keydown.right="photoModalIndex = (photoModalIndex + 1) % photoModalImages.length"
+          @keydown.esc="showPhotoModal = false"
+          tabindex="0"
         >
           <button class="lightbox-close" @click="showPhotoModal = false">
             <svg
@@ -712,9 +716,9 @@
               alt="Foto"
               class="lightbox-img"
             />
-            <div class="lightbox-counter" v-if="photoModalImages.length > 1">
-              {{ photoModalIndex + 1 }} / {{ photoModalImages.length }}
-            </div>
+          </div>
+          <div v-if="photoModalImages.length > 1" class="lightbox-dots">
+            <span v-for="(_, i) in photoModalImages" :key="i" class="lightbox-dot" :class="{ active: i === photoModalIndex }" @click.stop="photoModalIndex = i"></span>
           </div>
           <button
             class="lightbox-nav lightbox-next"
@@ -911,6 +915,20 @@
             {{ loading ? 'Loading...' : 'Refresh' }}
           </button>
         </div>
+      </div>
+
+      <!-- Date filter row -->
+      <div class="date-filter-row">
+        <button v-for="opt in DATE_PRESETS" :key="opt.value" class="date-chip" :class="{ active: filterDate === opt.value }" @click="setDatePreset(opt.value)">{{ opt.label }}</button>
+        <template v-if="filterDate === 'custom'">
+          <label class="toolbar-date-wrap">
+            <input type="date" v-model="customDateFrom" class="toolbar-date" @click="$event.target.showPicker?.()" />
+          </label>
+          <span class="date-sep">–</span>
+          <label class="toolbar-date-wrap">
+            <input type="date" v-model="customDateTo" class="toolbar-date" @click="$event.target.showPicker?.()" />
+          </label>
+        </template>
       </div>
 
       <!-- Filter bar -->
@@ -1129,7 +1147,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   inspectionK3LService,
@@ -1165,9 +1183,25 @@ const filteredPlants = computed(() => {
 const searchQuery = ref('');
 const filterKategori = ref('');
 const filterStatus = ref('');
+const filterDate = ref('all');
+const customDateFrom = ref('');
+const customDateTo = ref('');
+
+const DATE_PRESETS = [
+  { label: 'Semua', value: 'all' },
+  { label: 'Hari ini', value: 'today' },
+  { label: 'Minggu ini', value: 'week' },
+  { label: 'Bulan ini', value: 'month' },
+  { label: 'Kustom', value: 'custom' },
+];
+
+function setDatePreset(val) {
+  filterDate.value = val;
+  if (val !== 'custom') { customDateFrom.value = ''; customDateTo.value = ''; }
+}
 
 const hasActiveFilters = computed(
-  () => searchQuery.value.trim() !== '' || filterKategori.value !== '' || filterStatus.value !== '',
+  () => searchQuery.value.trim() !== '' || filterKategori.value !== '' || filterStatus.value !== '' || filterDate.value !== 'all',
 );
 
 const filteredRecords = computed(() => {
@@ -1194,6 +1228,26 @@ const filteredRecords = computed(() => {
     );
   }
 
+  if (filterDate.value !== 'all') {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    result = result.filter((r) => {
+      if (!r.tanggal) return false;
+      const d = new Date(r.tanggal); d.setHours(0, 0, 0, 0);
+      if (filterDate.value === 'today') return d.getTime() === today.getTime();
+      if (filterDate.value === 'week') {
+        const start = new Date(today); start.setDate(today.getDate() - today.getDay());
+        const end = new Date(start); end.setDate(start.getDate() + 6);
+        return d >= start && d <= end;
+      }
+      if (filterDate.value === 'month') return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+      if (filterDate.value === 'custom') {
+        if (customDateFrom.value) { const from = new Date(customDateFrom.value); from.setHours(0,0,0,0); if (d < from) return false; }
+        if (customDateTo.value)   { const to   = new Date(customDateTo.value);   to.setHours(0,0,0,0);   if (d > to)   return false; }
+      }
+      return true;
+    });
+  }
+
   return result;
 });
 
@@ -1201,6 +1255,9 @@ function resetFilters() {
   searchQuery.value = '';
   filterKategori.value = '';
   filterStatus.value = '';
+  filterDate.value = 'all';
+  customDateFrom.value = '';
+  customDateTo.value = '';
 }
 
 // ── View detail modal ──
@@ -1237,6 +1294,7 @@ function openPhotoModalFromUrls(urls, idx) {
   photoModalImages.value = urls;
   photoModalIndex.value = idx;
   showPhotoModal.value = true;
+  nextTick(() => document.querySelector('.lightbox-overlay')?.focus());
 }
 
 // ── Lookup helpers ──
@@ -1999,10 +2057,24 @@ onMounted(async () => {
   border-radius: 8px;
 }
 
-.lightbox-counter {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 13px;
-  margin-top: 12px;
+.lightbox-dots {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+}
+.lightbox-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.lightbox-dot.active {
+  background: #fff;
 }
 
 .lightbox-close {
@@ -2440,6 +2512,16 @@ onMounted(async () => {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ── Date filter row ── */
+.date-filter-row { display: flex; align-items: center; gap: 6px; padding: 10px 16px; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; }
+.date-chip { background: #f1f5f9; border: 1px solid transparent; border-radius: 20px; padding: 5px 14px; font-size: 13px; color: #64748b; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.date-chip:hover { background: #e2e8f0; color: #1e293b; }
+.date-chip.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+.toolbar-date-wrap { display: inline-flex; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; overflow: hidden; cursor: pointer; transition: border-color 0.15s; }
+.toolbar-date-wrap:focus-within { border-color: #3b82f6; }
+.toolbar-date { border: none; background: transparent; color: #1e293b; font-size: 13px; padding: 6px 10px; outline: none; cursor: pointer; color-scheme: light; width: 140px; }
+.date-sep { color: #94a3b8; font-size: 13px; }
 
 /* ── Filter bar ── */
 .filter-bar {

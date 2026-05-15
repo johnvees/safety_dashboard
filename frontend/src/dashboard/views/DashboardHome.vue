@@ -44,6 +44,20 @@
     </div>
 
     <template v-else>
+      <!-- Date filter row -->
+      <div class="date-filter-row">
+        <button v-for="opt in DATE_PRESETS" :key="opt.value" class="date-chip" :class="{ active: filterDate === opt.value }" @click="setDatePreset(opt.value)">{{ opt.label }}</button>
+        <template v-if="filterDate === 'custom'">
+          <label class="toolbar-date-wrap">
+            <input type="date" v-model="customDateFrom" class="toolbar-date" @click="$event.target.showPicker?.()" />
+          </label>
+          <span class="date-sep">–</span>
+          <label class="toolbar-date-wrap">
+            <input type="date" v-model="customDateTo" class="toolbar-date" @click="$event.target.showPicker?.()" />
+          </label>
+        </template>
+      </div>
+
       <!-- KPI Cards -->
       <div class="kpi-grid">
         <div class="kpi-card">
@@ -371,6 +385,44 @@ const loadFailed = ref(false);
 const calendarDate = ref(new Date());
 const barScrollRef = ref(null);
 
+const filterDate = ref('all');
+const customDateFrom = ref('');
+const customDateTo = ref('');
+
+const DATE_PRESETS = [
+  { label: 'Semua', value: 'all' },
+  { label: 'Hari ini', value: 'today' },
+  { label: 'Minggu ini', value: 'week' },
+  { label: 'Bulan ini', value: 'month' },
+  { label: 'Kustom', value: 'custom' },
+];
+
+function setDatePreset(val) {
+  filterDate.value = val;
+  if (val !== 'custom') { customDateFrom.value = ''; customDateTo.value = ''; }
+}
+
+const filteredByDate = computed(() => {
+  if (filterDate.value === 'all') return records.value;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return records.value.filter(r => {
+    if (!r.tanggal) return false;
+    const d = new Date(r.tanggal); d.setHours(0, 0, 0, 0);
+    if (filterDate.value === 'today') return d.getTime() === today.getTime();
+    if (filterDate.value === 'week') {
+      const start = new Date(today); start.setDate(today.getDate() - today.getDay());
+      const end = new Date(start); end.setDate(start.getDate() + 6);
+      return d >= start && d <= end;
+    }
+    if (filterDate.value === 'month') return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+    if (filterDate.value === 'custom') {
+      if (customDateFrom.value) { const from = new Date(customDateFrom.value); from.setHours(0,0,0,0); if (d < from) return false; }
+      if (customDateTo.value)   { const to   = new Date(customDateTo.value);   to.setHours(0,0,0,0);   if (d > to)   return false; }
+    }
+    return true;
+  });
+});
+
 const user = authService.getCurrentUser();
 const userName = computed(() => {
   if (user?.fullName) return user.fullName.split(' ')[0];
@@ -391,10 +443,10 @@ const currentMonthYear = computed(() =>
 
 // ── Stats ──────────────────────────────────────────────────────────
 const stats = computed(() => ({
-  total: records.value.length,
-  open: records.value.filter(r => r.status === 'Open').length,
-  inProgress: records.value.filter(r => r.status === 'In Progress').length,
-  closed: records.value.filter(r => r.status === 'Closed').length,
+  total: filteredByDate.value.length,
+  open: filteredByDate.value.filter(r => r.status === 'Open').length,
+  inProgress: filteredByDate.value.filter(r => r.status === 'In Progress').length,
+  closed: filteredByDate.value.filter(r => r.status === 'Closed').length,
 }));
 
 const resolutionRate = computed(() => {
@@ -615,7 +667,7 @@ function nextMonth() {
 
 // ── Recent records ─────────────────────────────────────────────────
 const recentRecords = computed(() =>
-  [...records.value]
+  [...filteredByDate.value]
     .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
     .slice(0, 6)
 );
@@ -655,6 +707,16 @@ onMounted(async () => {
   padding: 28px 32px;
   max-width: 1400px;
 }
+
+/* ── Date filter ─────────────────────────────────────────────────── */
+.date-filter-row { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+.date-chip { background: #f1f5f9; border: 1px solid transparent; border-radius: 20px; padding: 5px 14px; font-size: 13px; color: #64748b; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.date-chip:hover { background: #e2e8f0; color: #1e293b; }
+.date-chip.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+.toolbar-date-wrap { display: inline-flex; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; overflow: hidden; cursor: pointer; transition: border-color 0.15s; }
+.toolbar-date-wrap:focus-within { border-color: #3b82f6; }
+.toolbar-date { border: none; background: transparent; color: #1e293b; font-size: 13px; padding: 6px 10px; outline: none; cursor: pointer; color-scheme: light; width: 140px; }
+.date-sep { color: #94a3b8; font-size: 13px; }
 
 /* ── Header ─────────────────────────────────────────────────────── */
 .dash-header {

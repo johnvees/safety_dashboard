@@ -52,6 +52,7 @@ class UserType:
     email: str
     role: str
     business_unit: str
+    plant: Optional[str] = None
     full_name: Optional[str] = None
     username: Optional[str] = None
     role_id: Optional[int] = None
@@ -189,6 +190,41 @@ class InspectionK3LPayload:
     inspection: Optional[InspectionK3LType] = None
 
 
+@strawberry.type
+class HseDailyType:
+    id: int
+    tanggal: str
+    pekerjaan: str
+    pekerja: str
+    lokasi_pekerjaan: Optional[str] = None
+    status_permit: bool = False
+    no_permit: Optional[str] = None
+    jenis_pekerjaan: Optional[str] = None
+    jenis_pekerjaan_lainnya: Optional[str] = None
+    potensi_bahaya: Optional[str] = None
+    level_risiko: Optional[str] = None
+    pengendalian_bahaya: Optional[str] = None
+    pengawas_hse: Optional[str] = None
+    saran_masukan: Optional[str] = None
+    foto: Optional[str] = None
+    department_id: Optional[int] = None
+    department_name: Optional[str] = None
+    business_unit_id: Optional[int] = None
+    business_unit_name: Optional[str] = None
+    plant_id: Optional[int] = None
+    plant_name: Optional[str] = None
+    created_by: Optional[int] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
+@strawberry.type
+class HseDailyPayload:
+    success: bool
+    message: str
+    report: Optional[HseDailyType] = None
+
+
 def _dept_to_type(r: models.Department) -> DepartmentType:
     return DepartmentType(
         id=r.id,
@@ -288,6 +324,46 @@ def _model_to_type(record: models.InspectionK3L) -> InspectionK3LType:
         created_at=str(record.created_at) if record.created_at else None,
         updated_at=str(record.updated_at) if record.updated_at else None,
     )
+
+
+def _hse_daily_to_type(r: models.HseDailyReport, db=None) -> HseDailyType:
+    close_db = False
+    if db is None:
+        db = _get_db()
+        close_db = True
+    try:
+        dept = db.query(models.Department).filter(models.Department.id == r.department_id).first() if r.department_id else None
+        bu = db.query(models.BusinessUnit).filter(models.BusinessUnit.id == r.business_unit_id).first() if r.business_unit_id else None
+        plant = db.query(models.Plant).filter(models.Plant.id == r.plant_id).first() if r.plant_id else None
+        return HseDailyType(
+            id=r.id,
+            tanggal=str(r.tanggal) if r.tanggal else "",
+            pekerjaan=r.pekerjaan,
+            pekerja=r.pekerja,
+            lokasi_pekerjaan=r.lokasi_pekerjaan,
+            status_permit=r.status_permit or False,
+            no_permit=r.no_permit,
+            jenis_pekerjaan=r.jenis_pekerjaan,
+            jenis_pekerjaan_lainnya=r.jenis_pekerjaan_lainnya,
+            potensi_bahaya=r.potensi_bahaya,
+            level_risiko=r.level_risiko,
+            pengendalian_bahaya=r.pengendalian_bahaya,
+            pengawas_hse=r.pengawas_hse,
+            saran_masukan=r.saran_masukan,
+            foto=r.foto,
+            department_id=r.department_id,
+            department_name=dept.name if dept else None,
+            business_unit_id=r.business_unit_id,
+            business_unit_name=bu.name if bu else None,
+            plant_id=r.plant_id,
+            plant_name=plant.name if plant else None,
+            created_by=r.created_by,
+            created_at=str(r.created_at) if r.created_at else None,
+            updated_at=str(r.updated_at) if r.updated_at else None,
+        )
+    finally:
+        if close_db:
+            db.close()
 
 
 @strawberry.type
@@ -423,6 +499,30 @@ class Query:
         finally:
             db.close()
 
+    @strawberry.field
+    def hse_daily_list(self, info: strawberry.types.Info) -> List[HseDailyType]:
+        user = _get_current_user(info)
+        if not user:
+            return []
+        db = _get_db()
+        try:
+            records = db.query(models.HseDailyReport).order_by(models.HseDailyReport.created_at.desc()).all()
+            return [_hse_daily_to_type(r, db) for r in records]
+        finally:
+            db.close()
+
+    @strawberry.field
+    def hse_daily_by_id(self, info: strawberry.types.Info, id: int) -> Optional[HseDailyType]:
+        user = _get_current_user(info)
+        if not user:
+            return None
+        db = _get_db()
+        try:
+            record = db.query(models.HseDailyReport).filter(models.HseDailyReport.id == id).first()
+            return _hse_daily_to_type(record, db) if record else None
+        finally:
+            db.close()
+
 
 @strawberry.type
 class Mutation:
@@ -449,6 +549,7 @@ class Mutation:
             token = auth.create_token(email)
             role_name = db.query(models.Role).filter(models.Role.id == user.role_id).first()
             bu_name = db.query(models.BusinessUnit).filter(models.BusinessUnit.id == user.business_unit_id).first()
+            plant_rec = db.query(models.Plant).filter(models.Plant.id == user.plant_id).first()
             return AuthPayload(
                 success=True,
                 message="Registration successful",
@@ -457,6 +558,7 @@ class Mutation:
                     id=user.id, email=user.email,
                     role=role_name.name if role_name else "",
                     business_unit=bu_name.name if bu_name else "",
+                    plant=plant_rec.name if plant_rec else None,
                     full_name=user.full_name,
                     username=user.username,
                     role_id=user.role_id,
@@ -486,6 +588,7 @@ class Mutation:
             token = auth.create_token(email)
             role_name = db.query(models.Role).filter(models.Role.id == user.role_id).first()
             bu_name = db.query(models.BusinessUnit).filter(models.BusinessUnit.id == user.business_unit_id).first()
+            plant_rec = db.query(models.Plant).filter(models.Plant.id == user.plant_id).first()
             return AuthPayload(
                 success=True,
                 message="Login successful",
@@ -494,6 +597,7 @@ class Mutation:
                     id=user.id, email=user.email,
                     role=role_name.name if role_name else "",
                     business_unit=bu_name.name if bu_name else "",
+                    plant=plant_rec.name if plant_rec else None,
                     full_name=user.full_name,
                     username=user.username,
                     role_id=user.role_id,
@@ -1363,6 +1467,174 @@ class Mutation:
         except Exception as e:
             db.rollback()
             return SafetyModulePayload(success=False, message=f"Failed to delete: {str(e)}")
+        finally:
+            db.close()
+
+
+    # ── HSE Daily Report mutations ───────────────────────────────────────
+
+    @strawberry.mutation
+    def create_hse_daily(
+        self,
+        info: strawberry.types.Info,
+        tanggal: str,
+        pekerjaan: str,
+        pekerja: str,
+        lokasi_pekerjaan: Optional[str] = None,
+        status_permit: Optional[bool] = False,
+        no_permit: Optional[str] = None,
+        jenis_pekerjaan: Optional[str] = None,
+        jenis_pekerjaan_lainnya: Optional[str] = None,
+        potensi_bahaya: Optional[str] = None,
+        level_risiko: Optional[str] = None,
+        pengendalian_bahaya: Optional[str] = None,
+        pengawas_hse: Optional[str] = None,
+        saran_masukan: Optional[str] = None,
+        foto: Optional[str] = None,
+        department_id: Optional[int] = None,
+        business_unit_id: Optional[int] = None,
+        plant_id: Optional[int] = None,
+    ) -> HseDailyPayload:
+        user = _get_current_user(info)
+        if not user:
+            return HseDailyPayload(success=False, message="Authentication required")
+        if level_risiko and level_risiko not in ("Rendah", "Sedang", "Tinggi"):
+            return HseDailyPayload(success=False, message="Level risiko must be Rendah, Sedang, or Tinggi")
+        db = _get_db()
+        try:
+            record = models.HseDailyReport(
+                tanggal=date.fromisoformat(tanggal),
+                pekerjaan=pekerjaan,
+                pekerja=pekerja,
+                lokasi_pekerjaan=lokasi_pekerjaan,
+                status_permit=status_permit or False,
+                no_permit=no_permit,
+                jenis_pekerjaan=jenis_pekerjaan,
+                jenis_pekerjaan_lainnya=jenis_pekerjaan_lainnya,
+                potensi_bahaya=potensi_bahaya,
+                level_risiko=level_risiko,
+                pengendalian_bahaya=pengendalian_bahaya,
+                pengawas_hse=pengawas_hse,
+                saran_masukan=saran_masukan,
+                foto=foto,
+                department_id=department_id,
+                business_unit_id=business_unit_id,
+                plant_id=plant_id,
+                created_by=user.id,
+            )
+            db.add(record)
+            db.commit()
+            db.refresh(record)
+            return HseDailyPayload(success=True, message="HSE Daily Report created", report=_hse_daily_to_type(record, db))
+        except Exception as e:
+            db.rollback()
+            return HseDailyPayload(success=False, message=f"Failed to create: {str(e)}")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def update_hse_daily(
+        self,
+        info: strawberry.types.Info,
+        id: int,
+        tanggal: Optional[str] = None,
+        pekerjaan: Optional[str] = None,
+        pekerja: Optional[str] = None,
+        lokasi_pekerjaan: Optional[str] = None,
+        status_permit: Optional[bool] = None,
+        no_permit: Optional[str] = None,
+        jenis_pekerjaan: Optional[str] = None,
+        jenis_pekerjaan_lainnya: Optional[str] = None,
+        potensi_bahaya: Optional[str] = None,
+        level_risiko: Optional[str] = None,
+        pengendalian_bahaya: Optional[str] = None,
+        pengawas_hse: Optional[str] = None,
+        saran_masukan: Optional[str] = None,
+        foto: Optional[str] = None,
+        department_id: Optional[int] = None,
+        business_unit_id: Optional[int] = None,
+        plant_id: Optional[int] = None,
+    ) -> HseDailyPayload:
+        user = _get_current_user(info)
+        if not user:
+            return HseDailyPayload(success=False, message="Authentication required")
+        db = _get_db()
+        try:
+            record = db.query(models.HseDailyReport).filter(models.HseDailyReport.id == id).first()
+            if not record:
+                return HseDailyPayload(success=False, message="Record not found")
+            if level_risiko and level_risiko not in ("Rendah", "Sedang", "Tinggi"):
+                return HseDailyPayload(success=False, message="Level risiko must be Rendah, Sedang, or Tinggi")
+            if tanggal is not None:
+                record.tanggal = date.fromisoformat(tanggal)
+            if pekerjaan is not None:
+                record.pekerjaan = pekerjaan
+            if pekerja is not None:
+                record.pekerja = pekerja
+            if lokasi_pekerjaan is not None:
+                record.lokasi_pekerjaan = lokasi_pekerjaan
+            if status_permit is not None:
+                record.status_permit = status_permit
+            if no_permit is not None:
+                record.no_permit = no_permit
+            if jenis_pekerjaan is not None:
+                record.jenis_pekerjaan = jenis_pekerjaan
+            if jenis_pekerjaan_lainnya is not None:
+                record.jenis_pekerjaan_lainnya = jenis_pekerjaan_lainnya
+            if potensi_bahaya is not None:
+                record.potensi_bahaya = potensi_bahaya
+            if level_risiko is not None:
+                record.level_risiko = level_risiko
+            if pengendalian_bahaya is not None:
+                record.pengendalian_bahaya = pengendalian_bahaya
+            if pengawas_hse is not None:
+                record.pengawas_hse = pengawas_hse
+            if saran_masukan is not None:
+                record.saran_masukan = saran_masukan
+            if foto is not None:
+                record.foto = foto
+            if department_id is not None:
+                record.department_id = department_id
+            if business_unit_id is not None:
+                record.business_unit_id = business_unit_id
+            if plant_id is not None:
+                record.plant_id = plant_id
+            db.commit()
+            db.refresh(record)
+            return HseDailyPayload(success=True, message="HSE Daily Report updated", report=_hse_daily_to_type(record, db))
+        except Exception as e:
+            db.rollback()
+            return HseDailyPayload(success=False, message=f"Failed to update: {str(e)}")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def delete_hse_daily(self, info: strawberry.types.Info, id: int) -> HseDailyPayload:
+        user = _get_current_user(info)
+        if not user:
+            return HseDailyPayload(success=False, message="Authentication required")
+        db = _get_db()
+        try:
+            record = db.query(models.HseDailyReport).filter(models.HseDailyReport.id == id).first()
+            if not record:
+                return HseDailyPayload(success=False, message="Record not found")
+            # Delete photos from Cloudinary
+            if record.foto:
+                try:
+                    urls = json.loads(record.foto)
+                    for url in (urls if isinstance(urls, list) else [urls]):
+                        try:
+                            delete_image(url)
+                        except Exception:
+                            pass
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            db.delete(record)
+            db.commit()
+            return HseDailyPayload(success=True, message="HSE Daily Report deleted")
+        except Exception as e:
+            db.rollback()
+            return HseDailyPayload(success=False, message=f"Failed to delete: {str(e)}")
         finally:
             db.close()
 

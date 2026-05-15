@@ -107,6 +107,51 @@ class InspectionK3L(Base):
     )
 
 
+class HseDailyReport(Base):
+    __tablename__ = "reports_hse_daily"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tanggal = Column(Date, nullable=False)
+
+    # Pekerjaan & Pekerja (JSON arrays stored as text)
+    pekerjaan = Column(Text, nullable=False)
+    pekerja = Column(Text, nullable=False)
+    lokasi_pekerjaan = Column(String(200))
+
+    # Permit
+    status_permit = Column(Boolean, server_default="false", nullable=False)
+    no_permit = Column(String(100))
+
+    # Jenis pekerjaan
+    jenis_pekerjaan = Column(String(100))
+    jenis_pekerjaan_lainnya = Column(String(200))
+
+    # Hazard analysis (JSON arrays stored as text)
+    potensi_bahaya = Column(Text)
+    level_risiko = Column(String(20))
+    pengendalian_bahaya = Column(Text)
+
+    # HSE officer & notes
+    pengawas_hse = Column(String(100))
+    saran_masukan = Column(Text)
+
+    # Photos (JSON array of URLs)
+    foto = Column(Text)
+
+    # Relasi
+    department_id = Column(Integer, ForeignKey("departments.id"))
+    business_unit_id = Column(Integer, ForeignKey("business_units.id"))
+    plant_id = Column(Integer, ForeignKey("plants.id"))
+    created_by = Column(Integer, ForeignKey("users.id"))
+
+    created_at = Column(DateTime, server_default=func.current_timestamp())
+    updated_at = Column(DateTime, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+    __table_args__ = (
+        CheckConstraint("level_risiko IN ('Rendah', 'Sedang', 'Tinggi')", name="reports_hse_daily_level_risiko_check"),
+    )
+
+
 class SafetyModule(Base):
     __tablename__ = "safety_modules"
 
