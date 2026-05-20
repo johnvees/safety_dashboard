@@ -71,7 +71,7 @@ class InspectionK3L(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    tanggal = Column(Date, nullable=False)
+    tanggal = Column(DateTime, nullable=False)
 
     # Temuan
     kategori_temuan = Column(String(100), nullable=False)
@@ -90,7 +90,7 @@ class InspectionK3L(Base):
 
     # Status
     status = Column(String(50), default="Open", server_default="Open")
-    aktual_close = Column(Date)
+    aktual_close = Column(DateTime)
 
     # Relasi
     created_by = Column(Integer, ForeignKey("users.id"))
@@ -111,7 +111,7 @@ class HseDailyReport(Base):
     __tablename__ = "reports_hse_daily"
 
     id = Column(Integer, primary_key=True, index=True)
-    tanggal = Column(Date, nullable=False)
+    tanggal = Column(DateTime, nullable=False)
 
     # Pekerjaan & Pekerja (JSON arrays stored as text)
     pekerjaan = Column(Text, nullable=False)

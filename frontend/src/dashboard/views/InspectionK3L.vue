@@ -47,10 +47,11 @@
                       <label>Tanggal <span class="required">*</span></label>
                       <div class="date-input-wrapper">
                         <input
-                          type="date"
+                          type="datetime-local"
                           v-model="form.tanggal"
                           required
                           ref="tanggalInput"
+                          @click="$refs.tanggalInput.showPicker()"
                         />
                         <svg
                           class="date-icon"
@@ -406,6 +407,7 @@
                           type="date"
                           v-model="form.targetSelesai"
                           ref="targetSelesaiInput"
+                          @click="$refs.targetSelesaiInput.showPicker()"
                         />
                         <svg
                           class="date-icon"
@@ -445,6 +447,31 @@
                         <option value="In Progress">In Progress</option>
                         <option value="Closed">Closed</option>
                       </select>
+                    </div>
+                    <div class="form-group" v-if="editingId && form.status === 'Closed'">
+                      <label>Aktual Close</label>
+                      <div class="date-input-wrapper">
+                        <input
+                          type="datetime-local"
+                          v-model="form.aktualClose"
+                          ref="aktualCloseInput"
+                          @click="$refs.aktualCloseInput.showPicker()"
+                        />
+                        <svg
+                          class="date-icon"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          width="18"
+                          height="18"
+                        >
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                          <line x1="16" y1="2" x2="16" y2="6"/>
+                          <line x1="8" y1="2" x2="8" y2="6"/>
+                          <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -631,7 +658,7 @@
                   <div class="detail-row">
                     <span class="detail-label">Target Selesai</span>
                     <span class="detail-value">{{
-                      formatDate(viewingRecord.targetSelesai)
+                      formatDateOnly(viewingRecord.targetSelesai)
                     }}</span>
                   </div>
                 </div>
@@ -1005,6 +1032,7 @@
               <th>Plant</th>
               <th>Tindakan Perbaikan</th>
               <th>Target Selesai</th>
+              <th>Aktual Close</th>
               <th>Status</th>
               <th>Aksi</th>
             </tr>
@@ -1083,7 +1111,8 @@
               </td>
               <td class="td-nowrap">{{ getPlantName(item.plantId) }}</td>
               <td class="td-truncate">{{ item.tindakanPerbaikan || '-' }}</td>
-              <td class="td-nowrap">{{ formatDate(item.targetSelesai) }}</td>
+              <td class="td-nowrap">{{ formatDateOnly(item.targetSelesai) }}</td>
+              <td class="td-nowrap">{{ formatDate(item.aktualClose) }}</td>
               <td>
                 <span
                   :class="[
@@ -1481,9 +1510,24 @@ function getDepartmentName(id) {
 
 function formatDate(val) {
   if (!val) return '-';
-  const [y, m, d] = val.split('-');
-  if (!y || !m || !d) return val;
-  return `${d}/${m}/${y}`;
+  const d = new Date(val.replace(' ', 'T'));
+  if (isNaN(d)) return val;
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+}
+
+function formatDateOnly(val) {
+  if (!val) return '-';
+  const d = new Date(val.replace(' ', 'T'));
+  if (isNaN(d)) return val;
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
 }
 
 // ── Toast ──
@@ -1691,7 +1735,7 @@ async function submitForm() {
       tindakanPerbaikan: form.value.tindakanPerbaikan || null,
       targetSelesai: form.value.targetSelesai || null,
       status: form.value.status || 'Open',
-      aktualClose: form.value.aktualClose || null,
+      aktualClose: form.value.status === 'Closed' ? (form.value.aktualClose || null) : null,
       businessUnitId: form.value.businessUnitId || null,
       plantId: form.value.plantId || null,
       departmentId: form.value.departmentId || null,
@@ -1726,14 +1770,14 @@ async function submitForm() {
 function editRecord(item) {
   editingId.value = item.id;
   const formValues = {
-    tanggal: item.tanggal,
+    tanggal: item.tanggal ? item.tanggal.replace(' ', 'T').slice(0, 16) : '',
     kategoriTemuan: item.kategoriTemuan,
     deskripsiTemuan: item.deskripsiTemuan || '',
     lokasi: item.lokasi || '',
     tindakanPerbaikan: item.tindakanPerbaikan || '',
     targetSelesai: item.targetSelesai || '',
     status: item.status,
-    aktualClose: item.aktualClose || '',
+    aktualClose: item.aktualClose ? item.aktualClose.replace(' ', 'T').slice(0, 16) : (item.status === 'Closed' ? (() => { const now = new Date(); return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16); })() : ''),
     businessUnitId: item.businessUnitId || null,
     plantId: item.plantId || null,
     departmentId: item.departmentId || null,
@@ -1942,6 +1986,15 @@ function renderSummaryCharts() {
 
 watch([summaryMonth, summaryYear], async () => {
   if (showSummaryModal.value) { await nextTick(); renderSummaryCharts(); }
+});
+
+watch(() => form.value.status, (newStatus) => {
+  if (newStatus === 'Closed' && !form.value.aktualClose) {
+    const now = new Date();
+    form.value.aktualClose = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  } else if (newStatus !== 'Closed') {
+    form.value.aktualClose = '';
+  }
 });
 
 // ── Download Monthly PDF (Option 3) ────────────────────────────────────────
@@ -2789,13 +2842,24 @@ onMounted(async () => {
 .date-input-wrapper input {
   width: 100%;
   padding-right: 36px;
+  cursor: pointer;
+  color-scheme: light;
+}
+.date-input-wrapper input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  width: 36px;
+  height: 100%;
+  cursor: pointer;
 }
 .date-icon {
   position: absolute;
   right: 10px;
-  color: #94a3b8;
+  color: #475569;
   cursor: pointer;
   transition: color 0.15s;
+  pointer-events: none;
 }
 .date-icon:hover {
   color: #3b82f6;

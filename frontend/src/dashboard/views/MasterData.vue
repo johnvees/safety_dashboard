@@ -1240,9 +1240,8 @@ function formatDate(val) {
 
 <style scoped>
 .master-data {
-  padding: 24px;
-  max-width: 1100px;
-  margin: 0 auto;
+  padding: 32px;
+  max-width: 1400px;
 }
 
 /* Header */

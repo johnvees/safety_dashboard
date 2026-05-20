@@ -91,6 +91,7 @@
       <table>
         <thead>
           <tr>
+            <th style="width:48px;text-align:center;">No</th>
             <th>Tanggal</th>
             <th>Pekerjaan</th>
             <th>Lokasi</th>
@@ -102,7 +103,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="r in pagedRecords" :key="r.id" @click="openView(r)" class="row-clickable">
+          <tr v-for="(r, idx) in pagedRecords" :key="r.id" @click="openView(r)" class="row-clickable">
+            <td style="text-align:center;">{{ (hseCurrentPage - 1) * hsePerPage + idx + 1 }}</td>
             <td>{{ formatDate(r.tanggal) }}</td>
             <td class="col-pekerjaan">{{ firstBullet(r.pekerjaan) }}</td>
             <td>{{ r.lokasiPekerjaan || '-' }}</td>
@@ -120,7 +122,7 @@
             </td>
           </tr>
           <tr v-if="pagedRecords.length === 0">
-            <td colspan="8" class="no-results">Tidak ada data yang cocok</td>
+            <td colspan="9" class="no-results">Tidak ada data yang cocok</td>
           </tr>
         </tbody>
       </table>
@@ -247,7 +249,7 @@
             <div class="form-row">
               <div class="form-group">
                 <label>Tanggal <span class="req">*</span></label>
-                <input type="date" v-model="form.tanggal" required />
+                <input type="datetime-local" v-model="form.tanggal" required class="input-date" @click="$event.target.showPicker?.()" />
               </div>
               <div class="form-group">
                 <label>Lokasi Pekerjaan</label>
@@ -385,20 +387,34 @@
             <!-- Section: Foto -->
             <div class="form-section-title">Dokumentasi</div>
             <div class="form-group">
-              <div class="foto-label-row">
-                <label>Foto <span class="photo-count-label">({{ form.fotos.length }}/10)</span></label>
-                <button v-if="form.fotos.length > 0" type="button" class="btn-clear-fotos" @click="clearFotos">Hapus Semua</button>
-              </div>
-              <div class="foto-upload-area">
-                <div class="foto-preview-grid">
-                  <div v-for="(photo, i) in form.fotos" :key="i" class="foto-preview-item">
-                    <img :src="photo.preview" />
-                    <button type="button" class="btn-remove-foto" @click="removeFoto(i)">✕</button>
+              <label>Foto <span class="photo-count-label">({{ form.fotos.length }}/10)</span></label>
+              <div class="photo-upload">
+                <div class="photo-grid" v-if="form.fotos.length > 0">
+                  <div class="photo-preview" v-for="(photo, i) in form.fotos" :key="i">
+                    <img :src="photo.preview" alt="Preview" />
+                    <button type="button" class="photo-remove" @click="removeFoto(i)">✕</button>
                   </div>
-                  <label v-if="form.fotos.length < 10" class="foto-add-btn">
+                </div>
+                <div class="photo-clear" v-if="form.fotos.length > 1">
+                  <button type="button" class="btn btn-clear" @click="clearFotos">Hapus Semua Foto</button>
+                </div>
+                <div class="photo-actions" v-if="form.fotos.length < 10">
+                  <label class="photo-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    Galeri
                     <input type="file" accept="image/*" multiple @change="onFotoSelect" style="display:none" />
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    <span>Tambah foto</span>
+                  </label>
+                  <label class="photo-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                      <circle cx="12" cy="13" r="4"/>
+                    </svg>
+                    Kamera
+                    <input type="file" accept="image/*" capture="environment" @change="onFotoSelect" style="display:none" />
                   </label>
                 </div>
               </div>
@@ -616,7 +632,7 @@ function showPhotoWarning(msg) {
 const modal = ref({ open: false, mode: 'create', record: null });
 
 const defaultForm = () => ({
-  tanggal: new Date().toISOString().slice(0, 10),
+  tanggal: '',
   pekerjaan: [''],
   pekerja: '',
   departmentId: null,
@@ -765,7 +781,7 @@ function openEdit(record) {
   formError.value = '';
   photoWarning.value = '';
   form.value = {
-    tanggal: record.tanggal?.slice(0, 10) || '',
+    tanggal: record.tanggal ? record.tanggal.replace(' ', 'T').slice(0, 16) : '',
     pekerjaan: parseBullets(record.pekerjaan).length ? parseBullets(record.pekerjaan) : [''],
     pekerja: record.pekerja || '',
     departmentId: record.departmentId ?? null,
@@ -804,12 +820,20 @@ function displayJenis(r) {
 
 function formatDate(d) {
   if (!d) return '-';
-  return new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  const dt = new Date(d.replace ? d.replace(' ', 'T') : d);
+  if (isNaN(dt)) return '-';
+  const date = dt.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  const time = dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  return `${date} ${time}`;
 }
 
 function formatDateFull(d) {
   if (!d) return '-';
-  return new Date(d).toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+  const dt = new Date(d.replace ? d.replace(' ', 'T') : d);
+  if (isNaN(dt)) return '-';
+  const date = dt.toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+  const time = dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  return `${date}, ${time}`;
 }
 
 // ── Submit ─────────────────────────────────────────────────────────────
@@ -1127,12 +1151,9 @@ th { text-transform: uppercase; letter-spacing: 0.04em; }
 .field-auto { background: #f1f5f9 !important; color: #64748b !important; cursor: not-allowed !important; border-color: #e2e8f0 !important; }
 .field-auto-tag { font-size: 10px; font-weight: 600; color: #fff; background: #64748b; border-radius: 4px; padding: 1px 5px; margin-left: 5px; vertical-align: middle; }
 .req { color: #ef4444; }
+.input-date { cursor: pointer; color-scheme: light; }
 .form-error { margin: 0 24px; padding: 10px 14px; background: #fee2e2; color: #991b1b; border-radius: 7px; font-size: 13px; }
 .form-warning { margin: 0 24px; padding: 10px 14px; background: #fef3c7; color: #92400e; border-radius: 7px; font-size: 13px; }
-.foto-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-.foto-label-row label { margin-bottom: 0; }
-.btn-clear-fotos { background: none; border: 1px solid #fca5a5; color: #ef4444; border-radius: 6px; padding: 3px 10px; font-size: 12px; cursor: pointer; transition: background 0.15s; }
-.btn-clear-fotos:hover { background: #fee2e2; }
 .photo-count-label { font-size: 12px; font-weight: 600; color: #64748b; margin-left: 4px; }
 
 /* Toggle */
@@ -1158,15 +1179,16 @@ th { text-transform: uppercase; letter-spacing: 0.04em; }
 .btn-add-bullet:hover { background: #f8fafc; border-color: #94a3b8; }
 
 /* Foto upload */
-.foto-upload-area { display: flex; flex-direction: column; gap: 10px; }
-.foto-preview-grid { display: flex; flex-wrap: wrap; gap: 10px; }
-.foto-preview-item { position: relative; width: 90px; height: 90px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; }
-.foto-preview-item img { width: 100%; height: 100%; object-fit: cover; }
-.btn-remove-foto { position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,0.55); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.foto-add-btn { width: 90px; height: 90px; border: 2px dashed #cbd5e1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; cursor: pointer; color: #94a3b8; font-size: 11px; transition: border-color 0.15s, color 0.15s; }
-.foto-add-btn:hover { border-color: #3b82f6; color: #3b82f6; }
-.foto-add-btn.uploading { opacity: 0.6; cursor: not-allowed; }
-.foto-add-btn svg { width: 22px; height: 22px; }
+.photo-upload { border: 2px dashed #e2e8f0; border-radius: 8px; padding: 16px; }
+.photo-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+.photo-preview { position: relative; display: inline-block; }
+.photo-preview img { width: 100px; height: 100px; border-radius: 8px; object-fit: cover; border: 1px solid #e2e8f0; }
+.photo-remove { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: #ef4444; color: #fff; border: none; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.photo-actions { display: flex; gap: 12px; justify-content: center; }
+.photo-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 20px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+.photo-btn:hover { background: #f1f5f9; border-color: #3b82f6; color: #3b82f6; }
+.photo-clear { margin-top: 8px; }
+.btn-clear { padding: 6px 12px; font-size: 12px; font-weight: 600; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; cursor: pointer; }
 
 /* View body */
 .view-body { display: flex; flex-direction: column; overflow: hidden; }

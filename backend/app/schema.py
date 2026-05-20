@@ -4,7 +4,7 @@ from strawberry.fastapi import GraphQLRouter
 from typing import Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from datetime import date
+from datetime import date, datetime
 
 from app import models, auth
 from app.database import get_db
@@ -674,7 +674,7 @@ class Mutation:
                     return InspectionK3LPayload(success=False, message="Plant does not belong to selected business unit")
 
             record = models.InspectionK3L(
-                tanggal=date.fromisoformat(tanggal),
+                tanggal=datetime.fromisoformat(tanggal),
                 kategori_temuan=kategori_temuan,
                 deskripsi_temuan=deskripsi_temuan,
                 foto_sebelum=foto_sebelum,
@@ -683,7 +683,7 @@ class Mutation:
                 tindakan_perbaikan=tindakan_perbaikan,
                 target_selesai=date.fromisoformat(target_selesai) if target_selesai else None,
                 status=status or "Open",
-                aktual_close=date.fromisoformat(aktual_close) if aktual_close else None,
+                aktual_close=datetime.fromisoformat(aktual_close) if aktual_close else None,
                 created_by=user.id,
                 business_unit_id=business_unit_id,
                 plant_id=plant_id,
@@ -752,7 +752,7 @@ class Mutation:
                     return InspectionK3LPayload(success=False, message="Plant does not belong to selected business unit")
 
             if tanggal is not None:
-                record.tanggal = date.fromisoformat(tanggal)
+                record.tanggal = datetime.fromisoformat(tanggal)
             if kategori_temuan is not None:
                 record.kategori_temuan = kategori_temuan
             if deskripsi_temuan is not None:
@@ -772,7 +772,7 @@ class Mutation:
                     return InspectionK3LPayload(success=False, message="Status must be Open, In Progress, or Closed")
                 record.status = status
             if aktual_close is not None:
-                record.aktual_close = date.fromisoformat(aktual_close)
+                record.aktual_close = datetime.fromisoformat(aktual_close)
             if business_unit_id is not None:
                 record.business_unit_id = business_unit_id
             if plant_id is not None:
@@ -1503,7 +1503,7 @@ class Mutation:
         db = _get_db()
         try:
             record = models.HseDailyReport(
-                tanggal=date.fromisoformat(tanggal),
+                tanggal=datetime.fromisoformat(tanggal),
                 pekerjaan=pekerjaan,
                 pekerja=pekerja,
                 lokasi_pekerjaan=lokasi_pekerjaan,
@@ -1566,7 +1566,7 @@ class Mutation:
             if level_risiko and level_risiko not in ("Rendah", "Sedang", "Tinggi"):
                 return HseDailyPayload(success=False, message="Level risiko must be Rendah, Sedang, or Tinggi")
             if tanggal is not None:
-                record.tanggal = date.fromisoformat(tanggal)
+                record.tanggal = datetime.fromisoformat(tanggal)
             if pekerjaan is not None:
                 record.pekerjaan = pekerjaan
             if pekerja is not None:
