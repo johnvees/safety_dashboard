@@ -9,6 +9,7 @@ import InspectionK3L from "../dashboard/views/InspectionK3L.vue";
 import HseDailyReport from "../dashboard/views/HseDailyReport.vue";
 import MasterData from "../dashboard/views/MasterData.vue";
 import Settings from "../dashboard/views/Settings.vue";
+import Chat from "../dashboard/views/Chat.vue";
 
 const routes = [
   { path: "/", redirect: "/login" },
@@ -32,6 +33,7 @@ const routes = [
         name: "HseDailyReport",
         component: HseDailyReport,
       },
+{ path: "chat", name: "Chat", component: Chat },
 { path: "master-data", name: "MasterData", component: MasterData },
       {
         path: "settings",

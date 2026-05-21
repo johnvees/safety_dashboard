@@ -71,3 +71,48 @@ async def upload_video_file(request: Request, file: UploadFile = File(...)):
         return {"url": url}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+CHAT_IMAGE_MAX_BYTES = 8 * 1024 * 1024    # 8 MB
+CHAT_VIDEO_MAX_BYTES = 50 * 1024 * 1024   # 50 MB
+
+
+@app.post("/upload-chat-media")
+async def upload_chat_media(request: Request, file: UploadFile = File(...)):
+    """Authenticated users (any role) upload an image or video for a chat message."""
+    auth_header = request.headers.get("Authorization", "")
+    token = auth_header.removeprefix("Bearer ").strip()
+    email = _auth.decode_token(token) if token else None
+    if not email:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    db = next(get_db())
+    try:
+        user = db.query(_models.User).filter(_models.User.email == email).first()
+    finally:
+        db.close()
+
+    if not user or not user.is_active:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    ctype = (file.content_type or "").lower()
+    if ctype.startswith("image/"):
+        kind = "image"
+        max_bytes = CHAT_IMAGE_MAX_BYTES
+    elif ctype.startswith("video/"):
+        kind = "video"
+        max_bytes = CHAT_VIDEO_MAX_BYTES
+    else:
+        raise HTTPException(status_code=400, detail="Only image or video files are allowed")
+
+    contents = await file.read()
+    if len(contents) > max_bytes:
+        limit_mb = max_bytes // (1024 * 1024)
+        raise HTTPException(status_code=413, detail=f"File too large (max {limit_mb} MB)")
+
+    try:
+        url = upload_image(contents, folder="safety_dashboard/chat") if kind == "image" \
+            else upload_video(contents, folder="safety_dashboard/chat")
+        return {"url": url, "type": kind}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

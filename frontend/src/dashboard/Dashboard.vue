@@ -30,6 +30,7 @@ const pageTitles = {
   "/dashboard/reports": "Reports",
   "/dashboard/reports/inspection-k3l": "Inspection K3L",
   "/dashboard/reports/hse-daily": "HSE Daily Report",
+  "/dashboard/chat": "Chat",
   "/dashboard/master-data": "Master Data",
   "/dashboard/settings": "Settings",
 };

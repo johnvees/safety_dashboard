@@ -1,14 +1,17 @@
 import strawberry
 import json
+import asyncio
 from strawberry.fastapi import GraphQLRouter
-from typing import Optional, List
+from typing import Optional, List, AsyncIterator
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import and_, or_, func as sa_func
 from datetime import date, datetime
 
 from app import models, auth
 from app.database import get_db
 from app.cloudinary_utils import delete_image, delete_video
+from app.chat_broker import broker as chat_broker
 
 
 def _get_db() -> Session:
@@ -448,6 +451,103 @@ def _can_access_report(db: Session, user: models.User, report_type: str, report_
     return True
 
 
+# ── Chat types & helpers ─────────────────────────────────────────────────
+
+@strawberry.type
+class ChatMessageType:
+    id: int
+    sender_id: int
+    recipient_id: int
+    content: str
+    attachment_url: Optional[str] = None
+    attachment_type: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    read_at: Optional[str] = None
+    sender_full_name: Optional[str] = None
+    sender_email: Optional[str] = None
+    sender_username: Optional[str] = None
+
+
+@strawberry.type
+class ChatMessagePayload:
+    success: bool
+    message: str
+    chat_message: Optional[ChatMessageType] = None
+
+
+@strawberry.type
+class ChatUserSummaryType:
+    id: int
+    email: str
+    full_name: Optional[str] = None
+    username: Optional[str] = None
+    role_id: Optional[int] = None
+    role_name: Optional[str] = None
+    role_level: Optional[int] = None
+    business_unit_id: Optional[int] = None
+    business_unit_name: Optional[str] = None
+    plant_id: Optional[int] = None
+    plant_name: Optional[str] = None
+    is_active: bool = True
+    last_message_content: Optional[str] = None
+    last_message_at: Optional[str] = None
+    last_message_from_me: bool = False
+    unread_count: int = 0
+
+
+def _chat_msg_to_type(m: models.ChatMessage, sender: Optional[models.User] = None) -> ChatMessageType:
+    return ChatMessageType(
+        id=m.id,
+        sender_id=m.sender_id,
+        recipient_id=m.recipient_id,
+        content=m.content or "",
+        attachment_url=m.attachment_url,
+        attachment_type=m.attachment_type,
+        created_at=str(m.created_at) if m.created_at else None,
+        updated_at=str(m.updated_at) if m.updated_at else None,
+        read_at=str(m.read_at) if m.read_at else None,
+        sender_full_name=sender.full_name if sender else None,
+        sender_email=sender.email if sender else None,
+        sender_username=sender.username if sender else None,
+    )
+
+
+def _can_chat_pair(db: Session, a: models.User, b: models.User) -> bool:
+    """Allow chat if at least one side has admin-tier reach, otherwise require same BU+plant."""
+    if a.id == b.id:
+        return False
+    if not _is_staff(a) or not _is_staff(b):
+        return True
+    return (
+        a.business_unit_id == b.business_unit_id
+        and a.plant_id == b.plant_id
+        and a.business_unit_id is not None
+        and a.plant_id is not None
+    )
+
+
+def _contactable_users_query(db: Session, user: models.User):
+    """Query users that `user` is permitted to chat with."""
+    q = db.query(models.User).filter(
+        models.User.id != user.id,
+        models.User.is_active == True,  # noqa: E712
+    )
+    if _is_staff(user):
+        # staff can see: same BU+plant peers, plus any admin-tier user (role.level < 6)
+        admin_role_ids = db.query(models.Role.id).filter(models.Role.level < 6).subquery()
+        q = q.filter(
+            or_(
+                and_(
+                    models.User.business_unit_id == user.business_unit_id,
+                    models.User.plant_id == user.plant_id,
+                ),
+                models.User.role_id.in_(admin_role_ids),
+            )
+        )
+    return q
+
+
 @strawberry.type
 class Query:
     @strawberry.field
@@ -628,6 +728,131 @@ class Query:
             return [_comment_to_type(c, db, user) for c in records]
         finally:
             db.close()
+
+    @strawberry.field
+    def chat_users(self, info: strawberry.types.Info) -> List[ChatUserSummaryType]:
+        user = _get_current_user(info)
+        if not user:
+            return []
+        db = _get_db()
+        try:
+            users = _contactable_users_query(db, user).all()
+            # Bulk-fetch related lookups
+            role_map = {r.id: r for r in db.query(models.Role).all()}
+            bu_map = {b.id: b for b in db.query(models.BusinessUnit).all()}
+            plant_map = {p.id: p for p in db.query(models.Plant).all()}
+
+            other_ids = [u.id for u in users]
+            if not other_ids:
+                return []
+
+            # Last message per peer (within this user's conversations)
+            last_msgs: dict[int, models.ChatMessage] = {}
+            msgs = (
+                db.query(models.ChatMessage)
+                .filter(
+                    or_(
+                        and_(models.ChatMessage.sender_id == user.id, models.ChatMessage.recipient_id.in_(other_ids)),
+                        and_(models.ChatMessage.recipient_id == user.id, models.ChatMessage.sender_id.in_(other_ids)),
+                    )
+                )
+                .order_by(models.ChatMessage.created_at.desc())
+                .all()
+            )
+            for m in msgs:
+                peer = m.recipient_id if m.sender_id == user.id else m.sender_id
+                if peer not in last_msgs:
+                    last_msgs[peer] = m
+
+            # Unread counts (messages sent to me, not yet read)
+            unread_rows = (
+                db.query(
+                    models.ChatMessage.sender_id,
+                    sa_func.count(models.ChatMessage.id),
+                )
+                .filter(
+                    models.ChatMessage.recipient_id == user.id,
+                    models.ChatMessage.read_at.is_(None),
+                    models.ChatMessage.sender_id.in_(other_ids),
+                )
+                .group_by(models.ChatMessage.sender_id)
+                .all()
+            )
+            unread_map = {sid: cnt for sid, cnt in unread_rows}
+
+            summaries: list[ChatUserSummaryType] = []
+            for u in users:
+                role = role_map.get(u.role_id) if u.role_id else None
+                bu = bu_map.get(u.business_unit_id) if u.business_unit_id else None
+                pl = plant_map.get(u.plant_id) if u.plant_id else None
+                last = last_msgs.get(u.id)
+                summaries.append(
+                    ChatUserSummaryType(
+                        id=u.id,
+                        email=u.email,
+                        full_name=u.full_name,
+                        username=u.username,
+                        role_id=u.role_id,
+                        role_name=role.name if role else None,
+                        role_level=role.level if role else None,
+                        business_unit_id=u.business_unit_id,
+                        business_unit_name=bu.name if bu else None,
+                        plant_id=u.plant_id,
+                        plant_name=pl.name if pl else None,
+                        is_active=u.is_active if u.is_active is not None else True,
+                        last_message_content=last.content if last else None,
+                        last_message_at=str(last.created_at) if last and last.created_at else None,
+                        last_message_from_me=bool(last and last.sender_id == user.id),
+                        unread_count=int(unread_map.get(u.id, 0)),
+                    )
+                )
+
+            # Sort: unread first, then most recent message, then name
+            summaries.sort(key=lambda s: (-s.unread_count, -_safe_ts(s.last_message_at), (s.full_name or s.email or "").lower()))
+            return summaries
+        finally:
+            db.close()
+
+    @strawberry.field
+    def chat_messages(
+        self,
+        info: strawberry.types.Info,
+        other_user_id: int,
+        limit: Optional[int] = 100,
+        before_id: Optional[int] = None,
+    ) -> List[ChatMessageType]:
+        user = _get_current_user(info)
+        if not user:
+            return []
+        db = _get_db()
+        try:
+            other = db.query(models.User).filter(models.User.id == other_user_id).first()
+            if not other or not _can_chat_pair(db, user, other):
+                return []
+            q = db.query(models.ChatMessage).filter(
+                or_(
+                    and_(models.ChatMessage.sender_id == user.id, models.ChatMessage.recipient_id == other_user_id),
+                    and_(models.ChatMessage.sender_id == other_user_id, models.ChatMessage.recipient_id == user.id),
+                )
+            )
+            if before_id is not None:
+                q = q.filter(models.ChatMessage.id < before_id)
+            rows = q.order_by(models.ChatMessage.id.desc()).limit(min(max(limit or 100, 1), 500)).all()
+            rows.reverse()  # oldest first for the UI
+            sender_ids = {r.sender_id for r in rows}
+            sender_map = {u.id: u for u in db.query(models.User).filter(models.User.id.in_(sender_ids)).all()} if sender_ids else {}
+            return [_chat_msg_to_type(m, sender_map.get(m.sender_id)) for m in rows]
+        finally:
+            db.close()
+
+
+def _safe_ts(s: Optional[str]) -> float:
+    if not s:
+        return 0.0
+    try:
+        return datetime.fromisoformat(s.replace(" ", "T")).timestamp()
+    except Exception:
+        return 0.0
 
 
 @strawberry.type
@@ -1835,5 +2060,203 @@ class Mutation:
             db.close()
 
 
-schema = strawberry.Schema(query=Query, mutation=Mutation)
-graphql_router = GraphQLRouter(schema)
+    # ── Chat mutations ───────────────────────────────────────────────────
+
+    @strawberry.mutation
+    def send_chat_message(
+        self,
+        info: strawberry.types.Info,
+        recipient_id: int,
+        content: Optional[str] = None,
+        attachment_url: Optional[str] = None,
+        attachment_type: Optional[str] = None,
+    ) -> ChatMessagePayload:
+        user = _get_current_user(info)
+        if not user:
+            return ChatMessagePayload(success=False, message="Authentication required")
+        content = (content or "").strip()
+        if len(content) > 4000:
+            return ChatMessagePayload(success=False, message="Pesan terlalu panjang (maks 4000 karakter)")
+        if attachment_url and attachment_type not in ("image", "video"):
+            return ChatMessagePayload(success=False, message="Jenis lampiran tidak valid")
+        if not content and not attachment_url:
+            return ChatMessagePayload(success=False, message="Pesan atau lampiran wajib diisi")
+        db = _get_db()
+        try:
+            recipient = db.query(models.User).filter(models.User.id == recipient_id).first()
+            if not recipient or not recipient.is_active:
+                return ChatMessagePayload(success=False, message="Penerima tidak ditemukan")
+            if not _can_chat_pair(db, user, recipient):
+                return ChatMessagePayload(success=False, message="Anda tidak diizinkan mengirim pesan ke user ini")
+            record = models.ChatMessage(
+                sender_id=user.id,
+                recipient_id=recipient_id,
+                content=content,
+                attachment_url=attachment_url or None,
+                attachment_type=attachment_type or None,
+            )
+            db.add(record)
+            db.commit()
+            db.refresh(record)
+            payload = _chat_msg_to_type(record, user)
+            # Push to live subscribers — both sender (other tabs) and recipient
+            chat_broker.publish(recipient_id, payload)
+            chat_broker.publish(user.id, payload)
+            return ChatMessagePayload(success=True, message="Pesan terkirim", chat_message=payload)
+        except Exception as e:
+            db.rollback()
+            return ChatMessagePayload(success=False, message=f"Gagal mengirim pesan: {str(e)}")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def update_chat_message(self, info: strawberry.types.Info, id: int, content: str) -> ChatMessagePayload:
+        user = _get_current_user(info)
+        if not user:
+            return ChatMessagePayload(success=False, message="Authentication required")
+        content = (content or "").strip()
+        if len(content) > 4000:
+            return ChatMessagePayload(success=False, message="Pesan terlalu panjang (maks 4000 karakter)")
+        db = _get_db()
+        try:
+            record = db.query(models.ChatMessage).filter(models.ChatMessage.id == id).first()
+            if not record:
+                return ChatMessagePayload(success=False, message="Pesan tidak ditemukan")
+            if record.sender_id != user.id:
+                return ChatMessagePayload(success=False, message="Anda hanya dapat mengedit pesan Anda sendiri")
+            if not content and not record.attachment_url:
+                return ChatMessagePayload(success=False, message="Pesan tidak boleh kosong")
+            record.content = content
+            db.commit()
+            db.refresh(record)
+            payload = _chat_msg_to_type(record, user)
+            chat_broker.publish(record.recipient_id, payload)
+            chat_broker.publish(record.sender_id, payload)
+            return ChatMessagePayload(success=True, message="Pesan diperbarui", chat_message=payload)
+        except Exception as e:
+            db.rollback()
+            return ChatMessagePayload(success=False, message=f"Gagal memperbarui pesan: {str(e)}")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def delete_chat_message(self, info: strawberry.types.Info, id: int) -> ChatMessagePayload:
+        user = _get_current_user(info)
+        if not user:
+            return ChatMessagePayload(success=False, message="Authentication required")
+        db = _get_db()
+        try:
+            record = db.query(models.ChatMessage).filter(models.ChatMessage.id == id).first()
+            if not record:
+                return ChatMessagePayload(success=False, message="Pesan tidak ditemukan")
+            if record.sender_id != user.id and user.role_id != 1:
+                return ChatMessagePayload(success=False, message="Anda hanya dapat menghapus pesan Anda sendiri")
+            recipient_id = record.recipient_id
+            sender_id = record.sender_id
+            msg_id = record.id
+            att_url = record.attachment_url
+            att_type = record.attachment_type
+            db.delete(record)
+            db.commit()
+            # Best-effort cleanup of the cloud asset
+            if att_url:
+                try:
+                    if att_type == "video":
+                        delete_video(att_url)
+                    else:
+                        delete_image(att_url)
+                except Exception:
+                    pass
+            # Notify both sides with a tombstone payload (id only, content cleared)
+            tombstone = ChatMessageType(
+                id=msg_id,
+                sender_id=sender_id,
+                recipient_id=recipient_id,
+                content="__deleted__",
+                created_at=None,
+                updated_at=None,
+                read_at=None,
+            )
+            chat_broker.publish(recipient_id, tombstone)
+            chat_broker.publish(sender_id, tombstone)
+            return ChatMessagePayload(success=True, message="Pesan dihapus")
+        except Exception as e:
+            db.rollback()
+            return ChatMessagePayload(success=False, message=f"Gagal menghapus pesan: {str(e)}")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def mark_chat_read(self, info: strawberry.types.Info, other_user_id: int) -> GenericPayload:
+        user = _get_current_user(info)
+        if not user:
+            return GenericPayload(success=False, message="Authentication required")
+        db = _get_db()
+        try:
+            now = datetime.utcnow()
+            updated = (
+                db.query(models.ChatMessage)
+                .filter(
+                    models.ChatMessage.sender_id == other_user_id,
+                    models.ChatMessage.recipient_id == user.id,
+                    models.ChatMessage.read_at.is_(None),
+                )
+                .update({models.ChatMessage.read_at: now}, synchronize_session=False)
+            )
+            db.commit()
+            return GenericPayload(success=True, message=f"Marked {updated} messages as read")
+        except Exception as e:
+            db.rollback()
+            return GenericPayload(success=False, message=f"Failed to mark read: {str(e)}")
+        finally:
+            db.close()
+
+
+def _user_from_connection(info: strawberry.types.Info) -> Optional[models.User]:
+    """Resolve auth from a WebSocket connection_init payload (subscriptions)."""
+    ctx = info.context
+    params = None
+    if isinstance(ctx, dict):
+        params = ctx.get("connection_params")
+    else:
+        params = getattr(ctx, "connection_params", None)
+    if not params:
+        return None
+    token = params.get("authorization") or params.get("Authorization") or ""
+    if isinstance(token, str):
+        token = token.removeprefix("Bearer ").strip()
+    if not token:
+        return None
+    email = auth.decode_token(token)
+    if not email:
+        return None
+    db = _get_db()
+    try:
+        return db.query(models.User).filter(models.User.email == email).first()
+    finally:
+        db.close()
+
+
+@strawberry.type
+class Subscription:
+    @strawberry.subscription
+    async def chat_message_stream(self, info: strawberry.types.Info) -> AsyncIterator[ChatMessageType]:
+        user = _user_from_connection(info)
+        if not user:
+            return
+        q = chat_broker.subscribe(user.id)
+        try:
+            while True:
+                payload = await q.get()
+                yield payload
+        except asyncio.CancelledError:
+            raise
+        finally:
+            chat_broker.unsubscribe(user.id, q)
+
+
+schema = strawberry.Schema(query=Query, mutation=Mutation, subscription=Subscription)
+graphql_router = GraphQLRouter(
+    schema,
+    subscription_protocols=["graphql-transport-ws", "graphql-ws"],
+)
