@@ -99,6 +99,7 @@
             <th>Level Risiko</th>
             <th>Pengawas HSE</th>
             <th>Permit</th>
+            <th style="text-align:center;">Komentar</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -112,6 +113,14 @@
             <td><span class="badge-risiko" :class="r.levelRisiko?.toLowerCase()">{{ r.levelRisiko || '-' }}</span></td>
             <td>{{ r.pengawasHse || '-' }}</td>
             <td><span class="badge-permit" :class="r.statusPermit ? 'ada' : 'tidak'">{{ r.statusPermit ? 'Ada' : 'Tidak' }}</span></td>
+            <td style="text-align:center;">
+              <span class="comment-badge" :class="{ 'has-comments': (r.commentCount || 0) > 0 }">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                {{ r.commentCount || 0 }}
+              </span>
+            </td>
             <td class="col-actions" @click.stop>
               <button class="btn-icon" @click="openEdit(r)" title="Edit">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -122,7 +131,7 @@
             </td>
           </tr>
           <tr v-if="pagedRecords.length === 0">
-            <td colspan="9" class="no-results">Tidak ada data yang cocok</td>
+            <td colspan="10" class="no-results">Tidak ada data yang cocok</td>
           </tr>
         </tbody>
       </table>
@@ -232,6 +241,15 @@
               <div class="foto-grid">
                 <img v-for="(url, i) in parseFotos(modal.record.foto).slice(1)" :key="i" :src="url" class="foto-thumb" @click="openLightbox(parseFotos(modal.record.foto), i + 1)" />
               </div>
+            </div>
+
+            <!-- Comments -->
+            <div class="view-section">
+              <CommentSection
+                :report-type="'hse_daily'"
+                :report-id="modal.record.id"
+                @count-change="onCommentCountChange"
+              />
             </div>
           </div>
 
@@ -516,6 +534,7 @@ import { authService } from '@/services/authService.js';
 import { hseDailyService, uploadImage } from '@/services/hseDailyService.js';
 import { usePagination } from '@/composables/usePagination.js';
 import PaginationBar from '@/components/PaginationBar.vue';
+import CommentSection from '@/components/CommentSection.vue';
 import { exportToCsv } from '@/services/exportCsvService.js';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -805,6 +824,13 @@ function openEdit(record) {
 
 function openView(record) {
   modal.value = { open: true, mode: 'view', record };
+}
+
+function onCommentCountChange(count) {
+  if (!modal.value.record) return;
+  modal.value.record.commentCount = count;
+  const idx = records.value.findIndex(r => r.id === modal.value.record.id);
+  if (idx !== -1) records.value[idx] = { ...records.value[idx], commentCount: count };
 }
 
 function tryClose() {
@@ -1136,6 +1162,17 @@ th { text-transform: uppercase; letter-spacing: 0.04em; }
 .badge-permit { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
 .badge-permit.ada { background: #dbeafe; color: #1d4ed8; }
 .badge-permit.tidak { background: #f1f5f9; color: #64748b; }
+
+.comment-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 9px; border-radius: 12px;
+  font-size: 12px; font-weight: 600;
+  background: #f1f5f9; color: #94a3b8;
+  border: 1px solid #e2e8f0;
+}
+.comment-badge.has-comments {
+  background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe;
+}
 
 .col-actions { display: flex; gap: 6px; }
 

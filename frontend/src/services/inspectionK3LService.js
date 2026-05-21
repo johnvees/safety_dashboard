@@ -83,7 +83,7 @@ export const inspectionK3LService = {
           tindakanPerbaikan targetSelesai
           status aktualClose
           businessUnitId plantId departmentId
-          createdAt updatedAt
+          createdAt updatedAt commentCount
         }
       }
     `);
@@ -99,7 +99,7 @@ export const inspectionK3LService = {
           tindakanPerbaikan targetSelesai
           status aktualClose
           businessUnitId plantId departmentId
-          createdAt updatedAt
+          createdAt updatedAt commentCount
         }
       }`,
       { id },

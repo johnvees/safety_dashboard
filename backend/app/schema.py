@@ -181,6 +181,7 @@ class InspectionK3LType:
     department_id: Optional[int] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
+    comment_count: int = 0
 
 
 @strawberry.type
@@ -216,6 +217,7 @@ class HseDailyType:
     created_by: Optional[int] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
+    comment_count: int = 0
 
 
 @strawberry.type
@@ -304,26 +306,43 @@ def _user_to_full_type(u: models.User) -> FullUserType:
     )
 
 
-def _model_to_type(record: models.InspectionK3L) -> InspectionK3LType:
-    return InspectionK3LType(
-        id=record.id,
-        tanggal=str(record.tanggal) if record.tanggal else "",
-        kategori_temuan=record.kategori_temuan,
-        deskripsi_temuan=record.deskripsi_temuan,
-        foto_sebelum=record.foto_sebelum,
-        foto_sesudah=record.foto_sesudah,
-        lokasi=record.lokasi,
-        tindakan_perbaikan=record.tindakan_perbaikan,
-        target_selesai=str(record.target_selesai) if record.target_selesai else None,
-        status=record.status or "Open",
-        aktual_close=str(record.aktual_close) if record.aktual_close else None,
-        created_by=record.created_by,
-        business_unit_id=record.business_unit_id,
-        plant_id=record.plant_id,
-        department_id=record.department_id,
-        created_at=str(record.created_at) if record.created_at else None,
-        updated_at=str(record.updated_at) if record.updated_at else None,
+def _comment_count(db: Session, report_type: str, report_id: int) -> int:
+    return (
+        db.query(models.Comment)
+        .filter(models.Comment.report_type == report_type, models.Comment.report_id == report_id)
+        .count()
     )
+
+
+def _model_to_type(record: models.InspectionK3L, db: Optional[Session] = None) -> InspectionK3LType:
+    close_db = False
+    if db is None:
+        db = _get_db()
+        close_db = True
+    try:
+        return InspectionK3LType(
+            id=record.id,
+            tanggal=str(record.tanggal) if record.tanggal else "",
+            kategori_temuan=record.kategori_temuan,
+            deskripsi_temuan=record.deskripsi_temuan,
+            foto_sebelum=record.foto_sebelum,
+            foto_sesudah=record.foto_sesudah,
+            lokasi=record.lokasi,
+            tindakan_perbaikan=record.tindakan_perbaikan,
+            target_selesai=str(record.target_selesai) if record.target_selesai else None,
+            status=record.status or "Open",
+            aktual_close=str(record.aktual_close) if record.aktual_close else None,
+            created_by=record.created_by,
+            business_unit_id=record.business_unit_id,
+            plant_id=record.plant_id,
+            department_id=record.department_id,
+            created_at=str(record.created_at) if record.created_at else None,
+            updated_at=str(record.updated_at) if record.updated_at else None,
+            comment_count=_comment_count(db, "inspection_k3l", record.id),
+        )
+    finally:
+        if close_db:
+            db.close()
 
 
 def _hse_daily_to_type(r: models.HseDailyReport, db=None) -> HseDailyType:
@@ -360,10 +379,73 @@ def _hse_daily_to_type(r: models.HseDailyReport, db=None) -> HseDailyType:
             created_by=r.created_by,
             created_at=str(r.created_at) if r.created_at else None,
             updated_at=str(r.updated_at) if r.updated_at else None,
+            comment_count=_comment_count(db, "hse_daily", r.id),
         )
     finally:
         if close_db:
             db.close()
+
+
+@strawberry.type
+class CommentType:
+    id: int
+    report_type: str
+    report_id: int
+    user_id: int
+    user_email: Optional[str] = None
+    user_full_name: Optional[str] = None
+    user_username: Optional[str] = None
+    content: str
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    can_edit: bool = False
+    can_delete: bool = False
+
+
+@strawberry.type
+class CommentPayload:
+    success: bool
+    message: str
+    comment: Optional[CommentType] = None
+
+
+_VALID_REPORT_TYPES = ("inspection_k3l", "hse_daily")
+
+
+def _comment_to_type(c: models.Comment, db: Session, current_user: models.User) -> CommentType:
+    author = db.query(models.User).filter(models.User.id == c.user_id).first()
+    is_admin = current_user.role_id == 1
+    is_author = current_user.id == c.user_id
+    return CommentType(
+        id=c.id,
+        report_type=c.report_type,
+        report_id=c.report_id,
+        user_id=c.user_id,
+        user_email=author.email if author else None,
+        user_full_name=author.full_name if author else None,
+        user_username=author.username if author else None,
+        content=c.content,
+        created_at=str(c.created_at) if c.created_at else None,
+        updated_at=str(c.updated_at) if c.updated_at else None,
+        can_edit=is_author,
+        can_delete=is_author or is_admin,
+    )
+
+
+def _can_access_report(db: Session, user: models.User, report_type: str, report_id: int) -> bool:
+    """Check whether the user can view the target report (mirrors list visibility rules)."""
+    if report_type == "inspection_k3l":
+        record = db.query(models.InspectionK3L).filter(models.InspectionK3L.id == report_id).first()
+    elif report_type == "hse_daily":
+        record = db.query(models.HseDailyReport).filter(models.HseDailyReport.id == report_id).first()
+    else:
+        return False
+    if not record:
+        return False
+    if _is_staff(user):
+        if record.business_unit_id != user.business_unit_id or record.plant_id != user.plant_id:
+            return False
+    return True
 
 
 @strawberry.type
@@ -520,6 +602,30 @@ class Query:
         try:
             record = db.query(models.HseDailyReport).filter(models.HseDailyReport.id == id).first()
             return _hse_daily_to_type(record, db) if record else None
+        finally:
+            db.close()
+
+    @strawberry.field
+    def comments(self, info: strawberry.types.Info, report_type: str, report_id: int) -> List[CommentType]:
+        user = _get_current_user(info)
+        if not user:
+            return []
+        if report_type not in _VALID_REPORT_TYPES:
+            return []
+        db = _get_db()
+        try:
+            if not _can_access_report(db, user, report_type, report_id):
+                return []
+            records = (
+                db.query(models.Comment)
+                .filter(
+                    models.Comment.report_type == report_type,
+                    models.Comment.report_id == report_id,
+                )
+                .order_by(models.Comment.created_at.asc())
+                .all()
+            )
+            return [_comment_to_type(c, db, user) for c in records]
         finally:
             db.close()
 
@@ -1635,6 +1741,96 @@ class Mutation:
         except Exception as e:
             db.rollback()
             return HseDailyPayload(success=False, message=f"Failed to delete: {str(e)}")
+        finally:
+            db.close()
+
+
+    # ── Comment mutations ────────────────────────────────────────────────
+
+    @strawberry.mutation
+    def create_comment(
+        self,
+        info: strawberry.types.Info,
+        report_type: str,
+        report_id: int,
+        content: str,
+    ) -> CommentPayload:
+        user = _get_current_user(info)
+        if not user:
+            return CommentPayload(success=False, message="Authentication required")
+        if report_type not in _VALID_REPORT_TYPES:
+            return CommentPayload(success=False, message="Invalid report type")
+        content = (content or "").strip()
+        if not content:
+            return CommentPayload(success=False, message="Comment cannot be empty")
+        if len(content) > 2000:
+            return CommentPayload(success=False, message="Comment too long (max 2000 characters)")
+        db = _get_db()
+        try:
+            if not _can_access_report(db, user, report_type, report_id):
+                return CommentPayload(success=False, message="Report not found or access denied")
+            record = models.Comment(
+                report_type=report_type,
+                report_id=report_id,
+                user_id=user.id,
+                content=content,
+            )
+            db.add(record)
+            db.commit()
+            db.refresh(record)
+            return CommentPayload(success=True, message="Comment posted", comment=_comment_to_type(record, db, user))
+        except Exception as e:
+            db.rollback()
+            return CommentPayload(success=False, message=f"Failed to create comment: {str(e)}")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def update_comment(self, info: strawberry.types.Info, id: int, content: str) -> CommentPayload:
+        user = _get_current_user(info)
+        if not user:
+            return CommentPayload(success=False, message="Authentication required")
+        content = (content or "").strip()
+        if not content:
+            return CommentPayload(success=False, message="Comment cannot be empty")
+        if len(content) > 2000:
+            return CommentPayload(success=False, message="Comment too long (max 2000 characters)")
+        db = _get_db()
+        try:
+            record = db.query(models.Comment).filter(models.Comment.id == id).first()
+            if not record:
+                return CommentPayload(success=False, message="Comment not found")
+            if record.user_id != user.id:
+                return CommentPayload(success=False, message="You can only edit your own comments")
+            record.content = content
+            db.commit()
+            db.refresh(record)
+            return CommentPayload(success=True, message="Comment updated", comment=_comment_to_type(record, db, user))
+        except Exception as e:
+            db.rollback()
+            return CommentPayload(success=False, message=f"Failed to update comment: {str(e)}")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def delete_comment(self, info: strawberry.types.Info, id: int) -> CommentPayload:
+        user = _get_current_user(info)
+        if not user:
+            return CommentPayload(success=False, message="Authentication required")
+        db = _get_db()
+        try:
+            record = db.query(models.Comment).filter(models.Comment.id == id).first()
+            if not record:
+                return CommentPayload(success=False, message="Comment not found")
+            is_admin = user.role_id == 1
+            if record.user_id != user.id and not is_admin:
+                return CommentPayload(success=False, message="You can only delete your own comments")
+            db.delete(record)
+            db.commit()
+            return CommentPayload(success=True, message="Comment deleted")
+        except Exception as e:
+            db.rollback()
+            return CommentPayload(success=False, message=f"Failed to delete comment: {str(e)}")
         finally:
             db.close()
 

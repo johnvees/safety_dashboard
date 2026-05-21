@@ -685,6 +685,14 @@
                     }}</span>
                   </div>
                 </div>
+
+                <div class="detail-section detail-comments">
+                  <CommentSection
+                    :report-type="'inspection_k3l'"
+                    :report-id="viewingRecord.id"
+                    @count-change="onCommentCountChange"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -1034,6 +1042,7 @@
               <th>Target Selesai</th>
               <th>Aktual Close</th>
               <th>Status</th>
+              <th style="text-align:center;">Komentar</th>
               <th>Aksi</th>
             </tr>
           </thead>
@@ -1099,6 +1108,14 @@
                   ]"
                 >
                   {{ item.status }}
+                </span>
+              </td>
+              <td class="td-center">
+                <span class="comment-badge" :class="{ 'has-comments': (item.commentCount || 0) > 0 }">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  {{ item.commentCount || 0 }}
                 </span>
               </td>
               <td class="td-actions" @click.stop>
@@ -1288,6 +1305,7 @@ import { exportToCsv } from '@/services/exportCsvService.js';
 import { authService } from '@/services/authService.js';
 import { usePagination } from '@/composables/usePagination.js';
 import PaginationBar from '@/components/PaginationBar.vue';
+import CommentSection from '@/components/CommentSection.vue';
 import Chart from 'chart.js/auto';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -1427,6 +1445,13 @@ function closeViewModal() {
   showViewModal.value = false;
   viewingRecord.value = null;
   if (route.query.view) router.replace({ query: {} });
+}
+
+function onCommentCountChange(count) {
+  if (!viewingRecord.value) return;
+  viewingRecord.value.commentCount = count;
+  const idx = records.value.findIndex(r => r.id === viewingRecord.value.id);
+  if (idx !== -1) records.value[idx] = { ...records.value[idx], commentCount: count };
 }
 
 // ── Photo lightbox ──
@@ -3322,6 +3347,28 @@ tbody tr.row-clickable {
 .kategori-low { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
 .kategori-medium { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
 .kategori-high { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+.comment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #94a3b8;
+  border: 1px solid #e2e8f0;
+}
+.comment-badge.has-comments {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+.detail-comments {
+  grid-column: 1 / -1;
+  margin-top: 6px;
+}
 
 /* ── Empty state ── */
 .empty-state {
