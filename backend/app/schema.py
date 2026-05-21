@@ -10,8 +10,9 @@ from datetime import date, datetime
 
 from app import models, auth
 from app.database import get_db
-from app.cloudinary_utils import delete_image, delete_video
+from app.cloudinary_utils import delete_image, delete_video, delete_document
 from app.chat_broker import broker as chat_broker
+from app.notification_broker import broker as notif_broker
 
 
 def _get_db() -> Session:
@@ -555,6 +556,51 @@ def _contactable_users_query(db: Session, user: models.User):
 
 
 @strawberry.type
+class NotificationType:
+    id: int
+    type: str
+    title: str
+    message: Optional[str] = None
+    link: Optional[str] = None
+    is_read: bool = False
+    created_at: Optional[str] = None
+
+
+@strawberry.type
+class NotificationPayload:
+    success: bool
+    message: str
+
+
+def _notify_users(db, user_ids: list[int], notif_type: str, title: str, message: str, link: str, exclude_id: int = 0) -> None:
+    from datetime import datetime as _dt
+    now = _dt.utcnow()
+    for uid in user_ids:
+        if uid == exclude_id:
+            continue
+        record = models.Notification(
+            user_id=uid,
+            type=notif_type,
+            title=title,
+            message=message,
+            link=link,
+            created_at=now,
+        )
+        db.add(record)
+        db.flush()  # Assigns real DB id within the transaction
+        payload = NotificationType(
+            id=record.id,
+            type=notif_type,
+            title=title,
+            message=message,
+            link=link,
+            is_read=False,
+            created_at=str(now),
+        )
+        notif_broker.publish(uid, payload)
+
+
+@strawberry.type
 class Query:
     @strawberry.field
     def me(self, info: strawberry.types.Info) -> Optional[UserType]:
@@ -851,6 +897,35 @@ class Query:
         finally:
             db.close()
 
+    @strawberry.field
+    def my_notifications(self, info: strawberry.types.Info) -> List[NotificationType]:
+        user = _get_current_user(info)
+        if not user:
+            return []
+        db = _get_db()
+        try:
+            rows = (
+                db.query(models.Notification)
+                .filter(models.Notification.user_id == user.id)
+                .order_by(models.Notification.created_at.desc())
+                .limit(50)
+                .all()
+            )
+            return [
+                NotificationType(
+                    id=r.id,
+                    type=r.type,
+                    title=r.title,
+                    message=r.message,
+                    link=r.link,
+                    is_read=bool(r.is_read),
+                    created_at=str(r.created_at) if r.created_at else None,
+                )
+                for r in rows
+            ]
+        finally:
+            db.close()
+
 
 def _safe_ts(s: Optional[str]) -> float:
     if not s:
@@ -859,6 +934,31 @@ def _safe_ts(s: Optional[str]) -> float:
         return datetime.fromisoformat(s.replace(" ", "T")).timestamp()
     except Exception:
         return 0.0
+
+
+def _delete_module_files(files_json: str | None) -> None:
+    """Delete all Cloudinary assets for a safety module."""
+    import json
+    if not files_json:
+        return
+    try:
+        files = json.loads(files_json)
+    except Exception:
+        return
+    for f in files:
+        url = f.get("url") if isinstance(f, dict) else None
+        if not url:
+            continue
+        media_type = (f.get("mediaType") or "").lower() if isinstance(f, dict) else ""
+        try:
+            if media_type == "video":
+                delete_video(url)
+            elif media_type == "image":
+                delete_image(url)
+            else:
+                delete_document(url)
+        except Exception:
+            pass
 
 
 @strawberry.type
@@ -1029,6 +1129,13 @@ class Mutation:
             db.add(record)
             db.commit()
             db.refresh(record)
+            try:
+                all_user_ids = [u.id for u in db.query(models.User.id).filter(models.User.is_active == True).all()]
+                submitter = user.full_name or user.username or user.email
+                _notify_users(db, all_user_ids, "new_report", f"Temuan Inspeksi K3L Baru", f"Disubmit oleh {submitter}: {deskripsi_temuan}", "/dashboard/reports/inspection-k3l", exclude_id=user.id)
+                db.commit()
+            except Exception:
+                pass
             return InspectionK3LPayload(
                 success=True,
                 message="Inspection K3L created successfully",
@@ -1119,6 +1226,13 @@ class Mutation:
 
             db.commit()
             db.refresh(record)
+            try:
+                actor = user.full_name or user.username or user.email
+                all_user_ids = [u.id for u in db.query(models.User.id).filter(models.User.is_active == True).all()]
+                _notify_users(db, all_user_ids, "new_report", "Temuan Inspeksi K3L Diperbarui", f"Diperbarui oleh {actor}: {record.deskripsi_temuan or record.kategori_temuan}", "/dashboard/reports/inspection-k3l", exclude_id=user.id)
+                db.commit()
+            except Exception:
+                pass
             return InspectionK3LPayload(
                 success=True,
                 message="Inspection K3L updated successfully",
@@ -1161,6 +1275,7 @@ class Mutation:
                     except (json.JSONDecodeError, TypeError):
                         photo_urls.append(field)
 
+            label = record.deskripsi_temuan or record.kategori_temuan
             db.delete(record)
             db.commit()
 
@@ -1170,6 +1285,14 @@ class Mutation:
                     delete_image(url)
                 except Exception:
                     pass
+
+            try:
+                actor = user.full_name or user.username or user.email
+                all_user_ids = [u.id for u in db.query(models.User.id).filter(models.User.is_active == True).all()]
+                _notify_users(db, all_user_ids, "new_report", "Temuan Inspeksi K3L Dihapus", f"Dihapus oleh {actor}: {label}", "/dashboard/reports/inspection-k3l", exclude_id=user.id)
+                db.commit()
+            except Exception:
+                pass
 
             return InspectionK3LPayload(success=True, message="Inspection K3L deleted successfully")
         except Exception as e:
@@ -1745,6 +1868,12 @@ class Mutation:
             db.add(record)
             db.commit()
             db.refresh(record)
+            try:
+                all_user_ids = [u.id for u in db.query(models.User.id).filter(models.User.is_active == True).all()]
+                _notify_users(db, all_user_ids, "new_safety_module", f"Modul Baru: {title}", description or "", "/dashboard/modules", exclude_id=user.id)
+                db.commit()
+            except Exception:
+                pass
             return SafetyModulePayload(success=True, message="Module created", module=_module_to_type(record))
         except Exception as e:
             db.rollback()
@@ -1788,6 +1917,13 @@ class Mutation:
                 record.description = description if description != "" else None
             db.commit()
             db.refresh(record)
+            try:
+                actor = user.full_name or user.username or user.email
+                all_user_ids = [u.id for u in db.query(models.User.id).filter(models.User.is_active == True).all()]
+                _notify_users(db, all_user_ids, "new_safety_module", f"Modul Diperbarui: {record.title}", f"Diperbarui oleh {actor}", "/dashboard/modules", exclude_id=user.id)
+                db.commit()
+            except Exception:
+                pass
             return SafetyModulePayload(success=True, message="Module updated", module=_module_to_type(record))
         except Exception as e:
             db.rollback()
@@ -1807,14 +1943,18 @@ class Mutation:
             record = db.query(models.SafetyModule).filter(models.SafetyModule.id == id).first()
             if not record:
                 return SafetyModulePayload(success=False, message="Module not found")
-            video_url = record.video_url
+            module_title = record.title
+            files_json = record.files
             db.delete(record)
             db.commit()
-            if video_url:
-                try:
-                    delete_video(video_url)
-                except Exception:
-                    pass
+            _delete_module_files(files_json)
+            try:
+                actor = user.full_name or user.username or user.email
+                all_user_ids = [u.id for u in db.query(models.User.id).filter(models.User.is_active == True).all()]
+                _notify_users(db, all_user_ids, "new_safety_module", f"Modul Dihapus: {module_title}", f"Dihapus oleh {actor}", "/dashboard/modules", exclude_id=user.id)
+                db.commit()
+            except Exception:
+                pass
             return SafetyModulePayload(success=True, message="Module deleted")
         except Exception as e:
             db.rollback()
@@ -1877,6 +2017,13 @@ class Mutation:
             db.add(record)
             db.commit()
             db.refresh(record)
+            try:
+                all_user_ids = [u.id for u in db.query(models.User.id).filter(models.User.is_active == True).all()]
+                submitter = user.full_name or user.username or user.email
+                _notify_users(db, all_user_ids, "new_report", f"Laporan HSE Daily Baru", f"Disubmit oleh {submitter}: {pekerjaan}", "/dashboard/reports/hse-daily", exclude_id=user.id)
+                db.commit()
+            except Exception:
+                pass
             return HseDailyPayload(success=True, message="HSE Daily Report created", report=_hse_daily_to_type(record, db))
         except Exception as e:
             db.rollback()
@@ -1953,6 +2100,13 @@ class Mutation:
                 record.plant_id = plant_id
             db.commit()
             db.refresh(record)
+            try:
+                actor = user.full_name or user.username or user.email
+                all_user_ids = [u.id for u in db.query(models.User.id).filter(models.User.is_active == True).all()]
+                _notify_users(db, all_user_ids, "new_report", "Laporan HSE Daily Diperbarui", f"Diperbarui oleh {actor}: {record.pekerjaan}", "/dashboard/reports/hse-daily", exclude_id=user.id)
+                db.commit()
+            except Exception:
+                pass
             return HseDailyPayload(success=True, message="HSE Daily Report updated", report=_hse_daily_to_type(record, db))
         except Exception as e:
             db.rollback()
@@ -1981,8 +2135,16 @@ class Mutation:
                             pass
                 except (json.JSONDecodeError, TypeError):
                     pass
+            pekerjaan_label = record.pekerjaan
             db.delete(record)
             db.commit()
+            try:
+                actor = user.full_name or user.username or user.email
+                all_user_ids = [u.id for u in db.query(models.User.id).filter(models.User.is_active == True).all()]
+                _notify_users(db, all_user_ids, "new_report", "Laporan HSE Daily Dihapus", f"Dihapus oleh {actor}: {pekerjaan_label}", "/dashboard/reports/hse-daily", exclude_id=user.id)
+                db.commit()
+            except Exception:
+                pass
             return HseDailyPayload(success=True, message="HSE Daily Report deleted")
         except Exception as e:
             db.rollback()
@@ -2024,6 +2186,22 @@ class Mutation:
             db.add(record)
             db.commit()
             db.refresh(record)
+            try:
+                if report_type == "inspection_k3l":
+                    rep = db.query(models.InspectionK3L).filter(models.InspectionK3L.id == report_id).first()
+                    link = "/dashboard/reports/inspection-k3l"
+                    label = "Inspeksi K3L"
+                else:
+                    rep = db.query(models.HseDailyReport).filter(models.HseDailyReport.id == report_id).first()
+                    link = "/dashboard/reports/hse-daily"
+                    label = "HSE Daily"
+                if rep:
+                    commenter = user.full_name or user.username or user.email
+                    all_user_ids = [u.id for u in db.query(models.User.id).filter(models.User.is_active == True).all()]
+                    _notify_users(db, all_user_ids, "new_comment", f"Komentar Baru pada {label}", f"{commenter}: {content[:80]}", link, exclude_id=user.id)
+                    db.commit()
+            except Exception:
+                pass
             return CommentPayload(success=True, message="Comment posted", comment=_comment_to_type(record, db, user))
         except Exception as e:
             db.rollback()
@@ -2048,9 +2226,19 @@ class Mutation:
                 return CommentPayload(success=False, message="Comment not found")
             if record.user_id != user.id:
                 return CommentPayload(success=False, message="You can only edit your own comments")
+            report_type = record.report_type
             record.content = content
             db.commit()
             db.refresh(record)
+            try:
+                actor = user.full_name or user.username or user.email
+                link = "/dashboard/reports/inspection-k3l" if report_type == "inspection_k3l" else "/dashboard/reports/hse-daily"
+                label = "Inspeksi K3L" if report_type == "inspection_k3l" else "HSE Daily"
+                all_user_ids = [u.id for u in db.query(models.User.id).filter(models.User.is_active == True).all()]
+                _notify_users(db, all_user_ids, "new_comment", f"Komentar Diperbarui pada {label}", f"{actor}: {content[:80]}", link, exclude_id=user.id)
+                db.commit()
+            except Exception:
+                pass
             return CommentPayload(success=True, message="Comment updated", comment=_comment_to_type(record, db, user))
         except Exception as e:
             db.rollback()
@@ -2071,8 +2259,19 @@ class Mutation:
             is_admin = user.role_id == 1
             if record.user_id != user.id and not is_admin:
                 return CommentPayload(success=False, message="You can only delete your own comments")
+            report_type = record.report_type
+            snippet = record.content[:80]
             db.delete(record)
             db.commit()
+            try:
+                actor = user.full_name or user.username or user.email
+                link = "/dashboard/reports/inspection-k3l" if report_type == "inspection_k3l" else "/dashboard/reports/hse-daily"
+                label = "Inspeksi K3L" if report_type == "inspection_k3l" else "HSE Daily"
+                all_user_ids = [u.id for u in db.query(models.User.id).filter(models.User.is_active == True).all()]
+                _notify_users(db, all_user_ids, "new_comment", f"Komentar Dihapus pada {label}", f"{actor}: {snippet}", link, exclude_id=user.id)
+                db.commit()
+            except Exception:
+                pass
             return CommentPayload(success=True, message="Comment deleted")
         except Exception as e:
             db.rollback()
@@ -2123,6 +2322,13 @@ class Mutation:
             # Push to live subscribers — both sender (other tabs) and recipient
             chat_broker.publish(recipient_id, payload)
             chat_broker.publish(user.id, payload)
+            try:
+                sender_name = user.full_name or user.username or user.email
+                msg_preview = content[:60] if content else "📎 Lampiran"
+                _notify_users(db, [recipient_id], "new_chat", f"Pesan dari {sender_name}", msg_preview, "/dashboard/chat")
+                db.commit()
+            except Exception:
+                pass
             return ChatMessagePayload(success=True, message="Pesan terkirim", chat_message=payload)
         except Exception as e:
             db.rollback()
@@ -2147,12 +2353,19 @@ class Mutation:
                 return ChatMessagePayload(success=False, message="Anda hanya dapat mengedit pesan Anda sendiri")
             if not content and not record.attachment_url:
                 return ChatMessagePayload(success=False, message="Pesan tidak boleh kosong")
+            recipient_id = record.recipient_id
             record.content = content
             db.commit()
             db.refresh(record)
             payload = _chat_msg_to_type(record, user)
             chat_broker.publish(record.recipient_id, payload)
             chat_broker.publish(record.sender_id, payload)
+            try:
+                sender_name = user.full_name or user.username or user.email
+                _notify_users(db, [recipient_id], "new_chat", f"Pesan Diperbarui dari {sender_name}", content[:60], "/dashboard/chat")
+                db.commit()
+            except Exception:
+                pass
             return ChatMessagePayload(success=True, message="Pesan diperbarui", chat_message=payload)
         except Exception as e:
             db.rollback()
@@ -2200,6 +2413,13 @@ class Mutation:
             )
             chat_broker.publish(recipient_id, tombstone)
             chat_broker.publish(sender_id, tombstone)
+            try:
+                actor_name = user.full_name or user.username or user.email
+                notify_id = recipient_id if user.id == sender_id else sender_id
+                _notify_users(db, [notify_id], "new_chat", f"Pesan Dihapus oleh {actor_name}", "Pesan telah dihapus", "/dashboard/chat")
+                db.commit()
+            except Exception:
+                pass
             return ChatMessagePayload(success=True, message="Pesan dihapus")
         except Exception as e:
             db.rollback()
@@ -2229,6 +2449,64 @@ class Mutation:
         except Exception as e:
             db.rollback()
             return GenericPayload(success=False, message=f"Failed to mark read: {str(e)}")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def mark_notification_read(self, info: strawberry.types.Info, id: int) -> NotificationPayload:
+        user = _get_current_user(info)
+        if not user:
+            return NotificationPayload(success=False, message="Authentication required")
+        db = _get_db()
+        try:
+            row = db.query(models.Notification).filter(
+                models.Notification.id == id,
+                models.Notification.user_id == user.id,
+            ).first()
+            if row:
+                row.is_read = True
+                db.commit()
+            return NotificationPayload(success=True, message="Marked as read")
+        except Exception as e:
+            db.rollback()
+            return NotificationPayload(success=False, message=str(e))
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def delete_notification(self, info: strawberry.types.Info, id: int) -> NotificationPayload:
+        user = _get_current_user(info)
+        if not user:
+            return NotificationPayload(success=False, message="Authentication required")
+        db = _get_db()
+        try:
+            db.query(models.Notification).filter(
+                models.Notification.id == id,
+                models.Notification.user_id == user.id,
+            ).delete()
+            db.commit()
+            return NotificationPayload(success=True, message="Notification deleted")
+        except Exception as e:
+            db.rollback()
+            return NotificationPayload(success=False, message=str(e))
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def mark_all_notifications_read(self, info: strawberry.types.Info) -> NotificationPayload:
+        user = _get_current_user(info)
+        if not user:
+            return NotificationPayload(success=False, message="Authentication required")
+        db = _get_db()
+        try:
+            db.query(models.Notification).filter(
+                models.Notification.user_id == user.id,
+            ).delete()
+            db.commit()
+            return NotificationPayload(success=True, message="All notifications cleared")
+        except Exception as e:
+            db.rollback()
+            return NotificationPayload(success=False, message=str(e))
         finally:
             db.close()
 
@@ -2274,6 +2552,21 @@ class Subscription:
             raise
         finally:
             chat_broker.unsubscribe(user.id, q)
+
+    @strawberry.subscription
+    async def notification_stream(self, info: strawberry.types.Info) -> AsyncIterator[NotificationType]:
+        user = _user_from_connection(info)
+        if not user:
+            return
+        q = notif_broker.subscribe(user.id)
+        try:
+            while True:
+                payload = await q.get()
+                yield payload
+        except asyncio.CancelledError:
+            raise
+        finally:
+            notif_broker.unsubscribe(user.id, q)
 
 
 schema = strawberry.Schema(query=Query, mutation=Mutation, subscription=Subscription)

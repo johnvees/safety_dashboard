@@ -31,10 +31,6 @@
           {{ loading ? "Logging in..." : "Login" }}
         </button>
       </form>
-      <p class="register-link">
-        Don't have an account?
-        <router-link to="/register">Register here</router-link>
-      </p>
     </div>
   </div>
 </template>

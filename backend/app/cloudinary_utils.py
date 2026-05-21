@@ -54,3 +54,9 @@ def upload_document(file_bytes: bytes, folder: str = "safety_dashboard/documents
         resource_type="raw",
     )
     return result["secure_url"]
+
+
+def delete_document(url: str) -> None:
+    public_id = _extract_public_id(url)
+    if public_id:
+        cloudinary.uploader.destroy(public_id, resource_type="raw")

@@ -9,7 +9,7 @@
     <div class="main">
       <Topbar :title="pageTitle" @toggle-sidebar="sidebarOpen = !sidebarOpen" />
       <div class="content">
-        <router-view />
+        <router-view :key="$route.fullPath" />
       </div>
     </div>
   </div>

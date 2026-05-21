@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
 import Login from "../login/Login.vue";
-import Register from "../login/Register.vue";
 import { authService } from "../services/authService.js";
 import Dashboard from "../dashboard/Dashboard.vue";
 import DashboardHome from "../dashboard/views/DashboardHome.vue";
@@ -14,7 +13,7 @@ import Chat from "../dashboard/views/Chat.vue";
 const routes = [
   { path: "/", redirect: "/login" },
   { path: "/login", name: "Login", component: Login },
-  { path: "/register", name: "Register", component: Register },
+  { path: "/register", redirect: "/login" },
   {
     path: "/dashboard",
     component: Dashboard,
@@ -60,7 +59,7 @@ router.beforeEach((to, _from, next) => {
 
   if (to.meta.requiresAuth && !token) {
     next({ name: "Login" });
-  } else if ((to.name === "Login" || to.name === "Register") && token) {
+  } else if (to.name === "Login" && token) {
     next({ name: "DashboardHome" });
   } else {
     next();

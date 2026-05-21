@@ -122,18 +122,50 @@
         Settings
       </router-link>
     </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">{{ initials }}</div>
+        <div class="sidebar-user-details">
+          <span class="sidebar-user-name">{{ displayName }}</span>
+          <span class="sidebar-user-meta">{{ user?.role || '-' }}{{ user?.businessUnit ? ' · ' + user.businessUnit : '' }}</span>
+        </div>
+      </div>
+      <button class="sidebar-logout" @click="handleLogout" aria-label="Logout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+    </div>
   </aside>
 </template>
 
 <script setup>
 import { ref, computed } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
+import { authService } from "@/services/authService";
 
 defineProps({ open: { type: Boolean, default: true } });
 
 const route = useRoute();
+const router = useRouter();
+
 const isReportsActive = computed(() => route.path.startsWith("/dashboard/reports"));
 const reportsOpen = ref(isReportsActive.value);
+
+const user = authService.getCurrentUser();
+const displayName = computed(() => user?.fullName || user?.username || user?.email || "");
+const initials = computed(() => {
+  const name = user?.fullName || user?.username || user?.email || "U";
+  return name.split(" ").slice(0, 2).map((w) => w[0].toUpperCase()).join("");
+});
+
+function handleLogout() {
+  authService.logout();
+  router.push("/login");
+}
 </script>
 
 <style scoped>
@@ -144,8 +176,7 @@ const reportsOpen = ref(isReportsActive.value);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   transition: width 0.25s ease;
 }
 
@@ -199,6 +230,9 @@ const reportsOpen = ref(isReportsActive.value);
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .nav-item {
@@ -283,5 +317,86 @@ const reportsOpen = ref(isReportsActive.value);
 .nav-subitem.active {
   background: rgba(59, 130, 246, 0.2);
   color: #60a5fa;
+}
+
+/* ── Sidebar footer ── */
+.sidebar-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebar-user-details {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+  min-width: 0;
+}
+
+.sidebar-user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-user-meta {
+  font-size: 11px;
+  color: #64748b;
+  text-transform: capitalize;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-logout {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  padding: 7px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.sidebar-logout:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.sidebar-logout svg {
+  width: 16px;
+  height: 16px;
 }
 </style>
