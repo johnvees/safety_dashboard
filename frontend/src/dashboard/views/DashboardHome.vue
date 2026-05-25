@@ -5,13 +5,25 @@
       <div>
         <h2>Dashboard Overview</h2>
         <p class="dash-sub">
-          K3L Safety inspection summary &middot; {{ currentMonthYear }}
+          {{ activeTab === 'k3l' ? 'K3L Safety inspection summary' : 'HSE Daily Report summary' }} &middot; {{ currentMonthYear }}
         </p>
       </div>
       <div class="welcome-pill">
         <span class="welcome-dot"></span>
         {{ greeting }}, <strong>{{ userName }}</strong>
       </div>
+    </div>
+
+    <!-- Tab switcher -->
+    <div class="dash-tabs">
+      <button class="dash-tab" :class="{ active: activeTab === 'k3l' }" @click="activeTab = 'k3l'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+        Inspection K3L
+      </button>
+      <button class="dash-tab" :class="{ active: activeTab === 'hse' }" @click="activeTab = 'hse'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        HSE Daily Report
+      </button>
     </div>
 
     <!-- Loading -->
@@ -72,6 +84,8 @@
     </div>
 
     <template v-else>
+      <!-- ── K3L tab ─────────────────────────────────────────────── -->
+      <div v-show="activeTab === 'k3l'">
       <!-- Date filter row -->
       <div class="date-filter-row">
         <button
@@ -684,6 +698,368 @@
           </div>
         </div>
       </div>
+      </div><!-- end k3l tab -->
+
+      <!-- ── HSE Daily Report tab ───────────────────────────────── -->
+      <div v-show="activeTab === 'hse'">
+        <!-- HSE Date filter -->
+        <div class="date-filter-row">
+          <button v-for="opt in DATE_PRESETS" :key="opt.value" class="date-chip"
+            :class="{ active: hseDateFilter === opt.value }" @click="setHseDatePreset(opt.value)">
+            {{ opt.label }}
+          </button>
+        </div>
+        <div v-if="hseDateFilter === 'custom'" class="custom-date-row">
+          <label class="toolbar-date-wrap">
+            <input type="date" v-model="hseCustomFrom" class="toolbar-date" @click="$event.target.showPicker?.()"/>
+          </label>
+          <span class="date-sep">–</span>
+          <label class="toolbar-date-wrap">
+            <input type="date" v-model="hseCustomTo" class="toolbar-date" @click="$event.target.showPicker?.()"/>
+          </label>
+        </div>
+
+        <!-- HSE Scope filter -->
+        <div v-if="roleLevel <= 2" class="scope-filter-row">
+          <select v-model="hseFilterBU" class="scope-select">
+            <option :value="null">Semua Business Unit</option>
+            <option v-for="bu in businessUnits" :key="bu.id" :value="bu.id">{{ bu.name }}</option>
+          </select>
+          <select v-model="hseFilterPlant" class="scope-select">
+            <option :value="null">Semua Plant</option>
+            <option v-for="p in hseAvailablePlants" :key="p.id" :value="p.id">{{ p.name }}</option>
+          </select>
+          <button v-if="hseFilterBU || hseFilterPlant" class="scope-reset-btn" @click="resetHseScope">Reset</button>
+        </div>
+        <div v-else-if="roleLevel <= 4" class="scope-filter-row">
+          <span class="scope-bu-label">{{ businessUnits.find(b => b.id === user?.businessUnitId)?.name || 'Business Unit' }}</span>
+          <select v-model="hseFilterPlant" class="scope-select">
+            <option :value="null">Semua Plant</option>
+            <option v-for="p in hseAvailablePlants" :key="p.id" :value="p.id">{{ p.name }}</option>
+          </select>
+          <button v-if="hseFilterPlant" class="scope-reset-btn" @click="hseFilterPlant = null">Reset</button>
+        </div>
+
+        <!-- HSE empty state inside tab -->
+        <div v-if="hseFilteredRecords.length === 0" class="hse-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" width="40" height="40">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <p>Belum ada data HSE Daily Report</p>
+          <button class="empty-btn" @click="$router.push('/dashboard/reports/hse-daily')">+ Tambah Laporan</button>
+        </div>
+
+        <template v-else>
+          <!-- HSE KPI Cards -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-icon-wrap" style="background:#eff6ff">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" width="22" height="22">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+              </div>
+              <div class="kpi-body">
+                <div class="kpi-value">{{ hseStats.total }}</div>
+                <div class="kpi-label">Total Laporan</div>
+                <div class="kpi-meta">Periode dipilih</div>
+              </div>
+              <div class="kpi-bar" style="background:#3b82f6"></div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon-wrap" style="background:#fef2f2">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" width="22" height="22">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+              </div>
+              <div class="kpi-body">
+                <div class="kpi-value">{{ hseStats.highRisk }}</div>
+                <div class="kpi-label">Risiko Tinggi</div>
+                <div class="kpi-meta">Perlu perhatian</div>
+              </div>
+              <div class="kpi-bar" style="background:#ef4444"></div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon-wrap" style="background:#f0fdf4">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" width="22" height="22">
+                  <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                </svg>
+              </div>
+              <div class="kpi-body">
+                <div class="kpi-value">{{ hseStats.permitRate }}%</div>
+                <div class="kpi-label">Compliance Permit</div>
+                <div class="kpi-meta">{{ hseStats.withPermit }} dari {{ hseStats.total }}</div>
+              </div>
+              <div class="kpi-bar" style="background:#10b981"></div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon-wrap" style="background:#fefce8">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" width="22" height="22">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+              <div class="kpi-body">
+                <div class="kpi-value">{{ hseStats.uniqueWorkers }}</div>
+                <div class="kpi-label">Total Pekerja</div>
+                <div class="kpi-meta">Unik dalam periode</div>
+              </div>
+              <div class="kpi-bar" style="background:#eab308"></div>
+            </div>
+          </div>
+
+          <!-- Permit compliance bar -->
+          <div class="rate-card hse-rate-card" v-if="hseStats.total > 0">
+            <div class="rate-label">
+              <span>Permit Compliance Rate</span>
+              <strong>{{ hseStats.permitRate }}%</strong>
+            </div>
+            <div class="rate-track">
+              <div class="rate-fill" :style="{ width: hseStats.permitRate + '%' }"></div>
+            </div>
+            <div class="rate-breakdown hse-rate-breakdown">
+              <span class="rb-chip rb-high"><span class="rb-dot" style="background:#ef4444"></span>{{ hseStats.highRisk }} Risiko Tinggi</span>
+              <span class="rb-chip rb-med"><span class="rb-dot" style="background:#f59e0b"></span>{{ hseStats.medRisk }} Risiko Sedang</span>
+              <span class="rb-chip rb-low"><span class="rb-dot" style="background:#10b981"></span>{{ hseStats.lowRisk }} Risiko Rendah</span>
+            </div>
+          </div>
+
+          <!-- HSE Charts row -->
+          <div class="charts-row">
+            <!-- Monthly trend (grouped bars, K3L style) -->
+            <div class="chart-card chart-wide">
+              <div class="chart-header">
+                <div>
+                  <div class="chart-title">Tren Laporan Bulanan</div>
+                  <div class="chart-subtitle">Laporan per level risiko per bulan (6 bulan terakhir)</div>
+                </div>
+                <div class="grouped-legend">
+                  <span v-for="s in HSE_RISK_CATS" :key="s.label" class="gl-item">
+                    <span class="gl-dot" :style="{ background: s.color }"></span>{{ s.label }}
+                  </span>
+                </div>
+              </div>
+              <div class="chart-body chart-grouped-wrap">
+                <div class="bar-scroll-outer" ref="hseBarScrollRef" @mousemove="onHseBarMouseMove" @mouseleave="hseBarTooltip = null">
+                  <svg viewBox="0 0 520 185" class="bar-svg" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Horizontal grid lines -->
+                    <line v-for="gl in hseGridLines" :key="gl.y"
+                      x1="44" :y1="gl.y" x2="512" :y2="gl.y" stroke="#f1f5f9" stroke-width="1.5"/>
+                    <!-- Y-axis labels -->
+                    <text v-for="gl in hseGridLines" :key="`y${gl.y}`"
+                      x="38" :y="gl.y + 4" text-anchor="end" font-size="10" fill="#94a3b8">{{ gl.label }}</text>
+                    <!-- Groups -->
+                    <g v-for="(grp, i) in hseGroupedBars" :key="i"
+                      @mouseenter="hseBarTooltip = grp" @mouseleave="hseBarTooltip = null" style="cursor: default">
+                      <!-- hover hit area -->
+                      <rect v-if="grp.bars.length"
+                        :x="grp.bars[0].x - 4" y="0" :width="grp.groupW + 8" height="165" fill="transparent"/>
+                      <rect v-for="(bar, j) in grp.bars" :key="j"
+                        :x="bar.x" :y="bar.y" :width="bar.w" :height="Math.max(bar.h, 2)"
+                        rx="4" :fill="bar.color"
+                        :opacity="hseBarTooltip && hseBarTooltip.label !== grp.label ? 0.4 : 1"
+                        style="transition: opacity 0.15s"/>
+                      <!-- Total above group -->
+                      <text v-if="grp.total > 0"
+                        :x="grp.labelX" :y="grp.topY"
+                        text-anchor="middle" font-size="11" font-weight="700" fill="#475569">{{ grp.total }}</text>
+                      <!-- Month label -->
+                      <text :x="grp.labelX" y="178" text-anchor="middle" font-size="11" fill="#64748b">{{ grp.label }}</text>
+                    </g>
+                  </svg>
+                  <!-- Tooltip -->
+                  <div v-if="hseBarTooltip" class="bar-tooltip"
+                    :style="{ left: hseBarTooltipPos.x + 'px', top: hseBarTooltipPos.y + 'px' }">
+                    <div class="tt-month">{{ hseBarTooltip.label }}</div>
+                    <div v-for="s in HSE_RISK_CATS" :key="s.key" class="tt-row">
+                      <span class="tt-dot" :style="{ background: s.color }"></span>
+                      <span class="tt-label">{{ s.label }}</span>
+                      <span class="tt-val">{{ hseBarTooltip[s.key] }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Risk donut -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <div>
+                  <div class="chart-title">Distribusi Risiko</div>
+                  <div class="chart-subtitle">Berdasarkan level risiko</div>
+                </div>
+              </div>
+              <div class="hse-donut-wrap">
+                <svg width="180" height="180" viewBox="0 0 180 180">
+                  <circle cx="90" cy="90" r="65" fill="none" stroke="#f1f5f9" stroke-width="22"/>
+                  <circle v-for="seg in hseDonutSegments" :key="seg.label"
+                    cx="90" cy="90" r="65" fill="none"
+                    :stroke="seg.color" :stroke-width="hoveredHseDonut?.label === seg.label ? 26 : 22"
+                    :stroke-dasharray="`${seg.length} ${seg.gap}`"
+                    :stroke-dashoffset="-seg.offset"
+                    transform="rotate(-90 90 90)"
+                    stroke-linecap="butt"
+                    :opacity="hoveredHseDonut && hoveredHseDonut.label !== seg.label ? 0.4 : 1"
+                    style="transition: all 0.15s; cursor: pointer"
+                    @mouseenter="hoveredHseDonut = seg"
+                    @mouseleave="hoveredHseDonut = null"/>
+                  <text x="90" y="86" text-anchor="middle" font-size="24" font-weight="700" fill="#1e293b">
+                    {{ hoveredHseDonut ? hoveredHseDonut.count : hseStats.total }}
+                  </text>
+                  <text x="90" y="104" text-anchor="middle" font-size="11" fill="#64748b">
+                    {{ hoveredHseDonut ? hoveredHseDonut.label : 'Total' }}
+                  </text>
+                </svg>
+                <div class="hse-donut-legend">
+                  <div v-for="seg in hseDonutSegments" :key="seg.label" class="hse-dl-item"
+                    @mouseenter="hoveredHseDonut = seg" @mouseleave="hoveredHseDonut = null">
+                    <span class="hse-dl-dot" :style="{ background: seg.color }"></span>
+                    <span class="hse-dl-label">{{ seg.label }}</span>
+                    <span class="hse-dl-val">{{ seg.count }} <span class="hse-dl-pct">({{ seg.pct }}%)</span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- HSE second chart row: top lokasi + department -->
+          <div class="charts-row hse-half-row">
+            <!-- Top Lokasi -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <div>
+                  <div class="chart-title">Top Lokasi Pekerjaan</div>
+                  <div class="chart-subtitle">5 lokasi terbanyak</div>
+                </div>
+              </div>
+              <div class="chart-body">
+                <div class="hse-hbar-list">
+                  <div v-if="hseTopLokasi.length === 0" class="hbar-empty">Tidak ada data</div>
+                  <div v-for="item in hseTopLokasi" :key="item.label" class="hbar-row">
+                    <div class="hbar-label" :title="item.label">{{ item.label }}</div>
+                    <div class="hbar-track">
+                      <div class="hbar-fill" :style="{ width: item.pct + '%', background: '#3b82f6' }"></div>
+                    </div>
+                    <div class="hbar-count">{{ item.count }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Department distribution -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <div>
+                  <div class="chart-title">Laporan per Departemen</div>
+                  <div class="chart-subtitle">Distribusi berdasarkan dept.</div>
+                </div>
+              </div>
+              <div class="chart-body">
+                <div class="hse-hbar-list">
+                  <div v-if="hseDeptDist.length === 0" class="hbar-empty">Tidak ada data</div>
+                  <div v-for="item in hseDeptDist" :key="item.label" class="hbar-row">
+                    <div class="hbar-label" :title="item.label">{{ item.label }}</div>
+                    <div class="hbar-track">
+                      <div class="hbar-fill" :style="{ width: item.pct + '%', background: '#8b5cf6' }"></div>
+                    </div>
+                    <div class="hbar-count">{{ item.count }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- HSE third row: jenis pekerjaan donut + high-risk recent table -->
+          <div class="charts-row hse-third-row">
+            <!-- Jenis pekerjaan donut -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <div>
+                  <div class="chart-title">Jenis Pekerjaan</div>
+                  <div class="chart-subtitle">Distribusi tipe aktivitas</div>
+                </div>
+              </div>
+              <div class="hse-donut-wrap">
+                <svg width="180" height="180" viewBox="0 0 180 180">
+                  <circle cx="90" cy="90" r="65" fill="none" stroke="#f1f5f9" stroke-width="22"/>
+                  <circle v-for="seg in hseJenisSegments" :key="seg.label"
+                    cx="90" cy="90" r="65" fill="none"
+                    :stroke="seg.color" :stroke-width="hoveredJenis?.label === seg.label ? 26 : 22"
+                    :stroke-dasharray="`${seg.length} ${seg.gap}`"
+                    :stroke-dashoffset="-seg.offset"
+                    transform="rotate(-90 90 90)"
+                    stroke-linecap="butt"
+                    :opacity="hoveredJenis && hoveredJenis.label !== seg.label ? 0.4 : 1"
+                    style="transition: all 0.15s; cursor: pointer"
+                    @mouseenter="hoveredJenis = seg" @mouseleave="hoveredJenis = null"/>
+                  <text x="90" y="86" text-anchor="middle" font-size="22" font-weight="700" fill="#1e293b">
+                    {{ hoveredJenis ? hoveredJenis.count : hseStats.total }}
+                  </text>
+                  <text x="90" y="104" text-anchor="middle" font-size="11" fill="#64748b">
+                    {{ hoveredJenis ? truncateLabel(hoveredJenis.label, 14) : 'Total' }}
+                  </text>
+                </svg>
+                <div class="hse-donut-legend">
+                  <div v-for="seg in hseJenisSegments" :key="seg.label" class="hse-dl-item"
+                    @mouseenter="hoveredJenis = seg" @mouseleave="hoveredJenis = null">
+                    <span class="hse-dl-dot" :style="{ background: seg.color }"></span>
+                    <span class="hse-dl-label" :title="seg.label">{{ seg.label }}</span>
+                    <span class="hse-dl-val">{{ seg.count }} <span class="hse-dl-pct">({{ seg.pct }}%)</span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- HSE Recent High-Risk reports -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <div>
+                  <div class="chart-title">Laporan Risiko Tinggi Terbaru</div>
+                  <div class="chart-subtitle">High risk dalam periode dipilih</div>
+                </div>
+                <router-link to="/dashboard/reports/hse-daily" class="view-all-link">
+                  Lihat semua
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </router-link>
+              </div>
+              <div v-if="hseHighRiskRecent.length === 0" class="empty-recent">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" width="40" height="40">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                <p>Tidak ada laporan risiko tinggi</p>
+              </div>
+              <div v-else class="hse-recent-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Tanggal</th>
+                      <th>Pekerjaan</th>
+                      <th>Lokasi</th>
+                      <th>Dept.</th>
+                      <th>Permit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="r in hseHighRiskRecent" :key="r.id"
+                      @click="openHseRecord(r.id)" style="cursor:pointer">
+                      <td class="td-date">{{ formatDate(r.tanggal) }}</td>
+                      <td class="td-main">{{ firstBullet(r.pekerjaan) }}</td>
+                      <td class="td-ellip">{{ r.lokasiPekerjaan || '-' }}</td>
+                      <td class="td-ellip">{{ r.departmentName || '-' }}</td>
+                      <td>
+                        <span class="permit-chip" :class="r.statusPermit ? 'chip-yes' : 'chip-no'">
+                          {{ r.statusPermit ? 'Ada' : 'Tidak' }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div><!-- end hse tab -->
     </template>
   </div>
 </template>
@@ -692,9 +1068,292 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { inspectionK3LService } from '@/services/inspectionK3LService.js';
+import { hseDailyService } from '@/services/hseDailyService.js';
 import { authService } from '@/services/authService.js';
 
 const router = useRouter();
+
+// ── Tab state ──────────────────────────────────────────────────────
+const activeTab = ref('k3l');
+
+// ── HSE Daily data ─────────────────────────────────────────────────
+const hseRecords = ref([]);
+const hseDateFilter = ref('all');
+const hseCustomFrom = ref('');
+const hseCustomTo = ref('');
+const hseFilterBU = ref(null);
+const hseFilterPlant = ref(null);
+const hseAvailablePlants = ref([]);
+
+watch(hseFilterBU, async (newBuId) => {
+  hseFilterPlant.value = null;
+  hseAvailablePlants.value = await inspectionK3LService.listPlants(newBuId);
+});
+
+function setHseDatePreset(val) {
+  hseDateFilter.value = val;
+  if (val !== 'custom') { hseCustomFrom.value = ''; hseCustomTo.value = ''; }
+}
+
+function resetHseScope() {
+  hseFilterBU.value = null;
+  hseFilterPlant.value = null;
+}
+
+const hseScopedRecords = computed(() => {
+  let src = hseRecords.value;
+  if (roleLevel >= 5) {
+    src = src.filter(r => Number(r.businessUnitId) === Number(user?.businessUnitId) && Number(r.plantId) === Number(user?.plantId));
+  } else if (roleLevel >= 3) {
+    src = src.filter(r => Number(r.businessUnitId) === Number(user?.businessUnitId));
+    if (hseFilterPlant.value != null) src = src.filter(r => Number(r.plantId) === Number(hseFilterPlant.value));
+  } else {
+    if (hseFilterBU.value != null) src = src.filter(r => Number(r.businessUnitId) === Number(hseFilterBU.value));
+    if (hseFilterPlant.value != null) src = src.filter(r => Number(r.plantId) === Number(hseFilterPlant.value));
+  }
+  return src;
+});
+
+const hseFilteredRecords = computed(() => {
+  if (hseDateFilter.value === 'all') return hseScopedRecords.value;
+  const today = new Date(); today.setHours(0,0,0,0);
+  return hseScopedRecords.value.filter(r => {
+    if (!r.tanggal) return false;
+    const d = new Date(r.tanggal); d.setHours(0,0,0,0);
+    if (hseDateFilter.value === 'today') return d.getTime() === today.getTime();
+    if (hseDateFilter.value === 'week') { const w = new Date(today); w.setDate(today.getDate()-6); return d >= w; }
+    if (hseDateFilter.value === 'month') { const m = new Date(today); m.setDate(1); return d >= m; }
+    if (hseDateFilter.value === 'custom') {
+      if (hseCustomFrom.value) { const f = new Date(hseCustomFrom.value); f.setHours(0,0,0,0); if (d < f) return false; }
+      if (hseCustomTo.value) { const t = new Date(hseCustomTo.value); t.setHours(0,0,0,0); if (d > t) return false; }
+    }
+    return true;
+  });
+});
+
+function firstBullet(raw) {
+  if (!raw) return '-';
+  const lines = raw.split('\n').map(s => s.replace(/^[\s•\-*]+/, '').trim()).filter(Boolean);
+  return lines[0] || raw.trim() || '-';
+}
+
+const hseStats = computed(() => {
+  const recs = hseFilteredRecords.value;
+  const total = recs.length;
+  const highRisk = recs.filter(r => r.levelRisiko === 'Tinggi').length;
+  const medRisk = recs.filter(r => r.levelRisiko === 'Sedang').length;
+  const lowRisk = recs.filter(r => r.levelRisiko === 'Rendah').length;
+  const withPermit = recs.filter(r => r.statusPermit).length;
+  const permitRate = total ? Math.round((withPermit / total) * 100) : 0;
+  const workerSet = new Set(recs.map(r => r.pekerja).filter(Boolean));
+  return { total, highRisk, medRisk, lowRisk, withPermit, permitRate, uniqueWorkers: workerSet.size };
+});
+
+// HSE monthly grouped bar chart (K3L style)
+const HSE_CHART_TOP = 20;
+const HSE_CHART_H = 140;
+const HSE_CHART_LEFT = 48;
+
+const HSE_RISK_CATS = [
+  { key: 'low', label: 'Rendah', color: '#4ade80' },
+  { key: 'med', label: 'Sedang', color: '#fbbf24' },
+  { key: 'high', label: 'Tinggi', color: '#f87171' },
+];
+
+const hseBarTooltip = ref(null);
+const hseBarTooltipPos = ref({ x: 0, y: 0 });
+const hseBarScrollRef = ref(null);
+
+function scrollHseBarToLatest() {
+  if (hseBarScrollRef.value) {
+    hseBarScrollRef.value.scrollLeft = hseBarScrollRef.value.scrollWidth;
+  }
+}
+
+watch(activeTab, async (tab) => {
+  if (tab === 'hse') {
+    await nextTick();
+    scrollHseBarToLatest();
+  }
+});
+
+function onHseBarMouseMove(e) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const TT_W = 155;
+  let x = e.clientX - rect.left + 14;
+  let y = e.clientY - rect.top - 65;
+  if (x + TT_W > rect.width) x = e.clientX - rect.left - TT_W - 14;
+  if (y < 4) y = 4;
+  hseBarTooltipPos.value = { x, y };
+}
+
+const hseMonthlyData = computed(() => {
+  const now = new Date();
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5-i), 1);
+    return { label: d.toLocaleString('default',{month:'short'}), year: d.getFullYear(), month: d.getMonth(), high:0, med:0, low:0 };
+  });
+  hseScopedRecords.value.forEach(r => {
+    if (!r.tanggal) return;
+    const d = new Date(r.tanggal);
+    const idx = months.findIndex(m => m.year === d.getFullYear() && m.month === d.getMonth());
+    if (idx < 0) return;
+    if (r.levelRisiko === 'Tinggi') months[idx].high++;
+    else if (r.levelRisiko === 'Sedang') months[idx].med++;
+    else if (r.levelRisiko === 'Rendah') months[idx].low++;
+  });
+  return months;
+});
+
+const hseBarLayout = computed(() => {
+  const n = HSE_RISK_CATS.length;
+  const plotW = 464; // 520 - HSE_CHART_LEFT - 8
+  const groupGap = 16;
+  const groupW = Math.floor((plotW - 5 * groupGap) / 6);
+  const barInnerGap = n > 1 ? 2 : 0;
+  const barW = Math.max(4, Math.floor((groupW - (n - 1) * barInnerGap) / n));
+  const actualGroupW = n * barW + (n - 1) * barInnerGap;
+  return { barW, barInnerGap, groupGap, groupW: actualGroupW };
+});
+
+const hseGroupedBars = computed(() => {
+  const data = hseMonthlyData.value;
+  const cats = HSE_RISK_CATS;
+  const { barW, barInnerGap, groupGap, groupW } = hseBarLayout.value;
+  const maxVal = Math.max(...data.flatMap(d => cats.map(c => d[c.key] || 0)), 1);
+  return data.map((d, i) => {
+    const gx = HSE_CHART_LEFT + i * (groupW + groupGap);
+    const bars = cats.map((c, j) => {
+      const count = d[c.key] || 0;
+      const h = (count / maxVal) * HSE_CHART_H;
+      return {
+        x: gx + j * (barW + barInnerGap),
+        y: HSE_CHART_TOP + HSE_CHART_H - h,
+        w: barW,
+        h,
+        count,
+        color: c.color,
+      };
+    });
+    const total = cats.reduce((s, c) => s + (d[c.key] || 0), 0);
+    const topY = bars.length ? Math.min(...bars.map(b => b.y)) - 8 : HSE_CHART_TOP - 8;
+    return {
+      bars,
+      label: d.label,
+      labelX: gx + groupW / 2,
+      groupW,
+      total,
+      topY,
+      high: d.high,
+      med: d.med,
+      low: d.low,
+    };
+  });
+});
+
+const hseGridLines = computed(() => {
+  const cats = HSE_RISK_CATS;
+  const maxVal = Math.max(...hseMonthlyData.value.flatMap(d => cats.map(c => d[c.key] || 0)), 1);
+  const step = maxVal <= 4 ? 1 : Math.ceil(maxVal / 4);
+  const ticks = [];
+  for (let v = 0; v <= maxVal; v += step) ticks.push({ y: HSE_CHART_TOP + HSE_CHART_H - (v / maxVal) * HSE_CHART_H, label: v });
+  if (ticks[ticks.length - 1].label !== maxVal) ticks.push({ y: HSE_CHART_TOP, label: maxVal });
+  return ticks;
+});
+
+// HSE risk donut
+const HSE_CIRC = 2 * Math.PI * 65;
+const hoveredHseDonut = ref(null);
+
+const hseDonutSegments = computed(() => {
+  const recs = hseFilteredRecords.value;
+  const total = recs.length;
+  if (!total) return [];
+  const order = ['Tinggi','Sedang','Rendah','Tidak diisi'];
+  const colors = { 'Tinggi': '#f87171', 'Sedang': '#fbbf24', 'Rendah': '#4ade80', 'Tidak diisi': '#94a3b8' };
+  const counts = { 'Tinggi': 0, 'Sedang': 0, 'Rendah': 0, 'Tidak diisi': 0 };
+  recs.forEach(r => {
+    const k = ['Tinggi','Sedang','Rendah'].includes(r.levelRisiko) ? r.levelRisiko : 'Tidak diisi';
+    counts[k]++;
+  });
+  let cumulative = 0;
+  return order.filter(k => counts[k] > 0).map(label => {
+    const count = counts[label];
+    const fullLen = (count / total) * HSE_CIRC;
+    const seg = {
+      label,
+      count,
+      color: colors[label],
+      length: Math.max(fullLen - 2, 0),
+      gap: HSE_CIRC - Math.max(fullLen - 2, 0),
+      offset: cumulative,
+      pct: Math.round((count / total) * 100),
+    };
+    cumulative += fullLen;
+    return seg;
+  });
+});
+
+// HSE jenis pekerjaan donut
+const hoveredJenis = ref(null);
+const JENIS_COLORS = ['#3b82f6','#8b5cf6','#f59e0b','#10b981','#ef4444','#06b6d4','#ec4899','#14b8a6'];
+
+const hseJenisSegments = computed(() => {
+  const recs = hseFilteredRecords.value;
+  const total = recs.length;
+  if (!total) return [];
+  const counts = {};
+  recs.forEach(r => {
+    const k = r.jenisPekerjaan === 'Lainnya' ? (r.jenisPekerjaanLainnya || 'Lainnya') : (r.jenisPekerjaan || 'Tidak diisi');
+    counts[k] = (counts[k] || 0) + 1;
+  });
+  let cumulative = 0;
+  return Object.entries(counts).sort((a,b) => b[1] - a[1]).map(([label, count], i) => {
+    const fullLen = (count / total) * HSE_CIRC;
+    const seg = {
+      label,
+      count,
+      color: JENIS_COLORS[i % JENIS_COLORS.length],
+      length: Math.max(fullLen - 2, 0),
+      gap: HSE_CIRC - Math.max(fullLen - 2, 0),
+      offset: cumulative,
+      pct: Math.round((count / total) * 100),
+    };
+    cumulative += fullLen;
+    return seg;
+  });
+});
+
+function truncateLabel(s, max) {
+  if (!s) return '';
+  return s.length > max ? s.slice(0, max - 1) + '…' : s;
+}
+
+// HSE top lokasi
+const hseTopLokasi = computed(() => {
+  const counts = {};
+  hseFilteredRecords.value.forEach(r => { const k = r.lokasiPekerjaan || 'Tidak diisi'; counts[k] = (counts[k]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const max = sorted[0]?.[1] || 1;
+  return sorted.map(([label,count]) => ({ label, count, pct: Math.round((count/max)*100) }));
+});
+
+// HSE dept distribution
+const hseDeptDist = computed(() => {
+  const counts = {};
+  hseFilteredRecords.value.forEach(r => { const k = r.departmentName || 'Lainnya'; counts[k] = (counts[k]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const max = sorted[0]?.[1] || 1;
+  return sorted.map(([label,count]) => ({ label, count, pct: Math.round((count/max)*100) }));
+});
+
+// HSE high-risk recent
+const hseHighRiskRecent = computed(() =>
+  [...hseFilteredRecords.value]
+    .filter(r => r.levelRisiko === 'Tinggi')
+    .sort((a,b) => new Date(b.tanggal) - new Date(a.tanggal))
+    .slice(0, 6)
+);
 
 const records = ref([]);
 const loading = ref(true);
@@ -1136,6 +1795,13 @@ function openRecord(id) {
   });
 }
 
+function openHseRecord(id) {
+  router.push({
+    path: '/dashboard/reports/hse-daily',
+    query: { view: id },
+  });
+}
+
 function formatDate(s) {
   if (!s) return '—';
   const d = new Date(s.replace ? s.replace(' ', 'T') : s);
@@ -1163,20 +1829,21 @@ onMounted(async () => {
     loadFailed.value = true;
   }, 10000);
   try {
-    [records.value, businessUnits.value, plants.value, departments.value] =
+    [records.value, businessUnits.value, plants.value, departments.value, hseRecords.value] =
       await Promise.all([
         inspectionK3LService.list(),
         inspectionK3LService.listBusinessUnits(),
         inspectionK3LService.listPlants(),
         inspectionK3LService.listDepartments(),
+        hseDailyService.list(),
       ]);
     // Init plant dropdown: levels 3-4 scoped to their BU, levels 0-2 see all
     if (roleLevel >= 3 && roleLevel < 5) {
-      availablePlants.value = await inspectionK3LService.listPlants(
-        user?.businessUnitId,
-      );
+      availablePlants.value = await inspectionK3LService.listPlants(user?.businessUnitId);
+      hseAvailablePlants.value = availablePlants.value;
     } else {
       availablePlants.value = plants.value;
+      hseAvailablePlants.value = plants.value;
     }
   } catch (e) {
     console.error(e);
@@ -1188,6 +1855,7 @@ onMounted(async () => {
     if (barScrollRef.value) {
       barScrollRef.value.scrollLeft = barScrollRef.value.scrollWidth;
     }
+    scrollHseBarToLatest();
   }
 });
 </script>
@@ -1296,6 +1964,10 @@ onMounted(async () => {
   outline: none;
   cursor: pointer;
   transition: border-color 0.15s;
+  max-width: 180px;
+  min-width: 0;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 .scope-select:focus {
   border-color: #3b82f6;
@@ -1322,6 +1994,12 @@ onMounted(async () => {
 }
 .scope-reset-btn:hover {
   background: #fef2f2;
+}
+@media (max-width: 640px) {
+  .scope-select {
+    max-width: 140px;
+    flex: 1;
+  }
 }
 
 /* ── Header ─────────────────────────────────────────────────────── */
@@ -2124,4 +2802,165 @@ onMounted(async () => {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ── Tab switcher ──────────────────────────────────────────────────── */
+.dash-tabs {
+  display: flex;
+  gap: 4px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 4px;
+  width: fit-content;
+  margin-bottom: 4px;
+}
+.dash-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.dash-tab:hover { color: #1e293b; background: #e2e8f0; }
+.dash-tab.active { background: #fff; color: #1e293b; box-shadow: 0 1px 4px #0000001a; font-weight: 600; }
+@media (max-width: 640px) {
+  .dash-tabs { width: 100%; }
+  .dash-tab { flex: 1; justify-content: center; font-size: 12px; padding: 7px 10px; }
+}
+
+/* ── HSE empty ─────────────────────────────────────────────────────── */
+.hse-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 60px 20px; color: #94a3b8; text-align: center;
+}
+.hse-empty p { font-size: 14px; margin: 0; }
+
+/* ── HSE rate card (permit compliance) ─────────────────────────────── */
+.hse-rate-card {
+  padding: 22px 26px;
+  margin-bottom: 18px;
+}
+.hse-rate-card .rate-label {
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+.hse-rate-card .rate-track {
+  height: 10px;
+}
+.hse-rate-breakdown {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; align-items: center;
+}
+.rb-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #f8fafc; border: 1px solid #f1f5f9;
+  padding: 5px 12px; border-radius: 99px;
+  font-size: 12px; font-weight: 600; color: #475569;
+}
+.rb-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+@media (max-width: 640px) {
+  .hse-rate-card { padding: 16px 18px; }
+  .rb-chip { font-size: 11px; padding: 4px 10px; }
+}
+
+/* ── HSE row grids ─────────────────────────────────────────────────── */
+.hse-half-row {
+  grid-template-columns: 1fr 1fr;
+}
+.hse-third-row {
+  grid-template-columns: 1fr 2fr;
+}
+@media (max-width: 1100px) {
+  .hse-half-row,
+  .hse-third-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── HSE donut ─────────────────────────────────────────────────────── */
+.hse-donut-wrap {
+  display: flex; flex-direction: column; align-items: center; padding: 8px 4px 12px;
+}
+.hse-donut-wrap svg { flex-shrink: 0; }
+.hse-donut-legend {
+  display: flex; flex-direction: column; gap: 6px; margin-top: 14px; width: 100%;
+  max-width: 240px;
+}
+.hse-dl-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; border-radius: 6px; cursor: pointer;
+  transition: background 0.15s; min-width: 0;
+}
+.hse-dl-item:hover { background: #f8fafc; }
+.hse-dl-dot { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+.hse-dl-label {
+  font-size: 12px; color: #475569; flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hse-dl-val { font-size: 12px; font-weight: 600; color: #1e293b; flex-shrink: 0; }
+.hse-dl-pct { font-weight: 400; color: #94a3b8; font-size: 11px; }
+
+/* ── HSE horizontal bar list ───────────────────────────────────────── */
+.hse-hbar-list {
+  display: flex; flex-direction: column; gap: 14px; padding: 4px 0;
+}
+.hbar-empty { font-size: 13px; color: #94a3b8; text-align: center; padding: 24px 0; }
+.hbar-row {
+  display: flex; align-items: center; gap: 10px;
+}
+.hbar-label {
+  font-size: 12px; color: #475569; width: 110px; flex-shrink: 0; font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hbar-track {
+  flex: 1; height: 10px; background: #f1f5f9; border-radius: 5px; overflow: hidden; min-width: 0;
+}
+.hbar-fill {
+  height: 100%; border-radius: 5px; transition: width 0.4s ease;
+}
+.hbar-count {
+  font-size: 13px; font-weight: 700; color: #1e293b; width: 28px; text-align: right; flex-shrink: 0;
+}
+@media (max-width: 640px) {
+  .hbar-label { width: 80px; font-size: 11px; }
+}
+
+/* ── HSE recent high-risk table ────────────────────────────────────── */
+.hse-recent-table {
+  overflow-x: auto;
+  padding: 6px 16px 14px;
+}
+.hse-recent-table table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.hse-recent-table th {
+  text-align: left; padding: 10px 8px 8px; font-size: 10.5px; font-weight: 600;
+  color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em;
+  border-bottom: 1px solid #f1f5f9;
+}
+.hse-recent-table td {
+  padding: 11px 8px; color: #374151; border-bottom: 1px solid #f8fafc;
+}
+.hse-recent-table tr:last-child td { border-bottom: none; }
+.hse-recent-table tr:hover td { background: #f8fafc; }
+.td-date { white-space: nowrap; color: #64748b; font-size: 12px; }
+.td-main {
+  max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-weight: 500;
+}
+.td-ellip {
+  max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.permit-chip {
+  display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 9px;
+  border-radius: 20px; white-space: nowrap;
+}
+.chip-yes { background: #dcfce7; color: #16a34a; }
+.chip-no { background: #fee2e2; color: #dc2626; }
 </style>

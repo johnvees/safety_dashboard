@@ -9,6 +9,48 @@
       <button class="btn-primary" @click="openCreate">+ Tambah Laporan</button>
     </div>
 
+    <!-- Scope filter: BU + Plant -->
+    <div v-if="roleLevel <= 2" class="scope-filter-row">
+      <select v-model="filterBU" class="scope-select">
+        <option :value="null">Semua Business Unit</option>
+        <option v-for="bu in businessUnits" :key="bu.id" :value="bu.id">
+          {{ bu.name }}
+        </option>
+      </select>
+      <select v-model="filterPlant" class="scope-select">
+        <option :value="null">Semua Plant</option>
+        <option v-for="p in availablePlants" :key="p.id" :value="p.id">
+          {{ p.name }}
+        </option>
+      </select>
+      <button
+        v-if="filterBU || filterPlant"
+        class="scope-reset-btn"
+        @click="resetScopeFilter"
+      >
+        Reset
+      </button>
+    </div>
+    <div v-else-if="roleLevel <= 4" class="scope-filter-row">
+      <span class="scope-bu-label">{{
+        businessUnits.find((b) => b.id === currentUser.businessUnitId)?.name ||
+        'Business Unit'
+      }}</span>
+      <select v-model="filterPlant" class="scope-select">
+        <option :value="null">Semua Plant</option>
+        <option v-for="p in availablePlants" :key="p.id" :value="p.id">
+          {{ p.name }}
+        </option>
+      </select>
+      <button
+        v-if="filterPlant"
+        class="scope-reset-btn"
+        @click="filterPlant = null"
+      >
+        Reset
+      </button>
+    </div>
+
     <!-- Empty state -->
     <div v-if="!loading && records.length === 0" class="empty-state">
       <svg
@@ -1104,9 +1146,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { authService } from '@/services/authService.js';
 import { hseDailyService, uploadImage } from '@/services/hseDailyService.js';
+import { inspectionK3LService } from '@/services/inspectionK3LService.js';
 import { usePagination } from '@/composables/usePagination.js';
 import PaginationBar from '@/components/PaginationBar.vue';
 import CommentSection from '@/components/CommentSection.vue';
@@ -1137,8 +1181,52 @@ const JENIS_OPTIONS = [
 ];
 
 const currentUser = authService.getCurrentUser();
+const roleLevel = authService.getRoleLevel();
+
 const records = ref([]);
 const departments = ref([]);
+const businessUnits = ref([]);
+const plants = ref([]);
+
+// ── Scope filter (BU + Plant) ──
+const filterBU = ref(null);
+const filterPlant = ref(null);
+const availablePlants = ref([]);
+
+watch(filterBU, async (newBuId) => {
+  filterPlant.value = null;
+  availablePlants.value = await inspectionK3LService.listPlants(newBuId);
+});
+
+const scopedRecords = computed(() => {
+  let src = records.value;
+  if (roleLevel >= 5) {
+    src = src.filter(
+      (r) =>
+        Number(r.businessUnitId) === Number(currentUser?.businessUnitId) &&
+        Number(r.plantId) === Number(currentUser?.plantId),
+    );
+  } else if (roleLevel >= 3) {
+    src = src.filter(
+      (r) => Number(r.businessUnitId) === Number(currentUser?.businessUnitId),
+    );
+    if (filterPlant.value != null)
+      src = src.filter((r) => Number(r.plantId) === Number(filterPlant.value));
+  } else {
+    if (filterBU.value != null)
+      src = src.filter(
+        (r) => Number(r.businessUnitId) === Number(filterBU.value),
+      );
+    if (filterPlant.value != null)
+      src = src.filter((r) => Number(r.plantId) === Number(filterPlant.value));
+  }
+  return src;
+});
+
+function resetScopeFilter() {
+  filterBU.value = null;
+  filterPlant.value = null;
+}
 const loading = ref(true);
 const submitting = ref(false);
 const formError = ref('');
@@ -1176,6 +1264,7 @@ function resetFilters() {
   filterDate.value = 'all';
   customDateFrom.value = '';
   customDateTo.value = '';
+  resetScopeFilter();
 }
 
 const hasActiveFilter = computed(
@@ -1183,7 +1272,9 @@ const hasActiveFilter = computed(
     search.value ||
     filterJenis.value ||
     filterRisiko.value ||
-    filterDate.value !== 'all',
+    filterDate.value !== 'all' ||
+    (roleLevel <= 2 && (filterBU.value != null || filterPlant.value != null)) ||
+    (roleLevel >= 3 && roleLevel < 5 && filterPlant.value != null),
 );
 
 const filteredRecords = computed(() => {
@@ -1191,7 +1282,7 @@ const filteredRecords = computed(() => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  return records.value.filter((r) => {
+  return scopedRecords.value.filter((r) => {
     if (filterJenis.value && r.jenisPekerjaan !== filterJenis.value)
       return false;
     if (filterRisiko.value && r.levelRisiko !== filterRisiko.value)
@@ -1264,6 +1355,9 @@ function showPhotoWarning(msg) {
 
 const modal = ref({ open: false, mode: 'create', record: null });
 
+const route = useRoute();
+const router = useRouter();
+
 const defaultForm = () => ({
   tanggal: '',
   pekerjaan: [''],
@@ -1288,10 +1382,26 @@ const form = ref(defaultForm());
 
 onMounted(async () => {
   try {
-    [records.value, departments.value] = await Promise.all([
-      hseDailyService.list(),
-      hseDailyService.listDepartments(),
-    ]);
+    [records.value, departments.value, businessUnits.value, plants.value] =
+      await Promise.all([
+        hseDailyService.list(),
+        hseDailyService.listDepartments(),
+        inspectionK3LService.listBusinessUnits(),
+        inspectionK3LService.listPlants(),
+      ]);
+    if (roleLevel >= 3 && roleLevel < 5) {
+      availablePlants.value = await inspectionK3LService.listPlants(
+        currentUser?.businessUnitId,
+      );
+    } else {
+      availablePlants.value = plants.value;
+    }
+    if (route.query.view) {
+      const target = records.value.find(
+        (r) => String(r.id) === String(route.query.view),
+      );
+      if (target) openView(target);
+    }
   } finally {
     loading.value = false;
   }
@@ -1468,6 +1578,7 @@ function onCommentCountChange(count) {
 
 function tryClose() {
   modal.value.open = false;
+  if (route.query.view) router.replace({ query: {} });
 }
 
 // ── Display helpers ────────────────────────────────────────────────────
@@ -1610,7 +1721,10 @@ const yearOptions = computed(() => {
 
 function buildHseExport(source) {
   const parsedFotos = source.map((r) => parseFotos(r.foto));
-  const maxFotos = Math.max(parsedFotos.reduce((m, p) => Math.max(m, p.length), 0), 1);
+  const maxFotos = Math.max(
+    parsedFotos.reduce((m, p) => Math.max(m, p.length), 0),
+    1,
+  );
 
   const fotoCols = Array.from({ length: maxFotos }, (_, i) => ({
     label: maxFotos === 1 ? 'Dokumentasi' : `Dokumentasi ${i + 1}`,
@@ -1619,22 +1733,22 @@ function buildHseExport(source) {
   }));
 
   const columns = [
-    { label: 'No',                  key: 'no' },
-    { label: 'Tanggal',             key: 'tanggal' },
-    { label: 'Pekerjaan',           key: 'pekerjaan' },
-    { label: 'Pekerja',             key: 'pekerja' },
-    { label: 'Department',          key: 'department' },
-    { label: 'Plant',               key: 'plant' },
-    { label: 'Business Unit',       key: 'businessUnit' },
-    { label: 'Lokasi Pekerjaan',    key: 'lokasiPekerjaan' },
-    { label: 'Status Permit',       key: 'statusPermit' },
-    { label: 'No. Permit',          key: 'noPermit' },
-    { label: 'Jenis Pekerjaan',     key: 'jenisPekerjaan' },
-    { label: 'Potensi Bahaya',      key: 'potensiBahaya' },
-    { label: 'Level Risiko',        key: 'levelRisiko' },
+    { label: 'No', key: 'no' },
+    { label: 'Tanggal', key: 'tanggal' },
+    { label: 'Pekerjaan', key: 'pekerjaan' },
+    { label: 'Pekerja', key: 'pekerja' },
+    { label: 'Department', key: 'department' },
+    { label: 'Plant', key: 'plant' },
+    { label: 'Business Unit', key: 'businessUnit' },
+    { label: 'Lokasi Pekerjaan', key: 'lokasiPekerjaan' },
+    { label: 'Status Permit', key: 'statusPermit' },
+    { label: 'No. Permit', key: 'noPermit' },
+    { label: 'Jenis Pekerjaan', key: 'jenisPekerjaan' },
+    { label: 'Potensi Bahaya', key: 'potensiBahaya' },
+    { label: 'Level Risiko', key: 'levelRisiko' },
     { label: 'Pengendalian Bahaya', key: 'pengendalianBahaya' },
-    { label: 'Pengawas HSE',        key: 'pengawasHse' },
-    { label: 'Saran/Masukan',       key: 'saranMasukan' },
+    { label: 'Pengawas HSE', key: 'pengawasHse' },
+    { label: 'Saran/Masukan', key: 'saranMasukan' },
     ...fotoCols,
   ];
 
@@ -1645,7 +1759,7 @@ function buildHseExport(source) {
     return {
       no: idx + 1,
       tanggal: r.tanggal || '',
-      pekerjaan: parseBullets(r.pekerjaan).join(' | '),
+      pekerjaan: parseBullets(r.pekerjaan).join(', '),
       pekerja: r.pekerja || '',
       department: r.departmentName || '',
       plant: r.plantName || '',
@@ -1654,11 +1768,11 @@ function buildHseExport(source) {
       statusPermit: r.statusPermit ? 'Ada' : 'Tidak',
       noPermit: r.noPermit || '',
       jenisPekerjaan: displayJenis(r),
-      potensiBahaya: parseBullets(r.potensiBahaya).join(' | '),
+      potensiBahaya: parseBullets(r.potensiBahaya).join(', '),
       levelRisiko: r.levelRisiko || '',
-      pengendalianBahaya: parseBullets(r.pengendalianBahaya).join(' | '),
+      pengendalianBahaya: parseBullets(r.pengendalianBahaya).join(', '),
       pengawasHse: r.pengawasHse || '',
-      saranMasukan: parseBullets(r.saranMasukan).join(' | '),
+      saranMasukan: parseBullets(r.saranMasukan).join(', '),
       ...fotoFields,
     };
   });
@@ -1875,7 +1989,7 @@ async function downloadMonthlyPDF() {
   padding: 28px 32px;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-5);
+  gap: 10px;
   overflow-x: hidden;
 }
 @media (max-width: 1024px) {
@@ -1891,7 +2005,20 @@ async function downloadMonthlyPDF() {
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 0;
+}
+@media (max-width: 640px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .page-header .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
 }
 .page-title {
   font-size: 22px;
@@ -1903,6 +2030,66 @@ async function downloadMonthlyPDF() {
   font-size: 13px;
   color: #64748b;
   margin: 0;
+}
+
+/* ── Scope filter ── */
+.scope-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+  flex-wrap: wrap;
+}
+.scope-select {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e293b;
+  font-size: 13px;
+  padding: 6px 10px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  max-width: 180px;
+  min-width: 0;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.scope-select:focus {
+  border-color: #3b82f6;
+}
+.scope-bu-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 12px;
+  white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scope-reset-btn {
+  font-size: 13px;
+  color: #ef4444;
+  background: transparent;
+  border: 1px solid #ef4444;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.scope-reset-btn:hover {
+  background: #fef2f2;
+}
+@media (max-width: 640px) {
+  .scope-select {
+    max-width: 140px;
+    flex: 1;
+  }
 }
 
 /* Table */
@@ -2093,7 +2280,7 @@ th {
 
 .badge-risiko {
   display: inline-block;
-  padding: 3px 10px;
+  padding: 6px 10px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
@@ -2113,7 +2300,7 @@ th {
 
 .badge-permit {
   display: inline-block;
-  padding: 3px 10px;
+  padding: 6px 10px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
@@ -2487,7 +2674,7 @@ th {
   color: #fff;
   font-size: 12px;
   font-weight: 600;
-  padding: 3px 10px;
+  padding: 6px 10px;
   border-radius: 20px;
 }
 

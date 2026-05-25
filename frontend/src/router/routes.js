@@ -48,28 +48,26 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach((to, _from) => {
   const token = localStorage.getItem("token");
   const expired = token && authService.isTokenExpired();
 
   if (expired) {
     authService.logout();
-    return next({ name: "Login" });
+    return { name: "Login" };
   }
 
   if (to.meta.requiresAuth && !token) {
-    return next({ name: "Login" });
+    return { name: "Login" };
   }
 
   if (to.name === "Login" && token) {
-    return next({ name: "DashboardHome" });
+    return { name: "DashboardHome" };
   }
 
   if (to.meta.requiresAdmin && !authService.canAccessMasterData()) {
-    return next({ name: "DashboardHome" });
+    return { name: "DashboardHome" };
   }
-
-  next();
 });
 
 export default router;

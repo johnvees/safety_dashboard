@@ -1,17 +1,59 @@
 <template>
   <div class="inspection-k3l">
     <div class="page-header">
-      <h2>Inspection K3L</h2>
-      <p class="subtitle">
-        Keselamatan, Kesehatan Kerja & Lingkungan inspection reports
-      </p>
-    </div>
-
-    <!-- Action bar -->
-    <div class="action-bar">
+      <div>
+        <h2>Inspection K3L</h2>
+        <p class="subtitle">
+          Keselamatan, Kesehatan Kerja & Lingkungan inspection reports
+        </p>
+      </div>
       <button class="btn-primary" @click="showForm = true">
         + Tambah Temuan
       </button>
+    </div>
+
+    <!-- Scope filter row -->
+    <div class="action-bar">
+      <div v-if="roleLevel <= 2" class="scope-filter-inline">
+        <select v-model="filterBU" class="scope-select">
+          <option :value="null">Semua Business Unit</option>
+          <option v-for="bu in businessUnits" :key="bu.id" :value="bu.id">
+            {{ bu.name }}
+          </option>
+        </select>
+        <select v-model="filterPlant" class="scope-select">
+          <option :value="null">Semua Plant</option>
+          <option v-for="p in availablePlants" :key="p.id" :value="p.id">
+            {{ p.name }}
+          </option>
+        </select>
+        <button
+          v-if="filterBU || filterPlant"
+          class="scope-reset-btn"
+          @click="resetScopeFilter"
+        >
+          Reset
+        </button>
+      </div>
+      <div v-else-if="roleLevel <= 4" class="scope-filter-inline">
+        <span class="scope-bu-label">{{
+          businessUnits.find((b) => b.id === currentUser.businessUnitId)
+            ?.name || 'Business Unit'
+        }}</span>
+        <select v-model="filterPlant" class="scope-select">
+          <option :value="null">Semua Plant</option>
+          <option v-for="p in availablePlants" :key="p.id" :value="p.id">
+            {{ p.name }}
+          </option>
+        </select>
+        <button
+          v-if="filterPlant"
+          class="scope-reset-btn"
+          @click="filterPlant = null"
+        >
+          Reset
+        </button>
+      </div>
     </div>
 
     <!-- ── Input / Edit Form Modal ── -->
@@ -1178,7 +1220,7 @@
         </button>
 
         <span v-if="hasActiveFilters" class="filter-count">
-          {{ filteredRecords.length }} / {{ records.length }} data
+          {{ filteredRecords.length }} / {{ scopedRecords.length }} data
         </span>
       </div>
 
@@ -1662,6 +1704,7 @@ const vClickOutside = {
 };
 
 const currentUser = authService.getCurrentUser();
+const roleLevel = authService.getRoleLevel();
 
 const route = useRoute();
 const router = useRouter();
@@ -1683,6 +1726,46 @@ const filteredPlants = computed(() => {
     (p) => p.businessUnitId === form.value.businessUnitId,
   );
 });
+
+// ── Scope filter (BU + Plant) ──
+const filterBU = ref(null);
+const filterPlant = ref(null);
+const availablePlants = ref([]);
+
+watch(filterBU, async (newBuId) => {
+  filterPlant.value = null;
+  availablePlants.value = await inspectionK3LService.listPlants(newBuId);
+});
+
+const scopedRecords = computed(() => {
+  let src = records.value;
+  if (roleLevel >= 5) {
+    src = src.filter(
+      (r) =>
+        Number(r.businessUnitId) === Number(currentUser?.businessUnitId) &&
+        Number(r.plantId) === Number(currentUser?.plantId),
+    );
+  } else if (roleLevel >= 3) {
+    src = src.filter(
+      (r) => Number(r.businessUnitId) === Number(currentUser?.businessUnitId),
+    );
+    if (filterPlant.value != null)
+      src = src.filter((r) => Number(r.plantId) === Number(filterPlant.value));
+  } else {
+    if (filterBU.value != null)
+      src = src.filter(
+        (r) => Number(r.businessUnitId) === Number(filterBU.value),
+      );
+    if (filterPlant.value != null)
+      src = src.filter((r) => Number(r.plantId) === Number(filterPlant.value));
+  }
+  return src;
+});
+
+function resetScopeFilter() {
+  filterBU.value = null;
+  filterPlant.value = null;
+}
 
 // ── Search & filters ──
 const searchQuery = ref('');
@@ -1713,11 +1796,13 @@ const hasActiveFilters = computed(
     searchQuery.value.trim() !== '' ||
     filterKategori.value !== '' ||
     filterStatus.value !== '' ||
-    filterDate.value !== 'all',
+    filterDate.value !== 'all' ||
+    (roleLevel <= 2 && (filterBU.value != null || filterPlant.value != null)) ||
+    (roleLevel >= 3 && roleLevel < 5 && filterPlant.value != null),
 );
 
 const filteredRecords = computed(() => {
-  let result = records.value;
+  let result = scopedRecords.value;
 
   if (filterKategori.value) {
     result = result.filter((r) => r.kategoriTemuan === filterKategori.value);
@@ -1796,6 +1881,7 @@ function resetFilters() {
   filterDate.value = 'all';
   customDateFrom.value = '';
   customDateTo.value = '';
+  resetScopeFilter();
 }
 
 // ── View detail modal ──
@@ -2915,7 +3001,14 @@ onBeforeUnmount(() => {
 
 onMounted(async () => {
   await loadData(true);
-  loadLocationOptions(true);
+  await loadLocationOptions();
+  if (roleLevel >= 3 && roleLevel < 5) {
+    availablePlants.value = await inspectionK3LService.listPlants(
+      currentUser?.businessUnitId,
+    );
+  } else {
+    availablePlants.value = plants.value;
+  }
   if (route.query.view) {
     const target = records.value.find(
       (r) => String(r.id) === String(route.query.view),
@@ -2943,7 +3036,12 @@ onMounted(async () => {
 }
 
 .page-header {
-  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .page-header h2 {
@@ -2959,8 +3057,86 @@ onMounted(async () => {
   margin-top: 4px;
 }
 
+@media (max-width: 640px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .page-header .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── Action bar ── */
 .action-bar {
-  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+/* ── Scope filter (inline beside action bar) ── */
+.scope-filter-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-basis: 100%;
+  min-width: 0;
+}
+.scope-select {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e293b;
+  font-size: 13px;
+  padding: 6px 10px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  /* truncate long option text */
+  max-width: 180px;
+  min-width: 0;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.scope-select:focus {
+  border-color: #3b82f6;
+}
+.scope-bu-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 12px;
+  white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scope-reset-btn {
+  font-size: 13px;
+  color: #ef4444;
+  background: transparent;
+  border: 1px solid #ef4444;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.scope-reset-btn:hover {
+  background: #fef2f2;
+}
+@media (max-width: 640px) {
+  .scope-select {
+    max-width: 140px;
+    flex: 1;
+  }
 }
 
 /* ── Buttons ── */
