@@ -1,7 +1,7 @@
 <template>
   <div class="register-container">
     <div class="register-card">
-      <h1>Register</h1>
+      <h1>Daftar</h1>
 
       <div v-if="error" class="error-alert">{{ error }}</div>
       <div v-if="successMessage" class="success-alert">{{ successMessage }}</div>
@@ -13,7 +13,7 @@
             id="email"
             v-model="email"
             type="email"
-            placeholder="Enter your email (@cp.co.id)"
+            placeholder="Masukkan email Anda (@cp.co.id)"
             required
             @blur="validateEmail"
           />
@@ -25,18 +25,18 @@
             id="password"
             v-model="password"
             type="password"
-            placeholder="At least 6 characters"
+            placeholder="Minimal 6 karakter"
             required
           />
         </div>
         <button type="submit" class="btn-register" :disabled="!!emailError || loading">
-          {{ loading ? "Registering..." : "Register" }}
+          {{ loading ? "Mendaftar..." : "Daftar" }}
         </button>
       </form>
 
       <p class="login-link">
-        Already have an account?
-        <router-link to="/login">Login here</router-link>
+        Sudah punya akun?
+        <router-link to="/login">Login di sini</router-link>
       </p>
     </div>
   </div>
@@ -58,7 +58,7 @@ const successMessage = ref("");
 const validateEmail = () => {
   emailError.value =
     email.value && !email.value.endsWith("@cp.co.id")
-      ? "Email must be a @cp.co.id address"
+      ? "Email harus berakhiran @cp.co.id"
       : "";
 };
 
@@ -69,7 +69,7 @@ const handleRegister = async () => {
   try {
     validateEmail();
     if (emailError.value) throw new Error(emailError.value);
-    if (password.value.length < 6) throw new Error("Password must be at least 6 characters");
+    if (password.value.length < 6) throw new Error("Password minimal 6 karakter");
 
     await authService.register(email.value, password.value);
     router.push("/dashboard");

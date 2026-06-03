@@ -28,7 +28,7 @@
         class="scope-reset-btn"
         @click="resetScopeFilter"
       >
-        Reset
+        Atur Ulang
       </button>
     </div>
     <div v-else-if="roleLevel <= 4" class="scope-filter-row">
@@ -47,7 +47,7 @@
         class="scope-reset-btn"
         @click="filterPlant = null"
       >
-        Reset
+        Atur Ulang
       </button>
     </div>
 
@@ -82,7 +82,7 @@
             <button
               class="btn btn-sm btn-export"
               @click="showExportDropdown = !showExportDropdown"
-              title="Pilih format export"
+              title="Pilih format ekspor"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -96,7 +96,7 @@
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              Export
+              Ekspor
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -136,7 +136,7 @@
                 <div>
                   <div class="export-item-label">Excel (Semua Data)</div>
                   <div class="export-item-desc">
-                    Export data yang tampil saat ini
+                    Ekspor data yang tampil saat ini
                   </div>
                 </div>
               </button>
@@ -163,7 +163,7 @@
                 <div>
                   <div class="export-item-label">Laporan Bulanan</div>
                   <div class="export-item-desc">
-                    Export Excel atau PDF per bulan
+                    Ekspor Excel atau PDF per bulan
                   </div>
                 </div>
               </button>
@@ -240,7 +240,7 @@
           class="btn-reset-filter"
           @click="resetFilters"
         >
-          Reset
+          Atur Ulang
         </button>
       </div>
 
@@ -258,7 +258,7 @@
               <th>Pengawas HSE</th>
               <th>Permit</th>
               <th style="text-align: center">Komentar</th>
-              <th>Action</th>
+              <th>Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -311,7 +311,8 @@
                 </span>
               </td>
               <td class="col-actions" @click.stop>
-                <button class="btn-icon" @click="openEdit(r)" title="Edit">
+                <div class="actions-wrap">
+                <button class="btn-icon" @click="openEdit(r)" title="Ubah">
                   <svg
                     viewBox="0 0 24 24"
                     fill="none"
@@ -343,6 +344,7 @@
                     <path d="M9 6V4h6v2" />
                   </svg>
                 </button>
+                </div>
               </td>
             </tr>
             <tr v-if="pagedRecords.length === 0">
@@ -370,7 +372,7 @@
               modal.mode === 'view'
                 ? 'Detail Laporan'
                 : modal.mode === 'edit'
-                  ? 'Edit Laporan'
+                  ? 'Ubah Laporan'
                   : 'Tambah Laporan'
             }}
           </h2>
@@ -565,7 +567,7 @@
               Tutup
             </button>
             <button class="btn-primary" @click="openEdit(modal.record)">
-              Edit
+              Ubah
             </button>
           </div>
         </div>
@@ -653,27 +655,57 @@
                 </select>
               </div>
               <div class="form-group">
-                <label
-                  >Business Unit
-                  <span class="field-auto-tag">Otomatis</span></label
-                >
-                <input
-                  type="text"
-                  :value="currentUser?.businessUnit || '-'"
-                  disabled
-                  class="field-auto"
-                />
+                <template v-if="roleLevel <= 2">
+                  <label>Business Unit</label>
+                  <select v-model.number="form.businessUnitId">
+                    <option :value="null">Pilih Business Unit</option>
+                    <option
+                      v-for="bu in businessUnits"
+                      :key="bu.id"
+                      :value="bu.id"
+                    >
+                      {{ bu.name }}
+                    </option>
+                  </select>
+                </template>
+                <template v-else>
+                  <label
+                    >Business Unit
+                    <span class="field-auto-tag">Otomatis</span></label
+                  >
+                  <input
+                    type="text"
+                    :value="currentUser?.businessUnit || '-'"
+                    disabled
+                    class="field-auto"
+                  />
+                </template>
               </div>
               <div class="form-group">
-                <label
-                  >Plant <span class="field-auto-tag">Otomatis</span></label
-                >
-                <input
-                  type="text"
-                  :value="currentUser?.plant || '-'"
-                  disabled
-                  class="field-auto"
-                />
+                <template v-if="roleLevel <= 4">
+                  <label>Plant</label>
+                  <select v-model.number="form.plantId">
+                    <option :value="null">Pilih Plant</option>
+                    <option
+                      v-for="p in hseFilteredPlants"
+                      :key="p.id"
+                      :value="p.id"
+                    >
+                      {{ p.name }}
+                    </option>
+                  </select>
+                </template>
+                <template v-else>
+                  <label
+                    >Plant <span class="field-auto-tag">Otomatis</span></label
+                  >
+                  <input
+                    type="text"
+                    :value="currentUser?.plant || '-'"
+                    disabled
+                    class="field-auto"
+                  />
+                </template>
               </div>
             </div>
 
@@ -1045,7 +1077,7 @@
     >
       <div class="modal modal-sm">
         <div class="modal-header">
-          <h3 class="modal-title">Export Data Bulanan</h3>
+          <h3 class="modal-title">Ekspor Data Bulanan</h3>
           <button class="modal-close" @click="showHseExportModal = false">
             <svg
               viewBox="0 0 24 24"
@@ -1062,7 +1094,7 @@
         </div>
         <div class="modal-body">
           <p class="modal-desc">
-            Pilih bulan dan tahun untuk export data HSE Daily Report.
+            Pilih bulan dan tahun untuk ekspor data HSE Daily Report.
           </p>
           <div class="export-month-row">
             <div class="export-field">
@@ -1087,7 +1119,7 @@
             </div>
           </div>
           <div class="export-preview-text">
-            Export data bulan
+            Ekspor data bulan
             <strong
               >{{ MONTH_NAMES[hseExportMonth - 1] }} {{ hseExportYear }}</strong
             >
@@ -1136,7 +1168,7 @@
                 />
                 <polyline points="14 2 14 8 20 8" />
               </svg>
-              {{ pdfGenerating ? 'Generating...' : 'PDF' }}
+              {{ pdfGenerating ? 'Membuat...' : 'PDF' }}
             </button>
           </div>
         </div>
@@ -1197,6 +1229,7 @@ watch(filterBU, async (newBuId) => {
   filterPlant.value = null;
   availablePlants.value = await inspectionK3LService.listPlants(newBuId);
 });
+
 
 const scopedRecords = computed(() => {
   let src = records.value;
@@ -1379,6 +1412,25 @@ const defaultForm = () => ({
 });
 
 const form = ref(defaultForm());
+
+const hseFilteredPlants = computed(() => {
+  if (!form.value.businessUnitId) return [];
+  return plants.value.filter(
+    (p) => Number(p.businessUnitId) === Number(form.value.businessUnitId),
+  );
+});
+
+watch(
+  () => form.value.businessUnitId,
+  () => {
+    if (roleLevel <= 2) {
+      const valid = hseFilteredPlants.value.find(
+        (p) => p.id === form.value.plantId,
+      );
+      if (!valid) form.value.plantId = null;
+    }
+  },
+);
 
 onMounted(async () => {
   try {
@@ -2333,8 +2385,13 @@ th {
 }
 
 .col-actions {
+  vertical-align: middle;
+}
+.col-actions .actions-wrap {
   display: flex;
   gap: 6px;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Form */

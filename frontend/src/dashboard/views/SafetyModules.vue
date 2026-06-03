@@ -3,7 +3,7 @@
     <div class="page-header">
       <div>
         <h2>Safety Modules</h2>
-        <p>Complete all modules to stay up to date with workplace safety standards.</p>
+        <p>Pelajari semua modul untuk selalu mengikuti standar keselamatan kerja.</p>
       </div>
       <button v-if="isAdmin" class="btn-upload" @click="openUploadModal">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -11,7 +11,7 @@
           <polyline points="17 8 12 3 7 8"/>
           <line x1="12" y1="3" x2="12" y2="15"/>
         </svg>
-        Upload Module
+        Unggah Modul
       </button>
     </div>
 
@@ -103,15 +103,15 @@
         </div>
         <div class="card-footer">
           <button class="btn-watch" @click="openViewModal(mod)">
-            {{ parseFiles(mod).length > 1 ? 'Open' : primaryFile(mod).mediaType === 'image' ? 'View' : primaryFile(mod).mediaType === 'document' ? 'Open' : 'Watch' }}
+            {{ parseFiles(mod).length > 1 ? 'Buka' : primaryFile(mod).mediaType === 'image' ? 'Lihat' : primaryFile(mod).mediaType === 'document' ? 'Buka' : 'Tonton' }}
           </button>
-          <button v-if="isAdmin" class="btn-edit" @click="openEditModal(mod)" title="Edit">
+          <button v-if="isAdmin" class="btn-edit" @click="openEditModal(mod)" title="Ubah">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
             </svg>
           </button>
-          <button v-if="isAdmin" class="btn-delete" @click="confirmDelete(mod)" title="Delete">
+          <button v-if="isAdmin" class="btn-delete" @click="confirmDelete(mod)" title="Hapus">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"/>
               <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
@@ -127,7 +127,7 @@
     <div v-if="showUploadModal" class="modal-overlay" @click.self="tryCloseUploadModal">
       <div class="modal">
         <div class="modal-header">
-          <h3>Upload Module</h3>
+          <h3>Unggah Modul</h3>
           <button class="btn-close" @click="tryCloseUploadModal">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -136,8 +136,8 @@
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label>Title <span class="req">*</span></label>
-            <input v-model="uploadForm.title" type="text" placeholder="Module title" class="form-input" />
+            <label>Judul <span class="req">*</span></label>
+            <input v-model="uploadForm.title" type="text" placeholder="Judul modul" class="form-input" />
           </div>
           <div class="form-group">
             <label>Jenis Peraturan</label>
@@ -151,7 +151,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label>Files <span class="req">*</span></label>
+            <label>File <span class="req">*</span></label>
             <div class="file-drop" @click="triggerFileInput" @dragover.prevent @drop.prevent="onFileDrop">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -159,10 +159,10 @@
                 <line x1="12" y1="3" x2="12" y2="15"/>
               </svg>
               <span v-if="uploadForm.files.length === 0">
-                Click or drag files here<br/>
-                <small>Multiple files allowed — video, photo, or document (PDF, Word, Excel, PowerPoint)</small>
+                Klik atau seret file ke sini<br/>
+                <small>Boleh banyak file — video, foto, atau dokumen (PDF, Word, Excel, PowerPoint)</small>
               </span>
-              <span v-else>{{ uploadForm.files.length }} file{{ uploadForm.files.length > 1 ? 's' : '' }} selected</span>
+              <span v-else>{{ uploadForm.files.length }} file dipilih</span>
             </div>
             <input
               ref="fileInputRef"
@@ -182,16 +182,16 @@
             </ul>
           </div>
           <div class="form-group">
-            <label>Description</label>
-            <textarea v-model="uploadForm.description" placeholder="Optional description" class="form-input" rows="3"></textarea>
+            <label>Deskripsi</label>
+            <textarea v-model="uploadForm.description" placeholder="Deskripsi (opsional)" class="form-input" rows="3"></textarea>
           </div>
           <div v-if="uploadError" class="form-error">{{ uploadError }}</div>
         </div>
         <div class="modal-footer">
-          <button class="btn-cancel" @click="tryCloseUploadModal" :disabled="uploading">Cancel</button>
+          <button class="btn-cancel" @click="tryCloseUploadModal" :disabled="uploading">Batal</button>
           <button class="btn-submit" @click="submitUpload" :disabled="uploading">
-            <span v-if="uploading">Uploading...</span>
-            <span v-else>Upload</span>
+            <span v-if="uploading">Mengunggah...</span>
+            <span v-else>Unggah</span>
           </button>
         </div>
       </div>
@@ -272,7 +272,7 @@
     <div v-if="showEditModal" class="modal-overlay" @click.self="tryCloseEditModal">
       <div class="modal">
         <div class="modal-header">
-          <h3>Edit Module</h3>
+          <h3>Ubah Modul</h3>
           <button class="btn-close" @click="closeEditModal">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -281,8 +281,8 @@
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label>Title <span class="req">*</span></label>
-            <input v-model="editForm.title" type="text" placeholder="Module title" class="form-input" />
+            <label>Judul <span class="req">*</span></label>
+            <input v-model="editForm.title" type="text" placeholder="Judul modul" class="form-input" />
           </div>
           <div class="form-group">
             <label>Jenis Peraturan</label>
@@ -292,23 +292,23 @@
             </select>
           </div>
           <div class="form-group">
-            <label>Description</label>
-            <textarea v-model="editForm.description" placeholder="Optional description" class="form-input" rows="3"></textarea>
+            <label>Deskripsi</label>
+            <textarea v-model="editForm.description" placeholder="Deskripsi (opsional)" class="form-input" rows="3"></textarea>
           </div>
           <!-- Existing files -->
           <div class="form-group" v-if="editForm.existingFiles.length">
-            <label>Current Files</label>
+            <label>File Saat Ini</label>
             <ul class="file-list">
               <li v-for="(f, i) in editForm.existingFiles" :key="i" class="file-list-item">
                 <span class="file-type-chip" :class="`chip-${f.mediaType}`">{{ f.mediaType }}</span>
                 <span class="file-name">{{ f.name }}</span>
-                <button class="file-remove" @click="removeExistingFile(i)" title="Remove">✕</button>
+                <button class="file-remove" @click="removeExistingFile(i)" title="Hapus">✕</button>
               </li>
             </ul>
           </div>
           <!-- Add new files -->
           <div class="form-group">
-            <label>Add New Files</label>
+            <label>Tambah File Baru</label>
             <div class="file-drop" @click="triggerEditFileInput" @dragover.prevent @drop.prevent="onEditFileDrop">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -316,10 +316,10 @@
                 <line x1="12" y1="3" x2="12" y2="15"/>
               </svg>
               <span v-if="editForm.newFiles.length === 0">
-                Click or drag to add files<br/>
-                <small>Video, photo, or document (PDF, Word, Excel, PowerPoint)</small>
+                Klik atau seret untuk menambah file<br/>
+                <small>Video, foto, atau dokumen (PDF, Word, Excel, PowerPoint)</small>
               </span>
-              <span v-else>{{ editForm.newFiles.length }} new file{{ editForm.newFiles.length > 1 ? 's' : '' }} selected</span>
+              <span v-else>{{ editForm.newFiles.length }} file baru dipilih</span>
             </div>
             <input
               ref="editFileInputRef"
@@ -340,10 +340,10 @@
           <div v-if="editError" class="form-error">{{ editError }}</div>
         </div>
         <div class="modal-footer">
-          <button class="btn-cancel" @click="closeEditModal" :disabled="editSaving">Cancel</button>
+          <button class="btn-cancel" @click="closeEditModal" :disabled="editSaving">Batal</button>
           <button class="btn-submit" @click="submitEdit" :disabled="editSaving">
-            <span v-if="editSaving">Saving...</span>
-            <span v-else>Save Changes</span>
+            <span v-if="editSaving">Menyimpan...</span>
+            <span v-else>Simpan Perubahan</span>
           </button>
         </div>
       </div>
@@ -372,7 +372,7 @@
                     <polyline points="7 10 12 15 17 10"/>
                     <line x1="12" y1="15" x2="12" y2="3"/>
                   </svg>
-                  Download
+                  Unduh
                 </button>
               </div>
               <!-- Video -->
@@ -383,7 +383,7 @@
                 :src="f.url"
                 class="image-viewer image-clickable"
                 @click="openLightbox(f.url)"
-                title="Click to enlarge"
+                title="Klik untuk memperbesar"
               />
               <!-- Document: open in new tab (PDF uses browser PDF viewer) -->
               <div v-else class="doc-preview">
@@ -394,7 +394,7 @@
                   <line x1="9" y1="17" x2="15" y2="17"/>
                 </svg>
                 <button v-if="isPdf(f)" class="btn-open-doc" @click="openPdf(f.url)">
-                  Open PDF
+                  Buka PDF
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
                     <polyline points="15 3 21 3 21 9"/>
@@ -402,7 +402,7 @@
                   </svg>
                 </button>
                 <a v-else :href="f.url" target="_blank" rel="noopener" class="btn-open-doc">
-                  Open Document
+                  Buka Dokumen
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
                     <polyline points="15 3 21 3 21 9"/>
@@ -412,7 +412,7 @@
               </div>
             </div>
           </div>
-          <p v-else class="state-msg">No files available.</p>
+          <p v-else class="state-msg">Tidak ada file tersedia.</p>
           <div v-if="viewingModule.peraturan" class="view-peraturan">{{ viewingModule.peraturan }}</div>
           <p v-if="viewingModule.description" class="media-desc">{{ viewingModule.description }}</p>
         </div>
@@ -534,11 +534,11 @@ function removeFile(index) {
 async function submitUpload() {
   uploadError.value = null;
   if (!uploadForm.value.title.trim()) {
-    uploadError.value = "Title is required.";
+    uploadError.value = "Judul wajib diisi.";
     return;
   }
   if (!uploadForm.value.files.length) {
-    uploadError.value = "Please select at least one file.";
+    uploadError.value = "Harap pilih minimal satu file.";
     return;
   }
   uploading.value = true;
@@ -726,11 +726,11 @@ function removeNewFile(i) {
 async function submitEdit() {
   editError.value = null;
   if (!editForm.value.title.trim()) {
-    editError.value = "Title is required.";
+    editError.value = "Judul wajib diisi.";
     return;
   }
   if (editForm.value.existingFiles.length === 0 && editForm.value.newFiles.length === 0) {
-    editError.value = "At least one file is required.";
+    editError.value = "Minimal satu file wajib ada.";
     return;
   }
   editSaving.value = true;

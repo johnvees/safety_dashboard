@@ -36,14 +36,14 @@
         :class="{ active: activeTab === 'role' }"
         @click="activeTab = 'role'"
       >
-        Roles
+        Peran
       </button>
       <button
         class="tab-btn"
         :class="{ active: activeTab === 'user' }"
         @click="activeTab = 'user'"
       >
-        Users
+        Pengguna
       </button>
     </div>
 
@@ -107,7 +107,7 @@
                 </td>
                 <td class="td-date">{{ formatDate(item.createdAt) }}</td>
                 <td class="td-action">
-                  <button class="btn-icon-sm btn-edit" title="Edit" @click="openBuForm(item)">
+                  <button class="btn-icon-sm btn-edit" title="Ubah" @click="openBuForm(item)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -195,7 +195,7 @@
                 </td>
                 <td class="td-date">{{ formatDate(item.createdAt) }}</td>
                 <td class="td-action">
-                  <button class="btn-icon-sm btn-edit" title="Edit" @click="openPlantForm(item)">
+                  <button class="btn-icon-sm btn-edit" title="Ubah" @click="openPlantForm(item)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -221,7 +221,7 @@
     <div v-if="buModal.show" class="modal-overlay" @click.self="closeBuModal">
       <div class="modal">
         <div class="modal-header">
-          <h3>{{ buModal.editId ? 'Edit Business Unit' : 'Tambah Business Unit' }}</h3>
+          <h3>{{ buModal.editId ? 'Ubah Business Unit' : 'Tambah Business Unit' }}</h3>
           <button class="btn-close" @click="closeBuModal">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -262,7 +262,7 @@
     <div v-if="plantModal.show" class="modal-overlay" @click.self="closePlantModal">
       <div class="modal">
         <div class="modal-header">
-          <h3>{{ plantModal.editId ? 'Edit Plant' : 'Tambah Plant' }}</h3>
+          <h3>{{ plantModal.editId ? 'Ubah Plant' : 'Tambah Plant' }}</h3>
           <button class="btn-close" @click="closePlantModal">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -327,7 +327,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon-inline">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          Tambah User
+          Tambah Pengguna
         </button>
       </div>
 
@@ -340,7 +340,7 @@
                 <th>Nama Lengkap</th>
                 <th>Username</th>
                 <th>Email</th>
-                <th>Role</th>
+                <th>Peran</th>
                 <th>Business Unit</th>
                 <th>Plant</th>
                 <th>Status</th>
@@ -353,7 +353,7 @@
               </tr>
               <tr v-else-if="!filteredUsers.length">
                 <td colspan="9" class="td-empty">
-                  {{ userSearch ? 'Tidak ada hasil untuk "' + userSearch + '"' : 'Belum ada data User' }}
+                  {{ userSearch ? 'Tidak ada hasil untuk "' + userSearch + '"' : 'Belum ada data Pengguna' }}
                 </td>
               </tr>
               <tr v-for="(item, idx) in pagedUsers" :key="item.id">
@@ -370,7 +370,7 @@
                   </span>
                 </td>
                 <td class="td-action">
-                  <button class="btn-icon-sm btn-edit" title="Edit" @click="openUserForm(item)">
+                  <button class="btn-icon-sm btn-edit" title="Ubah" @click="openUserForm(item)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -401,7 +401,7 @@
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
-            <input v-model="roleSearch" type="text" placeholder="Cari nama role…" class="search-input" />
+            <input v-model="roleSearch" type="text" placeholder="Cari nama peran…" class="search-input" />
             <button v-if="roleSearch" class="search-clear" @click="roleSearch = ''">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -409,11 +409,11 @@
             </button>
           </div>
         </div>
-        <button class="btn-primary" @click="openRoleForm()">
+        <button v-if="roleLevel <= 2" class="btn-primary" @click="openRoleForm()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon-inline">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          Tambah Role
+          Tambah Peran
         </button>
       </div>
 
@@ -423,19 +423,19 @@
             <thead>
               <tr>
                 <th>No</th>
-                <th>Nama Role</th>
+                <th>Nama Peran</th>
                 <th>Level</th>
                 <th>Deskripsi</th>
-                <th class="th-action">Aksi</th>
+                <th v-if="roleLevel <= 2" class="th-action">Aksi</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="roleLoading">
-                <td colspan="5" class="td-empty">Memuat data…</td>
+                <td :colspan="roleLevel <= 2 ? 5 : 4" class="td-empty">Memuat data…</td>
               </tr>
               <tr v-else-if="!filteredRoles.length">
-                <td colspan="5" class="td-empty">
-                  {{ roleSearch ? 'Tidak ada hasil untuk "' + roleSearch + '"' : 'Belum ada data Role' }}
+                <td :colspan="roleLevel <= 2 ? 5 : 4" class="td-empty">
+                  {{ roleSearch ? 'Tidak ada hasil untuk "' + roleSearch + '"' : 'Belum ada data Peran' }}
                 </td>
               </tr>
               <tr v-for="(item, idx) in pagedRoles" :key="item.id">
@@ -443,8 +443,8 @@
                 <td class="td-name">{{ item.name }}</td>
                 <td><span class="level-badge">Level {{ item.level }}</span></td>
                 <td class="td-desc">{{ item.description || '-' }}</td>
-                <td class="td-action">
-                  <button class="btn-icon-sm btn-edit" title="Edit" @click="openRoleForm(item)">
+                <td v-if="roleLevel <= 2" class="td-action">
+                  <button class="btn-icon-sm btn-edit" title="Ubah" @click="openRoleForm(item)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -470,7 +470,7 @@
     <div v-if="roleModal.show" class="modal-overlay" @click.self="closeRoleModal">
       <div class="modal modal-sm">
         <div class="modal-header">
-          <h3>{{ roleModal.editId ? 'Edit Role' : 'Tambah Role' }}</h3>
+          <h3>{{ roleModal.editId ? 'Ubah Peran' : 'Tambah Peran' }}</h3>
           <button class="btn-close" @click="closeRoleModal">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -479,7 +479,7 @@
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label>Nama Role <span class="req">*</span></label>
+            <label>Nama Peran <span class="req">*</span></label>
             <input v-model="roleForm.name" type="text" placeholder="Contoh: Admin, Viewer" class="form-input" maxlength="50" />
           </div>
           <div class="form-group">
@@ -490,7 +490,7 @@
           </div>
           <div class="form-group">
             <label>Deskripsi</label>
-            <textarea v-model="roleForm.description" placeholder="Deskripsi role (opsional)" class="form-input form-textarea" rows="3" />
+            <textarea v-model="roleForm.description" placeholder="Deskripsi peran (opsional)" class="form-input form-textarea" rows="3" />
           </div>
         </div>
         <div class="modal-footer">
@@ -506,7 +506,7 @@
     <div v-if="userModal.show" class="modal-overlay" @click.self="closeUserModal">
       <div class="modal">
         <div class="modal-header">
-          <h3>{{ userModal.editId ? 'Edit User' : 'Tambah User' }}</h3>
+          <h3>{{ userModal.editId ? 'Ubah Pengguna' : 'Tambah Pengguna' }}</h3>
           <button class="btn-close" @click="closeUserModal">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -533,9 +533,9 @@
               class="form-input" />
           </div>
           <div class="form-group">
-            <label>Role</label>
+            <label>Peran</label>
             <select v-model="userForm.roleId" class="form-input">
-              <option :value="null">Tidak ada role</option>
+              <option :value="null">Tidak ada peran</option>
               <option v-for="r in roleList" :key="r.id" :value="r.id">{{ r.name }}</option>
             </select>
           </div>
@@ -630,7 +630,7 @@
                 </td>
                 <td class="td-date">{{ formatDate(item.createdAt) }}</td>
                 <td class="td-action">
-                  <button class="btn-icon-sm btn-edit" title="Edit" @click="openDeptForm(item)">
+                  <button class="btn-icon-sm btn-edit" title="Ubah" @click="openDeptForm(item)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -656,7 +656,7 @@
     <div v-if="deptModal.show" class="modal-overlay" @click.self="closeDeptModal">
       <div class="modal modal-sm">
         <div class="modal-header">
-          <h3>{{ deptModal.editId ? 'Edit Department' : 'Tambah Department' }}</h3>
+          <h3>{{ deptModal.editId ? 'Ubah Department' : 'Tambah Department' }}</h3>
           <button class="btn-close" @click="closeDeptModal">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -730,6 +730,9 @@ import { ref, reactive, computed, onMounted } from "vue";
 import { masterDataService } from "@/services/masterDataService";
 import { usePagination } from "@/composables/usePagination.js";
 import PaginationBar from "@/components/PaginationBar.vue";
+import { authService } from "@/services/authService.js";
+
+const roleLevel = authService.getRoleLevel();
 
 // ── State ────────────────────────────────────────────────────────────────
 const activeTab = ref("bu");
@@ -1012,7 +1015,7 @@ function closeRoleModal() {
 }
 
 async function saveRole() {
-  if (!roleForm.name.trim()) return showToast("Nama role wajib diisi", "error");
+  if (!roleForm.name.trim()) return showToast("Nama peran wajib diisi", "error");
   if (roleForm.level === null || roleForm.level === "" || roleForm.level < 0) return showToast("Level wajib diisi (angka ≥ 0)", "error");
 
   roleModal.saving = true;
@@ -1024,10 +1027,10 @@ async function saveRole() {
     };
     if (roleModal.editId) {
       await masterDataService.updateRole(roleModal.editId, payload);
-      showToast("Role berhasil diperbarui");
+      showToast("Peran berhasil diperbarui");
     } else {
       await masterDataService.createRole(payload);
-      showToast("Role berhasil ditambahkan");
+      showToast("Peran berhasil ditambahkan");
     }
     closeRoleModal();
     await loadRoles();
@@ -1086,11 +1089,11 @@ async function saveUser() {
     if (userModal.editId) {
       if (userForm.password.trim()) payload.password = userForm.password.trim();
       await masterDataService.updateUser(userModal.editId, payload);
-      showToast("User berhasil diperbarui");
+      showToast("Pengguna berhasil diperbarui");
     } else {
       payload.password = userForm.password.trim();
       await masterDataService.createUser(payload);
-      showToast("User berhasil ditambahkan");
+      showToast("Pengguna berhasil ditambahkan");
     }
     closeUserModal();
     await loadUsers();
@@ -1198,7 +1201,7 @@ async function executeDelete() {
       await loadPlants();
     } else if (deleteModal.type === "role") {
       await masterDataService.deleteRole(deleteModal.id);
-      showToast("Role berhasil dihapus");
+      showToast("Peran berhasil dihapus");
       await loadRoles();
     } else if (deleteModal.type === "dept") {
       await masterDataService.deleteDepartment(deleteModal.id);
@@ -1206,7 +1209,7 @@ async function executeDelete() {
       await loadDepts();
     } else {
       await masterDataService.deleteUser(deleteModal.id);
-      showToast("User berhasil dihapus");
+      showToast("Pengguna berhasil dihapus");
       await loadUsers();
     }
     deleteModal.show = false;

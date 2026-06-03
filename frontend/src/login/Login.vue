@@ -9,7 +9,7 @@
             id="email"
             v-model="email"
             type="email"
-            placeholder="Enter your email"
+            placeholder="Masukkan email Anda"
             required
           />
         </div>
@@ -19,7 +19,7 @@
             id="password"
             v-model="password"
             type="password"
-            placeholder="Enter your password"
+            placeholder="Masukkan password Anda"
             required
           />
         </div>
@@ -28,7 +28,7 @@
           {{ successMessage }}
         </div>
         <button type="submit" class="btn-login" :disabled="loading">
-          {{ loading ? "Logging in..." : "Login" }}
+          {{ loading ? "Masuk..." : "Login" }}
         </button>
       </form>
     </div>
@@ -54,7 +54,7 @@ const handleLogin = async () => {
 
   try {
     if (!email.value || !password.value) {
-      throw new Error("Please fill in all fields");
+      throw new Error("Harap isi semua kolom");
     }
 
     const result = await authService.login(email.value, password.value);

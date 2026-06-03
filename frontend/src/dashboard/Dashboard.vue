@@ -26,13 +26,13 @@ const sidebarOpen = ref(window.innerWidth >= 768);
 const route = useRoute();
 const pageTitles = {
   "/dashboard": "Dashboard",
-  "/dashboard/modules": "Safety Modules",
-  "/dashboard/reports": "Reports",
+  "/dashboard/modules": "Modul Keselamatan",
+  "/dashboard/reports": "Laporan",
   "/dashboard/reports/inspection-k3l": "Inspection K3L",
   "/dashboard/reports/hse-daily": "HSE Daily Report",
   "/dashboard/chat": "Chat",
   "/dashboard/master-data": "Master Data",
-  "/dashboard/settings": "Settings",
+  "/dashboard/settings": "Pengaturan",
 };
 const pageTitle = computed(() => pageTitles[route.path] ?? "Dashboard");
 </script>

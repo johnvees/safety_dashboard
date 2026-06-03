@@ -5,7 +5,7 @@
       <div>
         <h2>Dashboard Overview</h2>
         <p class="dash-sub">
-          {{ activeTab === 'k3l' ? 'K3L Safety inspection summary' : 'HSE Daily Report summary' }} &middot; {{ currentMonthYear }}
+          {{ activeTab === 'k3l' ? 'Ringkasan inspeksi keselamatan K3L' : 'Ringkasan HSE Daily Report' }} &middot; {{ currentMonthYear }}
         </p>
       </div>
       <div class="welcome-pill">
@@ -49,7 +49,7 @@
       <h3>Tidak dapat memuat data</h3>
       <p>Pastikan server backend sudah berjalan, lalu refresh halaman ini.</p>
       <button class="empty-btn" @click="() => window.location.reload()">
-        Refresh
+        Segarkan
       </button>
     </div>
 
@@ -137,7 +137,7 @@
           class="scope-reset-btn"
           @click="resetScopeFilter"
         >
-          Reset
+          Atur Ulang
         </button>
       </div>
       <div v-else-if="roleLevel <= 4" class="scope-filter-row">
@@ -156,7 +156,7 @@
           class="scope-reset-btn"
           @click="filterPlant = null"
         >
-          Reset
+          Atur Ulang
         </button>
       </div>
 
@@ -182,8 +182,8 @@
           </div>
           <div class="kpi-body">
             <div class="kpi-value">{{ stats.total }}</div>
-            <div class="kpi-label">Total Reports</div>
-            <div class="kpi-meta">All time</div>
+            <div class="kpi-label">Total Laporan</div>
+            <div class="kpi-meta">Semua waktu</div>
           </div>
           <div class="kpi-bar" style="background: #3b82f6"></div>
         </div>
@@ -205,8 +205,8 @@
           </div>
           <div class="kpi-body">
             <div class="kpi-value">{{ stats.open }}</div>
-            <div class="kpi-label">Open</div>
-            <div class="kpi-meta">Needs attention</div>
+            <div class="kpi-label">Terbuka</div>
+            <div class="kpi-meta">Perlu perhatian</div>
           </div>
           <div class="kpi-bar" style="background: #f59e0b"></div>
         </div>
@@ -226,8 +226,8 @@
           </div>
           <div class="kpi-body">
             <div class="kpi-value">{{ stats.inProgress }}</div>
-            <div class="kpi-label">In Progress</div>
-            <div class="kpi-meta">Being resolved</div>
+            <div class="kpi-label">Dalam Proses</div>
+            <div class="kpi-meta">Sedang diselesaikan</div>
           </div>
           <div class="kpi-bar" style="background: #6366f1"></div>
         </div>
@@ -248,8 +248,8 @@
           </div>
           <div class="kpi-body">
             <div class="kpi-value">{{ stats.closed }}</div>
-            <div class="kpi-label">Resolved</div>
-            <div class="kpi-meta">Closed reports</div>
+            <div class="kpi-label">Terselesaikan</div>
+            <div class="kpi-meta">Laporan selesai</div>
           </div>
           <div class="kpi-bar" style="background: #10b981"></div>
         </div>
@@ -258,16 +258,16 @@
       <!-- Resolution rate bar -->
       <div class="rate-card" v-if="stats.total > 0">
         <div class="rate-label">
-          <span>Resolution Rate</span>
+          <span>Tingkat Penyelesaian</span>
           <strong>{{ resolutionRate }}%</strong>
         </div>
         <div class="rate-track">
           <div class="rate-fill" :style="{ width: resolutionRate + '%' }"></div>
         </div>
         <div class="rate-breakdown">
-          <span class="rb-open">{{ stats.open }} Open</span>
-          <span class="rb-progress">{{ stats.inProgress }} In Progress</span>
-          <span class="rb-closed">{{ stats.closed }} Closed</span>
+          <span class="rb-open">{{ stats.open }} Terbuka</span>
+          <span class="rb-progress">{{ stats.inProgress }} Dalam Proses</span>
+          <span class="rb-closed">{{ stats.closed }} Selesai</span>
         </div>
       </div>
 
@@ -277,9 +277,9 @@
         <div class="chart-card chart-wide">
           <div class="chart-header">
             <div>
-              <div class="chart-title">Monthly Trend</div>
+              <div class="chart-title">Tren Bulanan</div>
               <div class="chart-subtitle">
-                Reports by category per month (last 6 months)
+                Laporan per kategori per bulan (6 bulan terakhir)
               </div>
             </div>
             <div class="grouped-legend">
@@ -405,8 +405,8 @@
         <div class="chart-card chart-narrow">
           <div class="chart-header">
             <div>
-              <div class="chart-title">By Category</div>
-              <div class="chart-subtitle">Finding distribution</div>
+              <div class="chart-title">Per Kategori</div>
+              <div class="chart-subtitle">Distribusi temuan</div>
             </div>
           </div>
           <div
@@ -467,7 +467,7 @@
                 fill="#94a3b8"
                 letter-spacing="1"
               >
-                REPORTS
+                LAPORAN
               </text>
             </svg>
             <div
@@ -516,7 +516,7 @@
         <div class="chart-card">
           <div class="chart-header">
             <div>
-              <div class="chart-title">Activity Calendar</div>
+              <div class="chart-title">Kalender Aktivitas</div>
               <div class="chart-subtitle">{{ calendarMonthYear }}</div>
             </div>
             <div class="cal-nav">
@@ -553,7 +553,7 @@
           >
             <div class="cal-weekdays">
               <div
-                v-for="d in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']"
+                v-for="d in ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']"
                 :key="d"
                 class="cal-wd"
               >
@@ -596,9 +596,7 @@
                 {{ calendarMonthYear.split(' ')[0] }} {{ hoveredDay.date }}
               </div>
               <div class="cal-tt-total">
-                {{ hoveredDay.count }} report{{
-                  hoveredDay.count !== 1 ? 's' : ''
-                }}
+                {{ hoveredDay.count }} laporan
               </div>
               <div
                 v-for="(cnt, cat) in hoveredDay.cats"
@@ -617,11 +615,10 @@
           <!-- Calendar legend -->
           <div class="cal-legend">
             <span class="cal-leg-item"
-              ><span class="cal-leg-dot" style="background: #3b82f6"></span> Has
-              reports</span
+              ><span class="cal-leg-dot" style="background: #3b82f6"></span> Ada laporan</span
             >
             <span class="cal-leg-item"
-              ><span class="cal-leg-today"></span> Today</span
+              ><span class="cal-leg-today"></span> Hari ini</span
             >
           </div>
         </div>
@@ -630,14 +627,14 @@
         <div class="chart-card">
           <div class="chart-header">
             <div>
-              <div class="chart-title">Recent Reports</div>
-              <div class="chart-subtitle">Latest K3L findings</div>
+              <div class="chart-title">Laporan Terbaru</div>
+              <div class="chart-subtitle">Temuan K3L terbaru</div>
             </div>
             <router-link
               to="/dashboard/reports/inspection-k3l"
               class="view-all-link"
             >
-              View all
+              Lihat semua
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -665,7 +662,7 @@
                 />
                 <rect x="9" y="3" width="6" height="4" rx="1" />
               </svg>
-              <p>No reports yet</p>
+              <p>Belum ada laporan</p>
             </div>
             <div
               v-for="rec in recentRecords"
@@ -729,7 +726,7 @@
             <option :value="null">Semua Plant</option>
             <option v-for="p in hseAvailablePlants" :key="p.id" :value="p.id">{{ p.name }}</option>
           </select>
-          <button v-if="hseFilterBU || hseFilterPlant" class="scope-reset-btn" @click="resetHseScope">Reset</button>
+          <button v-if="hseFilterBU || hseFilterPlant" class="scope-reset-btn" @click="resetHseScope">Atur Ulang</button>
         </div>
         <div v-else-if="roleLevel <= 4" class="scope-filter-row">
           <span class="scope-bu-label">{{ businessUnits.find(b => b.id === user?.businessUnitId)?.name || 'Business Unit' }}</span>
@@ -737,7 +734,7 @@
             <option :value="null">Semua Plant</option>
             <option v-for="p in hseAvailablePlants" :key="p.id" :value="p.id">{{ p.name }}</option>
           </select>
-          <button v-if="hseFilterPlant" class="scope-reset-btn" @click="hseFilterPlant = null">Reset</button>
+          <button v-if="hseFilterPlant" class="scope-reset-btn" @click="hseFilterPlant = null">Atur Ulang</button>
         </div>
 
         <!-- HSE empty state inside tab -->
@@ -786,7 +783,7 @@
               </div>
               <div class="kpi-body">
                 <div class="kpi-value">{{ hseStats.permitRate }}%</div>
-                <div class="kpi-label">Compliance Permit</div>
+                <div class="kpi-label">Kepatuhan Permit</div>
                 <div class="kpi-meta">{{ hseStats.withPermit }} dari {{ hseStats.total }}</div>
               </div>
               <div class="kpi-bar" style="background:#10b981"></div>
@@ -810,7 +807,7 @@
           <!-- Permit compliance bar -->
           <div class="rate-card hse-rate-card" v-if="hseStats.total > 0">
             <div class="rate-label">
-              <span>Permit Compliance Rate</span>
+              <span>Tingkat Kepatuhan Permit</span>
               <strong>{{ hseStats.permitRate }}%</strong>
             </div>
             <div class="rate-track">
@@ -1014,7 +1011,7 @@
               <div class="chart-header">
                 <div>
                   <div class="chart-title">Laporan Risiko Tinggi Terbaru</div>
-                  <div class="chart-subtitle">High risk dalam periode dipilih</div>
+                  <div class="chart-subtitle">Risiko tinggi dalam periode dipilih</div>
                 </div>
                 <router-link to="/dashboard/reports/hse-daily" class="view-all-link">
                   Lihat semua

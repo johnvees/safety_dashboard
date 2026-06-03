@@ -37,7 +37,7 @@
           <div v-else class="comment-content">{{ c.content }}</div>
 
           <div v-if="editingId !== c.id && (c.canEdit || c.canDelete)" class="comment-actions">
-            <button v-if="c.canEdit" type="button" class="comment-action" @click="startEdit(c)">Edit</button>
+            <button v-if="c.canEdit" type="button" class="comment-action" @click="startEdit(c)">Ubah</button>
             <button v-if="c.canDelete" type="button" class="comment-action danger" @click="askDelete(c)">Hapus</button>
           </div>
         </div>
