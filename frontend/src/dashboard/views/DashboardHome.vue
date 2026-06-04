@@ -1824,7 +1824,7 @@ onMounted(async () => {
   const timeout = setTimeout(() => {
     loading.value = false;
     loadFailed.value = true;
-  }, 10000);
+  }, 30000);
   try {
     [records.value, businessUnits.value, plants.value, departments.value, hseRecords.value] =
       await Promise.all([

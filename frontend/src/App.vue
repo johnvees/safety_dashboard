@@ -46,6 +46,13 @@ function checkSession() {
 onMounted(() => {
   checkInterval = setInterval(checkSession, 30 * 1000); // check every 30s
   checkSession();
+
+  // warm up Vercel serverless backend on app load (fire-and-forget)
+  fetch(`${import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'}/graphql`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: '{ __typename }' }),
+  }).catch(() => {});
 });
 
 onUnmounted(() => {
