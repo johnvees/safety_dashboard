@@ -271,18 +271,18 @@
               <td style="text-align: center">
                 {{ (hseCurrentPage - 1) * hsePerPage + idx + 1 }}
               </td>
-              <td>{{ formatDate(r.tanggal) }}</td>
+              <td class="col-nowrap">{{ formatDate(r.tanggal) }}</td>
               <td class="col-pekerjaan">{{ firstBullet(r.pekerjaan) }}</td>
-              <td>{{ r.lokasiPekerjaan || '-' }}</td>
-              <td>{{ displayJenis(r) }}</td>
-              <td>
+              <td class="col-trunc">{{ r.lokasiPekerjaan || '-' }}</td>
+              <td class="col-nowrap">{{ displayJenis(r) }}</td>
+              <td class="col-nowrap">
                 <span
                   class="badge-risiko"
                   :class="r.levelRisiko?.toLowerCase()"
                   >{{ r.levelRisiko || '-' }}</span
                 >
               </td>
-              <td>{{ r.pengawasHse || '-' }}</td>
+              <td class="col-nowrap">{{ r.pengawasHse || '-' }}</td>
               <td>
                 <span
                   class="badge-permit"
@@ -2146,7 +2146,7 @@ async function downloadMonthlyPDF() {
 
 /* Table */
 .table-card table {
-  min-width: 800px;
+  min-width: 1000px;
 }
 .table-scroll {
   overflow-x: auto;
@@ -2325,6 +2325,15 @@ th {
 }
 .col-pekerjaan {
   max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.col-nowrap {
+  white-space: nowrap;
+}
+.col-trunc {
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
