@@ -109,9 +109,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { createClient } from "graphql-ws";
+import { enablePush, registerServiceWorker } from "@/services/pushService.js";
+import { updateBadge } from "@/services/badge.js";
 
 const props = defineProps({
   title: { type: String, default: "Dashboard" },
@@ -129,6 +131,8 @@ const notifWrap = ref(null);
 const pendingDeletes = new Set(); // IDs deleted locally but not yet confirmed by DB
 
 const unreadCount = computed(() => notifications.value.filter((n) => !n.isRead).length);
+// Tab title + favicon badge reflect unread bell items plus any live toasts.
+const totalBadge = computed(() => unreadCount.value + toasts.value.length);
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 const GRAPHQL_URL = `${API_BASE}/graphql`;
@@ -291,10 +295,16 @@ function stopSubscription() {
   if (wsClient) { try { wsClient.dispose(); } catch { /**/ } wsClient = null; }
 }
 
+// Keep the tab title + favicon badge in sync with the unread count.
+watch(totalBadge, (n) => updateBadge(n), { immediate: true });
+
 onMounted(() => {
   fetchNotifications();
   startSubscription();
   document.addEventListener("click", onOutsideClick);
+  // Register the service worker and (best-effort) subscribe for OS/phone push.
+  registerServiceWorker().catch(() => {});
+  enablePush().catch(() => {});
 });
 onUnmounted(() => {
   stopSubscription();

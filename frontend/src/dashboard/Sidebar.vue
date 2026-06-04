@@ -147,6 +147,7 @@
 import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { authService } from "@/services/authService";
+import { disablePush } from "@/services/pushService.js";
 
 defineProps({ open: { type: Boolean, default: true } });
 
@@ -165,7 +166,9 @@ const initials = computed(() => {
   return name.split(" ").slice(0, 2).map((w) => w[0].toUpperCase()).join("");
 });
 
-function handleLogout() {
+async function handleLogout() {
+  // Remove this browser's push subscription while the token is still valid.
+  await disablePush();
   authService.logout();
   router.push("/login");
 }

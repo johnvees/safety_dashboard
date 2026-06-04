@@ -10,3 +10,4 @@ alembic
 email-validator
 cloudinary
 python-multipart
+pywebpush==2.3.0

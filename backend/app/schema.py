@@ -13,6 +13,7 @@ from app.database import get_db
 from app.cloudinary_utils import delete_image, delete_video, delete_document
 from app.chat_broker import broker as chat_broker
 from app.notification_broker import broker as notif_broker
+from app import web_push
 
 
 def _get_db() -> Session:
@@ -599,6 +600,8 @@ def _notify_users(db, user_ids: list[int], notif_type: str, title: str, message:
             created_at=str(now),
         )
         notif_broker.publish(uid, payload)
+        # Also deliver a native browser/OS push (works when the app is closed).
+        web_push.push_to_user(uid, title=title, body=message, url=link or "/", tag=notif_type)
 
 
 @strawberry.type
@@ -926,6 +929,11 @@ class Query:
             ]
         finally:
             db.close()
+
+    @strawberry.field
+    def push_public_key(self, info: strawberry.types.Info) -> str:
+        """VAPID public (application server) key for the browser to subscribe with."""
+        return web_push.PUBLIC_KEY
 
 
 def _safe_ts(s: Optional[str]) -> float:
@@ -2507,6 +2515,67 @@ class Mutation:
             ).delete()
             db.commit()
             return NotificationPayload(success=True, message="All notifications cleared")
+        except Exception as e:
+            db.rollback()
+            return NotificationPayload(success=False, message=str(e))
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def save_push_subscription(
+        self,
+        info: strawberry.types.Info,
+        endpoint: str,
+        p256dh: str,
+        auth: str,
+        user_agent: Optional[str] = None,
+    ) -> NotificationPayload:
+        """Register (or refresh) a browser Web Push subscription for this user."""
+        user = _get_current_user(info)
+        if not user:
+            return NotificationPayload(success=False, message="Authentication required")
+        db = _get_db()
+        try:
+            existing = (
+                db.query(models.PushSubscription)
+                .filter(models.PushSubscription.endpoint == endpoint)
+                .first()
+            )
+            if existing:
+                existing.user_id = user.id
+                existing.p256dh = p256dh
+                existing.auth = auth
+                existing.user_agent = (user_agent or "")[:300]
+            else:
+                db.add(models.PushSubscription(
+                    user_id=user.id,
+                    endpoint=endpoint,
+                    p256dh=p256dh,
+                    auth=auth,
+                    user_agent=(user_agent or "")[:300],
+                ))
+            db.commit()
+            return NotificationPayload(success=True, message="Push subscription saved")
+        except Exception as e:
+            db.rollback()
+            return NotificationPayload(success=False, message=str(e))
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def delete_push_subscription(self, info: strawberry.types.Info, endpoint: str) -> NotificationPayload:
+        """Remove a browser Web Push subscription (e.g. on logout / unsubscribe)."""
+        user = _get_current_user(info)
+        if not user:
+            return NotificationPayload(success=False, message="Authentication required")
+        db = _get_db()
+        try:
+            db.query(models.PushSubscription).filter(
+                models.PushSubscription.endpoint == endpoint,
+                models.PushSubscription.user_id == user.id,
+            ).delete()
+            db.commit()
+            return NotificationPayload(success=True, message="Push subscription removed")
         except Exception as e:
             db.rollback()
             return NotificationPayload(success=False, message=str(e))

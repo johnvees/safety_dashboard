@@ -211,3 +211,15 @@ class Notification(Base):
     link = Column(String(255))
     is_read = Column(Boolean, server_default="false")
     created_at = Column(DateTime, server_default=func.current_timestamp())
+
+
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    endpoint = Column(Text, nullable=False, unique=True)
+    p256dh = Column(Text, nullable=False)
+    auth = Column(Text, nullable=False)
+    user_agent = Column(String(300))
+    created_at = Column(DateTime, server_default=func.current_timestamp())
