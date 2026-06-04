@@ -107,11 +107,25 @@
                 <template v-else>
                   <div v-if="m.content === '__deleted__'" class="bubble-deleted">Pesan dihapus</div>
                   <template v-else>
-                    <div v-if="m.attachmentUrl && m.attachmentType === 'image'" class="bubble-media" @click="lightboxUrl = m.attachmentUrl">
-                      <img :src="m.attachmentUrl" alt="gambar" />
+                    <div v-if="m.attachmentUrl && m.attachmentType === 'image'" class="bubble-media">
+                      <img :src="m.attachmentUrl" alt="gambar" @click="lightboxUrl = m.attachmentUrl" />
+                      <button type="button" class="media-download" title="Unduh gambar" @click.stop="downloadMedia(m.attachmentUrl)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                          <polyline points="7 10 12 15 17 10"/>
+                          <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                      </button>
                     </div>
                     <div v-else-if="m.attachmentUrl && m.attachmentType === 'video'" class="bubble-media">
                       <video :src="m.attachmentUrl" controls preload="metadata"></video>
+                      <button type="button" class="media-download" title="Unduh video" @click.stop="downloadMedia(m.attachmentUrl)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                          <polyline points="7 10 12 15 17 10"/>
+                          <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                      </button>
                     </div>
                     <div v-if="m.content" class="bubble-content">{{ m.content }}</div>
                   </template>
@@ -144,19 +158,15 @@
 
         <div v-if="errorMsg" class="chat-error">{{ errorMsg }}</div>
 
-        <div v-if="pendingAttachment" class="chat-attachment-preview">
-          <div class="attachment-thumb">
-            <img v-if="pendingAttachment.kind === 'image'" :src="pendingAttachment.previewUrl" alt="preview" />
-            <video v-else :src="pendingAttachment.previewUrl" muted></video>
+        <div v-if="pendingAttachments.length" class="chat-attachment-preview">
+          <div v-for="(att, i) in pendingAttachments" :key="att.id" class="attachment-thumb">
+            <img v-if="att.kind === 'image'" :src="att.previewUrl" alt="preview" />
+            <video v-else :src="att.previewUrl" muted></video>
             <div v-if="uploadingAttachment" class="attachment-uploading">
               <div class="spinner"></div>
             </div>
+            <button type="button" class="attachment-remove" :disabled="uploadingAttachment" @click="removeAttachment(i)" aria-label="Hapus lampiran">✕</button>
           </div>
-          <div class="attachment-info">
-            <div class="attachment-name">{{ pendingAttachment.file.name }}</div>
-            <div class="attachment-size">{{ formatBytes(pendingAttachment.file.size) }} · {{ pendingAttachment.kind === 'image' ? 'Gambar' : 'Video' }}</div>
-          </div>
-          <button type="button" class="attachment-remove" :disabled="uploadingAttachment" @click="clearAttachment" aria-label="Hapus lampiran">✕</button>
         </div>
 
         <form class="chat-composer" @submit.prevent="send">
@@ -164,6 +174,7 @@
             ref="fileInputEl"
             type="file"
             accept="image/*,video/*"
+            multiple
             style="display:none"
             @change="onFileSelect"
           />
@@ -182,7 +193,7 @@
             v-model="draft"
             rows="1"
             maxlength="4000"
-            :placeholder="pendingAttachment ? 'Tulis caption (opsional)…' : 'Tulis pesan…'"
+            :placeholder="pendingAttachments.length ? 'Tulis caption (opsional)…' : 'Tulis pesan…'"
             :disabled="posting"
             @keydown.enter.exact.prevent="send"
             ref="composerEl"
@@ -238,14 +249,16 @@ const draft = ref('');
 const posting = ref(false);
 const errorMsg = ref('');
 
-// Selected attachment (before send): { file, kind: 'image'|'video', previewUrl }
-const pendingAttachment = ref(null);
+// Selected attachments (before send): [{ id, file, kind: 'image'|'video', previewUrl }]
+const pendingAttachments = ref([]);
 const uploadingAttachment = ref(false);
 const fileInputEl = ref(null);
 const lightboxUrl = ref(null);
+let attachIdSeq = 0;
 
 const MAX_IMAGE_MB = 8;
 const MAX_VIDEO_MB = 50;
+const MAX_FILES = 10;
 
 const editingId = ref(null);
 const editingText = ref('');
@@ -336,39 +349,72 @@ function closeConversation() {
   messages.value = [];
 }
 
-const canSend = computed(() => !!(draft.value.trim() || pendingAttachment.value));
+const canSend = computed(() => !!(draft.value.trim() || pendingAttachments.value.length));
 
 function onFileSelect(e) {
-  const file = e.target.files?.[0];
+  const files = Array.from(e.target.files || []);
   e.target.value = '';
-  if (!file) return;
-  const ctype = (file.type || '').toLowerCase();
-  let kind = null;
-  if (ctype.startsWith('image/')) kind = 'image';
-  else if (ctype.startsWith('video/')) kind = 'video';
-  else {
-    errorMsg.value = 'Hanya file gambar atau video yang diperbolehkan';
-    return;
-  }
-  const maxMb = kind === 'image' ? MAX_IMAGE_MB : MAX_VIDEO_MB;
-  if (file.size > maxMb * 1024 * 1024) {
-    errorMsg.value = `Ukuran file terlalu besar (maks ${maxMb} MB)`;
-    return;
-  }
-  clearAttachment();
-  pendingAttachment.value = {
-    file,
-    kind,
-    previewUrl: URL.createObjectURL(file),
-  };
+  if (!files.length) return;
   errorMsg.value = '';
+  for (const file of files) {
+    if (pendingAttachments.value.length >= MAX_FILES) {
+      errorMsg.value = `Maksimal ${MAX_FILES} lampiran per pengiriman`;
+      break;
+    }
+    const ctype = (file.type || '').toLowerCase();
+    let kind = null;
+    if (ctype.startsWith('image/')) kind = 'image';
+    else if (ctype.startsWith('video/')) kind = 'video';
+    else {
+      errorMsg.value = 'Hanya file gambar atau video yang diperbolehkan';
+      continue;
+    }
+    const maxMb = kind === 'image' ? MAX_IMAGE_MB : MAX_VIDEO_MB;
+    if (file.size > maxMb * 1024 * 1024) {
+      errorMsg.value = `Ukuran ${file.name} terlalu besar (maks ${maxMb} MB)`;
+      continue;
+    }
+    pendingAttachments.value.push({
+      id: ++attachIdSeq,
+      file,
+      kind,
+      previewUrl: URL.createObjectURL(file),
+    });
+  }
+}
+
+function removeAttachment(index) {
+  const att = pendingAttachments.value[index];
+  if (att?.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(att.previewUrl);
+  pendingAttachments.value.splice(index, 1);
 }
 
 function clearAttachment() {
-  if (pendingAttachment.value?.previewUrl?.startsWith('blob:')) {
-    URL.revokeObjectURL(pendingAttachment.value.previewUrl);
+  for (const att of pendingAttachments.value) {
+    if (att.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(att.previewUrl);
   }
-  pendingAttachment.value = null;
+  pendingAttachments.value = [];
+}
+
+async function downloadMedia(url) {
+  if (!url) return;
+  const name = (url.split('/').pop() || 'unduhan').split('?')[0];
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('fetch failed');
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+  } catch {
+    // Fallback: open in a new tab if the blob fetch is blocked
+    window.open(url, '_blank', 'noopener');
+  }
 }
 
 function formatBytes(bytes) {
@@ -381,33 +427,40 @@ function formatBytes(bytes) {
 async function send() {
   if (!activeUserId.value) return;
   const text = draft.value.trim();
-  const attachment = pendingAttachment.value;
-  if (!text && !attachment) return;
+  const attachments = pendingAttachments.value.slice();
+  if (!text && !attachments.length) return;
 
   posting.value = true;
   errorMsg.value = '';
   try {
-    let attachmentUrl = null;
-    let attachmentType = null;
-    if (attachment) {
+    if (attachments.length) {
+      // Each attachment becomes its own message (WhatsApp-style); the caption
+      // text is attached to the last one only.
       uploadingAttachment.value = true;
       try {
-        const res = await uploadChatMedia(attachment.file);
-        attachmentUrl = res.url;
-        attachmentType = res.type;
+        for (let i = 0; i < attachments.length; i++) {
+          const res = await uploadChatMedia(attachments[i].file);
+          const isLast = i === attachments.length - 1;
+          const msg = await chatService.sendMessage(activeUserId.value, {
+            content: isLast ? text || null : null,
+            attachmentUrl: res.url,
+            attachmentType: res.type,
+          });
+          upsertMessage(msg);
+          bumpUserPreview(activeUserId.value, msg, true);
+        }
       } finally {
         uploadingAttachment.value = false;
       }
+    } else {
+      const msg = await chatService.sendMessage(activeUserId.value, {
+        content: text || null,
+      });
+      upsertMessage(msg);
+      bumpUserPreview(activeUserId.value, msg, true);
     }
-    const msg = await chatService.sendMessage(activeUserId.value, {
-      content: text || null,
-      attachmentUrl,
-      attachmentType,
-    });
-    upsertMessage(msg);
     draft.value = '';
     clearAttachment();
-    bumpUserPreview(activeUserId.value, msg, true);
     await nextTick();
     scrollToBottom();
   } catch (err) {
@@ -773,7 +826,7 @@ function isEdited(m) {
 }
 
 .chat-attachment-preview {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   padding: 8px 14px;
   background: #f8fafc; border-top: 1px solid #e2e8f0;
   flex-shrink: 0;
@@ -800,26 +853,36 @@ function isEdited(m) {
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.attachment-info { flex: 1; min-width: 0; }
-.attachment-name {
-  font-size: 13px; font-weight: 600; color: #1e293b;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.attachment-size { font-size: 11px; color: #64748b; margin-top: 2px; }
 .attachment-remove {
-  background: #fff; border: 1px solid #e2e8f0;
-  width: 28px; height: 28px; border-radius: 50%;
-  color: #64748b; cursor: pointer;
+  position: absolute; top: 2px; right: 2px;
+  background: rgba(15, 23, 42, 0.7); border: none;
+  width: 18px; height: 18px; border-radius: 50%;
+  color: #fff; font-size: 11px; line-height: 1; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.attachment-remove:hover:not(:disabled) { background: #fee2e2; color: #dc2626; border-color: #fecaca; }
+.attachment-remove:hover:not(:disabled) { background: #dc2626; }
 .attachment-remove:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .bubble-media {
+  position: relative;
   display: block; max-width: 280px;
   margin: 0; border-radius: 10px; overflow: hidden;
   background: #0f172a;
+}
+.media-download {
+  position: absolute; top: 6px; right: 6px;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(15, 23, 42, 0.6); border: none;
+  color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.15s, background 0.15s;
+}
+.bubble-media:hover .media-download { opacity: 1; }
+.media-download:hover { background: rgba(15, 23, 42, 0.85); }
+/* Always show on touch devices where hover isn't available */
+@media (hover: none) {
+  .media-download { opacity: 1; }
 }
 .bubble-media img {
   display: block; width: 100%; max-height: 320px;
