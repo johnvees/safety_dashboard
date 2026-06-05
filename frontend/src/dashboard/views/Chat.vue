@@ -83,7 +83,7 @@
           </div>
         </header>
 
-        <div class="chat-thread" ref="threadEl">
+        <div class="chat-thread" ref="threadEl" @scroll="onThreadScroll">
           <div v-if="loadingMsgs" class="chat-loading">
             <div class="spinner"></div>
             <span>Memuat pesan…</span>
@@ -114,7 +114,7 @@
                   <div v-if="m.content === '__deleted__'" class="bubble-deleted">Pesan dihapus</div>
                   <template v-else>
                     <div v-if="m.attachmentUrl && m.attachmentType === 'image'" class="bubble-media">
-                      <img :src="m.attachmentUrl" alt="gambar" @click="lightboxUrl = m.attachmentUrl" />
+                      <img :src="m.attachmentUrl" alt="gambar" @load="onMediaLoad" @click="lightboxUrl = m.attachmentUrl" />
                       <button type="button" class="media-download" title="Unduh gambar" @click.stop="downloadMedia(m.attachmentUrl)">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -124,7 +124,7 @@
                       </button>
                     </div>
                     <div v-else-if="m.attachmentUrl && m.attachmentType === 'video'" class="bubble-media">
-                      <video :src="m.attachmentUrl" controls preload="metadata"></video>
+                      <video :src="m.attachmentUrl" controls preload="metadata" @loadedmetadata="onMediaLoad"></video>
                       <button type="button" class="media-download" title="Unduh video" @click.stop="downloadMedia(m.attachmentUrl)">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -344,9 +344,12 @@ async function openConversation(u) {
     errorMsg.value = err.message;
   } finally {
     loadingMsgs.value = false;
+    stickBottom.value = true;
     await nextTick();
-    scrollToBottom();
-    composerEl.value?.focus();
+    pinToBottom();
+    // Don't auto-focus on mobile — it pops the keyboard and fights the layout.
+    if (!isMobile.value) composerEl.value?.focus();
+    setTimeout(() => { stickBottom.value = false; }, 1200);
   }
 }
 
@@ -573,6 +576,31 @@ function scrollToBottom() {
   const el = threadEl.value;
   if (!el) return;
   el.scrollTop = el.scrollHeight;
+}
+
+// While true, media finishing load keeps us pinned to the newest message.
+const stickBottom = ref(false);
+let _stickTimers = [];
+
+// Pin to the bottom now and again as layout settles (images/videos grow the thread).
+function pinToBottom() {
+  scrollToBottom();
+  requestAnimationFrame(scrollToBottom);
+  _stickTimers.forEach(clearTimeout);
+  _stickTimers = [120, 350, 700].map((ms) => setTimeout(scrollToBottom, ms));
+}
+
+// A message image/video finished loading — stay at the bottom during the initial open.
+function onMediaLoad() {
+  if (stickBottom.value) scrollToBottom();
+}
+
+// If the user scrolls up, stop auto-pinning so we don't yank them back down.
+function onThreadScroll() {
+  const el = threadEl.value;
+  if (!el) return;
+  const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  if (!nearBottom) stickBottom.value = false;
 }
 
 watch(messages, () => { nextTick(scrollToBottom); });

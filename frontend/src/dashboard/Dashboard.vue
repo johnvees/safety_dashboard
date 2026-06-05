@@ -44,7 +44,8 @@ const pageTitle = computed(() => pageTitles[route.path] ?? "Dashboard");
 <style scoped>
 .layout {
   display: flex;
-  height: 100vh;
+  height: 100vh; /* fallback for old browsers */
+  height: 100dvh; /* dynamic viewport: fits the visible area as mobile browser bars show/hide */
   overflow: hidden;
   background: #f1f5f9;
 }

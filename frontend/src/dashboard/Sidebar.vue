@@ -47,30 +47,50 @@
 
       <!-- Reports with submenu -->
       <div class="nav-group" :class="{ open: reportsOpen }">
-        <div class="nav-item nav-parent" :class="{ active: isReportsActive }" @click="reportsOpen = !reportsOpen">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        <div
+          class="nav-item nav-parent"
+          :class="{ active: isReportsActive }"
+          @click="reportsOpen = !reportsOpen"
+        >
+          <svg
+            class="nav-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
           </svg>
           Laporan
-          <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="6 9 12 15 18 9"/>
+          <svg
+            class="nav-chevron"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="6 9 12 15 18 9" />
           </svg>
         </div>
         <div class="nav-submenu" v-show="reportsOpen">
-          <router-link to="/dashboard/reports/inspection-k3l" class="nav-subitem" active-class="active">
+          <router-link
+            to="/dashboard/reports/inspection-k3l"
+            class="nav-subitem"
+            active-class="active"
+          >
             Inspection K3L
           </router-link>
-          <router-link to="/dashboard/reports/hse-daily" class="nav-subitem" active-class="active">
-            HSE Daily Report
+          <router-link
+            to="/dashboard/reports/hse-daily"
+            class="nav-subitem"
+            active-class="active"
+          >
+            Permit Kerja HSE
           </router-link>
         </div>
       </div>
 
-      <router-link
-        to="/dashboard/chat"
-        class="nav-item"
-        active-class="active"
-      >
+      <router-link to="/dashboard/chat" class="nav-item" active-class="active">
         <svg
           class="nav-icon"
           viewBox="0 0 24 24"
@@ -78,7 +98,9 @@
           stroke="currentColor"
           stroke-width="2"
         >
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          <path
+            d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+          />
         </svg>
         Chat
       </router-link>
@@ -129,14 +151,22 @@
         <div class="sidebar-avatar">{{ initials }}</div>
         <div class="sidebar-user-details">
           <span class="sidebar-user-name">{{ displayName }}</span>
-          <span class="sidebar-user-meta">{{ user?.role || '-' }}{{ user?.businessUnit ? ' · ' + user.businessUnit : '' }}</span>
+          <span class="sidebar-user-meta"
+            >{{ user?.role || "-"
+            }}{{ user?.businessUnit ? " · " + user.businessUnit : "" }}</span
+          >
         </div>
       </div>
       <button class="sidebar-logout" @click="handleLogout" aria-label="Logout">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-          <polyline points="16 17 21 12 16 7"/>
-          <line x1="21" y1="12" x2="9" y2="12"/>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
         </svg>
       </button>
     </div>
@@ -154,16 +184,24 @@ defineProps({ open: { type: Boolean, default: true } });
 const route = useRoute();
 const router = useRouter();
 
-const isReportsActive = computed(() => route.path.startsWith("/dashboard/reports"));
+const isReportsActive = computed(() =>
+  route.path.startsWith("/dashboard/reports"),
+);
 const reportsOpen = ref(isReportsActive.value);
 
 const user = authService.getCurrentUser();
 const isAdmin = authService.isAdmin();
 const canAccessMasterData = authService.canAccessMasterData();
-const displayName = computed(() => user?.fullName || user?.username || user?.email || "");
+const displayName = computed(
+  () => user?.fullName || user?.username || user?.email || "",
+);
 const initials = computed(() => {
   const name = user?.fullName || user?.username || user?.email || "U";
-  return name.split(" ").slice(0, 2).map((w) => w[0].toUpperCase()).join("");
+  return name
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join("");
 });
 
 async function handleLogout() {
@@ -312,11 +350,13 @@ async function handleLogout() {
   text-decoration: none;
   font-size: 13px;
   font-weight: 500;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .nav-subitem:hover {
-  background: rgba(255,255,255,0.07);
+  background: rgba(255, 255, 255, 0.07);
   color: #e2e8f0;
 }
 
@@ -392,7 +432,9 @@ async function handleLogout() {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
   flex-shrink: 0;
 }
 

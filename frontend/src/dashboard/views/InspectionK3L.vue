@@ -1660,6 +1660,22 @@
         </label>
       </div>
 
+      <!-- Inspection-type tabs -->
+      <div class="jenis-tabs" role="tablist">
+        <button
+          v-for="t in JENIS_TABS"
+          :key="t"
+          type="button"
+          role="tab"
+          :class="['jenis-tab', { active: activeJenisTab === t }]"
+          :aria-selected="activeJenisTab === t"
+          @click="switchJenisTab(t)"
+        >
+          {{ t }}
+          <span class="jenis-tab-count">{{ jenisCounts[t] }}</span>
+        </button>
+      </div>
+
       <!-- Filter bar -->
       <div class="filter-bar">
         <div class="search-wrapper">
@@ -1696,12 +1712,6 @@
           <option value="Major">Major</option>
           <option value="Minor">Minor</option>
           <option value="No Findings">No Findings</option>
-        </select>
-
-        <select v-model="filterJenis" class="filter-select">
-          <option value="">Semua Jenis Inspeksi</option>
-          <option value="Ronda Kepatuhan">Ronda Kepatuhan</option>
-          <option value="Daily Inspection">Daily Inspection</option>
         </select>
 
         <select v-model="filterStatus" class="filter-select">
@@ -2281,8 +2291,27 @@ function resetScopeFilter() {
 // ── Search & filters ──
 const searchQuery = ref('');
 const filterKategori = ref('');
-const filterJenis = ref('');
 const filterStatus = ref('');
+
+// Findings are split into tabs by inspection type instead of a filter dropdown.
+const JENIS_TABS = ['Ronda Kepatuhan', 'Daily Inspection'];
+const activeJenisTab = ref('Ronda Kepatuhan');
+// Legacy/null records bucket into the first tab so nothing disappears.
+function jenisOf(r) {
+  return r.jenisInspeksi || 'Ronda Kepatuhan';
+}
+function switchJenisTab(t) {
+  activeJenisTab.value = t;
+}
+// Counts reflect the active search/category/status/date filters (but not the tab itself).
+const jenisCounts = computed(() => {
+  const counts = { 'Ronda Kepatuhan': 0, 'Daily Inspection': 0 };
+  for (const r of filteredExceptJenis.value) {
+    const k = jenisOf(r);
+    if (counts[k] !== undefined) counts[k] += 1;
+  }
+  return counts;
+});
 const filterDate = ref('all');
 const customDateFrom = ref('');
 const customDateTo = ref('');
@@ -2307,22 +2336,18 @@ const hasActiveFilters = computed(
   () =>
     searchQuery.value.trim() !== '' ||
     filterKategori.value !== '' ||
-    filterJenis.value !== '' ||
     filterStatus.value !== '' ||
     filterDate.value !== 'all' ||
     (roleLevel <= 2 && (filterBU.value != null || filterPlant.value != null)) ||
     (roleLevel >= 3 && roleLevel < 5 && filterPlant.value != null),
 );
 
-const filteredRecords = computed(() => {
+// All filters EXCEPT the inspection-type tab — drives both the table and the tab counts.
+const filteredExceptJenis = computed(() => {
   let result = scopedRecords.value;
 
   if (filterKategori.value) {
     result = result.filter((r) => r.kategoriTemuan === filterKategori.value);
-  }
-
-  if (filterJenis.value) {
-    result = result.filter((r) => r.jenisInspeksi === filterJenis.value);
   }
 
   if (filterStatus.value) {
@@ -2381,6 +2406,11 @@ const filteredRecords = computed(() => {
   return result;
 });
 
+// The active tab narrows the already-filtered list down to one inspection type.
+const filteredRecords = computed(() =>
+  filteredExceptJenis.value.filter((r) => jenisOf(r) === activeJenisTab.value),
+);
+
 const {
   currentPage: k3lCurrentPage,
   perPage: k3lPerPage,
@@ -2394,7 +2424,6 @@ const {
 function resetFilters() {
   searchQuery.value = '';
   filterKategori.value = '';
-  filterJenis.value = '';
   filterStatus.value = '';
   filterDate.value = 'all';
   customDateFrom.value = '';
@@ -2944,8 +2973,11 @@ async function submitForm() {
       });
       showMessage('Data berhasil disimpan');
     }
+    // Jump to the tab of the inspection we just saved so the new row is visible.
+    const savedJenis = form.value.jenisInspeksi || 'Ronda Kepatuhan';
     cancelForm();
     await loadData();
+    if (JENIS_TABS.includes(savedJenis)) activeJenisTab.value = savedJenis;
   } catch (e) {
     console.error('[InspectionK3L] submitForm:', e);
   } finally {
@@ -5128,6 +5160,59 @@ onActivated(() => {
 }
 
 /* ── Filter bar ── */
+/* Inspection-type tabs */
+.jenis-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 10px 20px 0;
+  border-bottom: 1px solid #e2e8f0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.jenis-tabs::-webkit-scrollbar {
+  display: none;
+}
+.jenis-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.jenis-tab:hover {
+  color: #334155;
+}
+.jenis-tab.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
+.jenis-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+.jenis-tab.active .jenis-tab-count {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
 .filter-bar {
   display: flex;
   align-items: center;
