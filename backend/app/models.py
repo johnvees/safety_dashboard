@@ -241,6 +241,56 @@ class ChatMessage(Base):
     read_at = Column(DateTime, nullable=True)
 
 
+class CaseIncident(Base):
+    __tablename__ = "report_case_incidents"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    # Pelapor
+    nama_pelapor = Column(String(100), nullable=False)
+    pelapor_dept_id = Column(Integer, ForeignKey("departments.id"))
+
+    # Saksi
+    nama_saksi = Column(String(100))
+    saksi_dept_id = Column(Integer, ForeignKey("departments.id"))
+    saksi_list = Column(Text)  # JSON: [{nama, departmentId}]
+
+    # Foto Kejadian
+    foto_kejadian = Column(Text)  # JSON: [url, ...]
+
+    # Waktu
+    tanggal_kejadian = Column(DateTime, nullable=False)
+    tanggal_pelaporan = Column(DateTime, nullable=False)
+
+    # Korban
+    nama_korban = Column(String(100), nullable=False)
+    korban_dept_id = Column(Integer, ForeignKey("departments.id"))
+    status_karyawan = Column(String(50))
+
+    # Kejadian
+    jenis_kecelakaan = Column(String(100))
+    lokasi_kecelakaan = Column(String(200))
+
+    # Hasil Investigasi
+    deskripsi_kecelakaan = Column(Text)
+    penyebab_kecelakaan = Column(Text)
+
+    # Tindakan Perbaikan
+    perbaikan_dilakukan = Column(Text)
+    target_penyelesaian = Column(Date)
+    status = Column(String(50), default="Open", server_default="Open")
+
+    # Relasi
+    created_by = Column(Integer, ForeignKey("users.id"))
+
+    created_at = Column(DateTime, server_default=func.current_timestamp())
+    updated_at = Column(DateTime, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
+
+    __table_args__ = (
+        CheckConstraint("status IN ('Open', 'In Progress', 'Closed')", name="case_incidents_status_check"),
+    )
+
+
 class SafetyModule(Base):
     __tablename__ = "safety_modules"
 

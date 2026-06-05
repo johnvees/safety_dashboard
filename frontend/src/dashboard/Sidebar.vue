@@ -87,6 +87,13 @@
           >
             Permit Kerja HSE
           </router-link>
+          <router-link
+            to="/dashboard/reports/case-incident"
+            class="nav-subitem"
+            active-class="active"
+          >
+            Case Incident
+          </router-link>
         </div>
       </div>
 

@@ -6,6 +6,7 @@ import DashboardHome from "../dashboard/views/DashboardHome.vue";
 import SafetyModules from "../dashboard/views/SafetyModules.vue";
 import InspectionK3L from "../dashboard/views/InspectionK3L.vue";
 import HseDailyReport from "../dashboard/views/HseDailyReport.vue";
+import CaseIncident from "../dashboard/views/CaseIncident.vue";
 import MasterData from "../dashboard/views/MasterData.vue";
 import Settings from "../dashboard/views/Settings.vue";
 import Chat from "../dashboard/views/Chat.vue";
@@ -31,6 +32,11 @@ const routes = [
         path: "reports/hse-daily",
         name: "HseDailyReport",
         component: HseDailyReport,
+      },
+      {
+        path: "reports/case-incident",
+        name: "CaseIncident",
+        component: CaseIncident,
       },
 { path: "chat", name: "Chat", component: Chat },
 { path: "master-data", name: "MasterData", component: MasterData, meta: { requiresAdmin: true } },

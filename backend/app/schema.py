@@ -245,6 +245,66 @@ class InspectionK3LPayload:
 
 
 @strawberry.type
+class CaseIncidentType:
+    id: int
+    nama_pelapor: str
+    pelapor_dept_id: Optional[int] = None
+    nama_saksi: Optional[str] = None
+    saksi_dept_id: Optional[int] = None
+    saksi_list: Optional[str] = None
+    foto_kejadian: Optional[str] = None
+    tanggal_kejadian: str
+    tanggal_pelaporan: str
+    nama_korban: str
+    korban_dept_id: Optional[int] = None
+    status_karyawan: Optional[str] = None
+    jenis_kecelakaan: Optional[str] = None
+    lokasi_kecelakaan: Optional[str] = None
+    deskripsi_kecelakaan: Optional[str] = None
+    penyebab_kecelakaan: Optional[str] = None
+    perbaikan_dilakukan: Optional[str] = None
+    target_penyelesaian: Optional[str] = None
+    status: str
+    created_by: Optional[int] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
+@strawberry.type
+class CaseIncidentPayload:
+    success: bool
+    message: str
+    incident: Optional[CaseIncidentType] = None
+
+
+def _ci_to_type(r: models.CaseIncident) -> CaseIncidentType:
+    return CaseIncidentType(
+        id=r.id,
+        nama_pelapor=r.nama_pelapor,
+        pelapor_dept_id=r.pelapor_dept_id,
+        nama_saksi=r.nama_saksi,
+        saksi_dept_id=r.saksi_dept_id,
+        saksi_list=r.saksi_list,
+        foto_kejadian=r.foto_kejadian,
+        tanggal_kejadian=str(r.tanggal_kejadian) if r.tanggal_kejadian else "",
+        tanggal_pelaporan=str(r.tanggal_pelaporan) if r.tanggal_pelaporan else "",
+        nama_korban=r.nama_korban,
+        korban_dept_id=r.korban_dept_id,
+        status_karyawan=r.status_karyawan,
+        jenis_kecelakaan=r.jenis_kecelakaan,
+        lokasi_kecelakaan=r.lokasi_kecelakaan,
+        deskripsi_kecelakaan=r.deskripsi_kecelakaan,
+        penyebab_kecelakaan=r.penyebab_kecelakaan,
+        perbaikan_dilakukan=r.perbaikan_dilakukan,
+        target_penyelesaian=str(r.target_penyelesaian) if r.target_penyelesaian else None,
+        status=r.status or "Open",
+        created_by=r.created_by,
+        created_at=str(r.created_at) if r.created_at else None,
+        updated_at=str(r.updated_at) if r.updated_at else None,
+    )
+
+
+@strawberry.type
 class HseDailyType:
     id: int
     tanggal: str
@@ -1062,6 +1122,30 @@ class Query:
     def push_public_key(self, info: strawberry.types.Info) -> str:
         """VAPID public (application server) key for the browser to subscribe with."""
         return web_push.PUBLIC_KEY
+
+    @strawberry.field
+    def case_incident_list(self, info: strawberry.types.Info) -> List[CaseIncidentType]:
+        user = _get_current_user(info)
+        if not user:
+            raise Exception("Authentication required")
+        db = _get_db()
+        try:
+            records = db.query(models.CaseIncident).order_by(models.CaseIncident.tanggal_kejadian.desc()).all()
+            return [_ci_to_type(r) for r in records]
+        finally:
+            db.close()
+
+    @strawberry.field
+    def case_incident_by_id(self, info: strawberry.types.Info, id: int) -> Optional[CaseIncidentType]:
+        user = _get_current_user(info)
+        if not user:
+            raise Exception("Authentication required")
+        db = _get_db()
+        try:
+            r = db.query(models.CaseIncident).filter(models.CaseIncident.id == id).first()
+            return _ci_to_type(r) if r else None
+        finally:
+            db.close()
 
 
 def _safe_ts(s: Optional[str]) -> float:
@@ -2851,6 +2935,144 @@ class Mutation:
         except Exception as e:
             db.rollback()
             return NotificationPayload(success=False, message=str(e))
+        finally:
+            db.close()
+
+
+    @strawberry.mutation
+    def create_case_incident(
+        self,
+        info: strawberry.types.Info,
+        nama_pelapor: str,
+        tanggal_kejadian: str,
+        tanggal_pelaporan: str,
+        nama_korban: str,
+        pelapor_dept_id: Optional[int] = None,
+        nama_saksi: Optional[str] = None,
+        saksi_dept_id: Optional[int] = None,
+        saksi_list: Optional[str] = None,
+        korban_dept_id: Optional[int] = None,
+        status_karyawan: Optional[str] = None,
+        jenis_kecelakaan: Optional[str] = None,
+        lokasi_kecelakaan: Optional[str] = None,
+        deskripsi_kecelakaan: Optional[str] = None,
+        penyebab_kecelakaan: Optional[str] = None,
+        perbaikan_dilakukan: Optional[str] = None,
+        foto_kejadian: Optional[str] = None,
+        target_penyelesaian: Optional[str] = None,
+        status: Optional[str] = None,
+    ) -> CaseIncidentPayload:
+        user = _get_current_user(info)
+        if not user:
+            return CaseIncidentPayload(success=False, message="Authentication required")
+        db = _get_db()
+        try:
+            record = models.CaseIncident(
+                nama_pelapor=nama_pelapor,
+                pelapor_dept_id=pelapor_dept_id,
+                nama_saksi=nama_saksi,
+                saksi_dept_id=saksi_dept_id,
+                saksi_list=saksi_list,
+                tanggal_kejadian=datetime.fromisoformat(tanggal_kejadian.replace("T", " ")),
+                tanggal_pelaporan=datetime.fromisoformat(tanggal_pelaporan.replace("T", " ")),
+                nama_korban=nama_korban,
+                korban_dept_id=korban_dept_id,
+                status_karyawan=status_karyawan,
+                jenis_kecelakaan=jenis_kecelakaan,
+                lokasi_kecelakaan=lokasi_kecelakaan,
+                deskripsi_kecelakaan=deskripsi_kecelakaan,
+                penyebab_kecelakaan=penyebab_kecelakaan,
+                perbaikan_dilakukan=perbaikan_dilakukan,
+                foto_kejadian=foto_kejadian,
+                target_penyelesaian=date.fromisoformat(target_penyelesaian) if target_penyelesaian else None,
+                status=status or "Open",
+                created_by=user.id,
+            )
+            db.add(record)
+            db.commit()
+            db.refresh(record)
+            return CaseIncidentPayload(success=True, message="Laporan berhasil disimpan", incident=_ci_to_type(record))
+        except Exception as e:
+            db.rollback()
+            return CaseIncidentPayload(success=False, message=str(e))
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def update_case_incident(
+        self,
+        info: strawberry.types.Info,
+        id: int,
+        nama_pelapor: Optional[str] = None,
+        pelapor_dept_id: Optional[int] = None,
+        nama_saksi: Optional[str] = None,
+        saksi_dept_id: Optional[int] = None,
+        tanggal_kejadian: Optional[str] = None,
+        tanggal_pelaporan: Optional[str] = None,
+        nama_korban: Optional[str] = None,
+        korban_dept_id: Optional[int] = None,
+        status_karyawan: Optional[str] = None,
+        jenis_kecelakaan: Optional[str] = None,
+        lokasi_kecelakaan: Optional[str] = None,
+        deskripsi_kecelakaan: Optional[str] = None,
+        penyebab_kecelakaan: Optional[str] = None,
+        perbaikan_dilakukan: Optional[str] = None,
+        saksi_list: Optional[str] = None,
+        foto_kejadian: Optional[str] = None,
+        target_penyelesaian: Optional[str] = None,
+        status: Optional[str] = None,
+    ) -> CaseIncidentPayload:
+        user = _get_current_user(info)
+        if not user:
+            return CaseIncidentPayload(success=False, message="Authentication required")
+        db = _get_db()
+        try:
+            record = db.query(models.CaseIncident).filter(models.CaseIncident.id == id).first()
+            if not record:
+                return CaseIncidentPayload(success=False, message="Laporan tidak ditemukan")
+            if nama_pelapor is not None: record.nama_pelapor = nama_pelapor
+            if pelapor_dept_id is not None: record.pelapor_dept_id = pelapor_dept_id
+            if nama_saksi is not None: record.nama_saksi = nama_saksi
+            if saksi_dept_id is not None: record.saksi_dept_id = saksi_dept_id
+            if tanggal_kejadian is not None: record.tanggal_kejadian = datetime.fromisoformat(tanggal_kejadian.replace("T", " "))
+            if tanggal_pelaporan is not None: record.tanggal_pelaporan = datetime.fromisoformat(tanggal_pelaporan.replace("T", " "))
+            if nama_korban is not None: record.nama_korban = nama_korban
+            if korban_dept_id is not None: record.korban_dept_id = korban_dept_id
+            if status_karyawan is not None: record.status_karyawan = status_karyawan
+            if jenis_kecelakaan is not None: record.jenis_kecelakaan = jenis_kecelakaan
+            if lokasi_kecelakaan is not None: record.lokasi_kecelakaan = lokasi_kecelakaan
+            if deskripsi_kecelakaan is not None: record.deskripsi_kecelakaan = deskripsi_kecelakaan
+            if penyebab_kecelakaan is not None: record.penyebab_kecelakaan = penyebab_kecelakaan
+            if perbaikan_dilakukan is not None: record.perbaikan_dilakukan = perbaikan_dilakukan
+            if saksi_list is not None: record.saksi_list = saksi_list
+            if foto_kejadian is not None: record.foto_kejadian = foto_kejadian
+            if target_penyelesaian is not None: record.target_penyelesaian = date.fromisoformat(target_penyelesaian) if target_penyelesaian else None
+            if status is not None: record.status = status
+            db.commit()
+            db.refresh(record)
+            return CaseIncidentPayload(success=True, message="Laporan berhasil diperbarui", incident=_ci_to_type(record))
+        except Exception as e:
+            db.rollback()
+            return CaseIncidentPayload(success=False, message=str(e))
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def delete_case_incident(self, info: strawberry.types.Info, id: int) -> CaseIncidentPayload:
+        user = _get_current_user(info)
+        if not user:
+            return CaseIncidentPayload(success=False, message="Authentication required")
+        db = _get_db()
+        try:
+            record = db.query(models.CaseIncident).filter(models.CaseIncident.id == id).first()
+            if not record:
+                return CaseIncidentPayload(success=False, message="Laporan tidak ditemukan")
+            db.delete(record)
+            db.commit()
+            return CaseIncidentPayload(success=True, message="Laporan berhasil dihapus")
+        except Exception as e:
+            db.rollback()
+            return CaseIncidentPayload(success=False, message=str(e))
         finally:
             db.close()
 
