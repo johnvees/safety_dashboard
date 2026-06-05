@@ -221,6 +221,7 @@ class InspectionK3LType:
     pelapor_username: Optional[str] = None
     pelapor_department_id: Optional[int] = None
     jenis_inspeksi: Optional[str] = None
+    tanggal_pelaporan: Optional[str] = None
     divalidasi_oleh: Optional[str] = None
     divalidasi_department_id: Optional[int] = None
     tanggal_validasi: Optional[str] = None
@@ -463,6 +464,7 @@ def _model_to_type(record: models.InspectionK3L, db: Optional[Session] = None) -
             pelapor_username=record.pelapor_username,
             pelapor_department_id=record.pelapor_department_id,
             jenis_inspeksi=record.jenis_inspeksi,
+            tanggal_pelaporan=str(record.tanggal_pelaporan) if record.tanggal_pelaporan else None,
             divalidasi_oleh=record.divalidasi_oleh,
             divalidasi_department_id=record.divalidasi_department_id,
             tanggal_validasi=str(record.tanggal_validasi) if record.tanggal_validasi else None,
@@ -1252,6 +1254,8 @@ class Mutation:
                 if business_unit_id is not None and plant.business_unit_id != business_unit_id:
                     return InspectionK3LPayload(success=False, message="Plant does not belong to selected business unit")
 
+            from datetime import timezone, timedelta
+            wib_now = datetime.now(timezone(timedelta(hours=7))).replace(tzinfo=None)
             record = models.InspectionK3L(
                 tanggal=datetime.fromisoformat(tanggal),
                 kategori_temuan=kategori_temuan,
@@ -1270,6 +1274,7 @@ class Mutation:
                 plant_id=plant_id,
                 department_id=department_id,
                 jenis_inspeksi=jenis_inspeksi,
+                tanggal_pelaporan=wib_now,
             )
             db.add(record)
             db.commit()

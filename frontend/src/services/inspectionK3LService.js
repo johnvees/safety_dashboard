@@ -101,7 +101,7 @@ export const inspectionK3LService = {
           businessUnitId plantId departmentId
           saranPerbaikan tindakanPerbaikan
           ditindaklanjutiOleh ditindaklanjutiDepartmentId tanggalTindaklanjuti
-          jenisInspeksi pelaporUsername pelaporDepartmentId
+          jenisInspeksi pelaporUsername pelaporDepartmentId tanggalPelaporan
           divalidasiOleh divalidasiDepartmentId tanggalValidasi alasanValidasi statusValidasi
           tindakLanjutCount
           tindakLanjutList {

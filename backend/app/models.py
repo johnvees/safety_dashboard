@@ -113,6 +113,9 @@ class InspectionK3L(Base):
     # Jenis Inspeksi
     jenis_inspeksi = Column(String(50))
 
+    # Tanggal Pelaporan (auto WIB on create)
+    tanggal_pelaporan = Column(DateTime)
+
     # Validasi Safety
     divalidasi_oleh = Column(String(100))
     divalidasi_department_id = Column(Integer, ForeignKey("departments.id"))

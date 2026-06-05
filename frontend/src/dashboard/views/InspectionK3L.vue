@@ -32,7 +32,7 @@
           class="scope-reset-btn"
           @click="resetScopeFilter"
         >
-          Atur Ulang
+          Reset
         </button>
       </div>
       <div v-else-if="roleLevel <= 4" class="scope-filter-inline">
@@ -51,7 +51,7 @@
           class="scope-reset-btn"
           @click="filterPlant = null"
         >
-          Atur Ulang
+          Reset
         </button>
       </div>
     </div>
@@ -155,7 +155,7 @@
                   <h4 class="section-title">Waktu</h4>
                   <div class="form-row">
                     <div class="form-group">
-                      <label>Tanggal <span class="required">*</span></label>
+                      <label>Tanggal Kejadian <span class="required">*</span></label>
                       <div class="date-input-wrapper">
                         <input
                           type="date"
@@ -204,6 +204,7 @@
                         <option value="Critical">Critical</option>
                         <option value="Major">Major</option>
                         <option value="Minor">Minor</option>
+                        <option value="No Findings">No Findings</option>
                       </select>
                     </div>
                     <div class="form-group full-width">
@@ -720,10 +721,14 @@
                 <div class="detail-section">
                   <h4 class="section-title">Waktu</h4>
                   <div class="detail-row">
-                    <span class="detail-label">Tanggal</span>
+                    <span class="detail-label">Tanggal Kejadian</span>
                     <span class="detail-value">{{
                       formatDate(viewingRecord.tanggal)
                     }}</span>
+                  </div>
+                  <div class="detail-row" v-if="viewingRecord.tanggalPelaporan">
+                    <span class="detail-label">Tanggal Pelaporan</span>
+                    <span class="detail-value">{{ formatDate(viewingRecord.tanggalPelaporan) }}</span>
                   </div>
                 </div>
 
@@ -1690,6 +1695,13 @@
           <option value="Critical">Critical</option>
           <option value="Major">Major</option>
           <option value="Minor">Minor</option>
+          <option value="No Findings">No Findings</option>
+        </select>
+
+        <select v-model="filterJenis" class="filter-select">
+          <option value="">Semua Jenis Inspeksi</option>
+          <option value="Ronda Kepatuhan">Ronda Kepatuhan</option>
+          <option value="Daily Inspection">Daily Inspection</option>
         </select>
 
         <select v-model="filterStatus" class="filter-select">
@@ -1705,7 +1717,7 @@
           class="btn-reset-filters"
           @click="resetFilters"
         >
-          Atur Ulang
+          Reset
         </button>
 
         <span v-if="hasActiveFilters" class="filter-count">
@@ -1723,7 +1735,9 @@
             <tr>
               <th style="text-align: center; width: 48px">No</th>
               <th>Aksi</th>
-              <th>Tanggal</th>
+              <th>Tanggal Kejadian</th>
+              <th>Tanggal Pelaporan</th>
+              <th>Jenis Inspeksi</th>
               <th>Kategori Temuan</th>
               <th>Deskripsi Temuan</th>
               <th>Foto Sebelum</th>
@@ -1790,6 +1804,8 @@
                 </div>
               </td>
               <td class="td-nowrap">{{ formatDate(item.tanggal) }}</td>
+              <td class="td-nowrap">{{ item.tanggalPelaporan ? formatDate(item.tanggalPelaporan) : '-' }}</td>
+              <td>{{ item.jenisInspeksi || '-' }}</td>
               <td>
                 <span
                   :class="[
@@ -2265,6 +2281,7 @@ function resetScopeFilter() {
 // ── Search & filters ──
 const searchQuery = ref('');
 const filterKategori = ref('');
+const filterJenis = ref('');
 const filterStatus = ref('');
 const filterDate = ref('all');
 const customDateFrom = ref('');
@@ -2290,6 +2307,7 @@ const hasActiveFilters = computed(
   () =>
     searchQuery.value.trim() !== '' ||
     filterKategori.value !== '' ||
+    filterJenis.value !== '' ||
     filterStatus.value !== '' ||
     filterDate.value !== 'all' ||
     (roleLevel <= 2 && (filterBU.value != null || filterPlant.value != null)) ||
@@ -2301,6 +2319,10 @@ const filteredRecords = computed(() => {
 
   if (filterKategori.value) {
     result = result.filter((r) => r.kategoriTemuan === filterKategori.value);
+  }
+
+  if (filterJenis.value) {
+    result = result.filter((r) => r.jenisInspeksi === filterJenis.value);
   }
 
   if (filterStatus.value) {
@@ -2372,6 +2394,7 @@ const {
 function resetFilters() {
   searchQuery.value = '';
   filterKategori.value = '';
+  filterJenis.value = '';
   filterStatus.value = '';
   filterDate.value = 'all';
   customDateFrom.value = '';
