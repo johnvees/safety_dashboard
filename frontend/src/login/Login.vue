@@ -83,6 +83,13 @@ const handleLogin = async () => {
   overflow: hidden;
 }
 
+/* Use the mobile-optimised artwork on phones */
+@media (max-width: 767px) {
+  .login-container {
+    background-image: url("@/assets/cpmobile.png");
+  }
+}
+
 .login-card {
   background: rgba(255, 255, 255, 0.95);
   padding: 40px;
