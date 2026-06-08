@@ -51,6 +51,14 @@ def _is_staff(user: models.User) -> bool:
     return _get_role_level(user) >= 6
 
 
+def _is_safety_department(db, user: models.User) -> bool:
+    """True if user belongs to the 'Safety' department."""
+    if not user.department_id:
+        return False
+    dept = db.query(models.Department).filter(models.Department.id == user.department_id).first()
+    return bool(dept and dept.name == "Safety")
+
+
 @strawberry.type
 class UserType:
     id: int
@@ -1348,6 +1356,8 @@ class Mutation:
 
         db = _get_db()
         try:
+            if not _is_safety_department(db, user):
+                return InspectionK3LPayload(success=False, message="Hanya departemen Safety yang dapat menambahkan temuan")
             if business_unit_id is not None:
                 business_unit = db.query(models.BusinessUnit).filter(models.BusinessUnit.id == business_unit_id).first()
                 if not business_unit:
@@ -1433,6 +1443,9 @@ class Mutation:
             record = db.query(models.InspectionK3L).filter(models.InspectionK3L.id == id).first()
             if not record:
                 return InspectionK3LPayload(success=False, message="Record not found")
+
+            if not _is_safety_department(db, user):
+                return InspectionK3LPayload(success=False, message="Hanya departemen Safety yang dapat mengubah temuan")
 
             if _is_staff(user) and (
                 record.business_unit_id != user.business_unit_id
@@ -1523,6 +1536,8 @@ class Mutation:
             record = db.query(models.InspectionK3L).filter(models.InspectionK3L.id == id).first()
             if not record:
                 return InspectionK3LPayload(success=False, message="Record not found")
+            if not record.department_id or user.department_id != record.department_id:
+                return InspectionK3LPayload(success=False, message="Hanya departemen yang dipilih pada temuan ini yang dapat melakukan tindak lanjut")
             existing_count = _tl_count(db, id)
             if existing_count >= 4:
                 return InspectionK3LPayload(success=False, message="Maksimal 4 kali tindak lanjut")
@@ -1591,6 +1606,8 @@ class Mutation:
             record = db.query(models.InspectionK3L).filter(models.InspectionK3L.id == id).first()
             if not record:
                 return InspectionK3LPayload(success=False, message="Record not found")
+            if not _is_safety_department(db, user):
+                return InspectionK3LPayload(success=False, message="Hanya departemen Safety yang dapat melakukan validasi")
             existing_count = _val_count(db, id)
             if existing_count >= 4:
                 return InspectionK3LPayload(success=False, message="Maksimal 4 ronde validasi")
@@ -1635,6 +1652,9 @@ class Mutation:
             record = db.query(models.InspectionK3L).filter(models.InspectionK3L.id == id).first()
             if not record:
                 return InspectionK3LPayload(success=False, message="Record not found")
+
+            if not _is_safety_department(db, user):
+                return InspectionK3LPayload(success=False, message="Hanya departemen Safety yang dapat menghapus temuan")
 
             if _is_staff(user) and (
                 record.business_unit_id != user.business_unit_id

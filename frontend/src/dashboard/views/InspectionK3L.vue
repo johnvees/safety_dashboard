@@ -7,7 +7,7 @@
           Laporan inspeksi Keselamatan, Kesehatan Kerja & Lingkungan
         </p>
       </div>
-      <button class="btn-primary" @click="showForm = true">
+      <button v-if="currentUser?.department === 'Safety'" class="btn-primary" @click="showForm = true">
         + Tambah Temuan
       </button>
     </div>
@@ -1747,6 +1747,28 @@
         >
           {{ t }}
           <span class="jenis-tab-count">{{ jenisCounts[t] }}</span>
+          <span
+            v-if="jenisActionCounts[t]?.tindakLanjut > 0"
+            class="jenis-tab-flag flag-tl"
+            title="Menunggu Tindak Lanjut"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            {{ jenisActionCounts[t].tindakLanjut }}
+          </span>
+          <span
+            v-if="jenisActionCounts[t]?.validasi > 0"
+            class="jenis-tab-flag flag-val"
+            title="Menunggu Validasi Safety"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <polyline points="9 12 11 14 15 10"/>
+            </svg>
+            {{ jenisActionCounts[t].validasi }}
+          </span>
         </button>
       </div>
 
@@ -1850,7 +1872,7 @@
               <td class="td-actions" @click.stop>
                 <div class="actions-wrap">
                 <button
-                  v-if="item.status !== 'Closed' && item.status !== 'Progress Validasi' && (item.tindakLanjutCount ?? 0) < 4"
+                  v-if="item.status !== 'Closed' && item.status !== 'Progress Validasi' && (item.tindakLanjutCount ?? 0) < 4 && currentUser?.departmentId === item.departmentId"
                   class="btn-icon btn-warning tl-icon-wrap"
                   title="Tindak Lanjut"
                   @click="openTindakLanjut(item)"
@@ -1862,7 +1884,7 @@
                   <span v-if="(item.tindakLanjutCount ?? 0) > 0" class="tl-badge">{{ item.tindakLanjutCount }}</span>
                 </button>
                 <button
-                  v-if="item.status === 'Progress Validasi' && (item.validasiCount ?? 0) < 4"
+                  v-if="item.status === 'Progress Validasi' && (item.validasiCount ?? 0) < 4 && currentUser?.department === 'Safety'"
                   class="btn-icon btn-validasi val-icon-wrap"
                   title="Validasi Safety"
                   @click="openValidasi(item)"
@@ -1873,13 +1895,13 @@
                   </svg>
                   <span v-if="(item.validasiCount ?? 0) > 0" class="val-badge">{{ item.validasiCount }}</span>
                 </button>
-                <button class="btn-icon" title="Ubah" @click="editRecord(item)">
+                <button v-if="currentUser?.department === 'Safety'" class="btn-icon" title="Ubah" @click="editRecord(item)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                   </svg>
                 </button>
-                <button class="btn-icon btn-danger" title="Hapus" @click="deleteRecord(item)">
+                <button v-if="currentUser?.department === 'Safety'" class="btn-icon btn-danger" title="Hapus" @click="deleteRecord(item)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                     <polyline points="3 6 5 6 21 6"/>
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -2457,6 +2479,37 @@ const jenisCounts = computed(() => {
   for (const r of filteredExceptJenis.value) {
     const k = jenisOf(r);
     if (counts[k] !== undefined) counts[k] += 1;
+  }
+  return counts;
+});
+
+// How many items per jenis still need Tindak Lanjut or Validasi from THIS user — drives the action badge on each tab.
+// Mirrors the same gating as the row-action buttons: tindak lanjut only for the dept picked on the temuan, validasi only for Safety dept.
+function needsTindakLanjut(r) {
+  return (
+    r.status !== 'Closed' &&
+    r.status !== 'Progress Validasi' &&
+    (r.tindakLanjutCount ?? 0) < 4 &&
+    currentUser?.departmentId === r.departmentId
+  );
+}
+function needsValidasi(r) {
+  return (
+    r.status === 'Progress Validasi' &&
+    (r.validasiCount ?? 0) < 4 &&
+    currentUser?.department === 'Safety'
+  );
+}
+const jenisActionCounts = computed(() => {
+  const counts = {
+    'Ronda Kepatuhan': { tindakLanjut: 0, validasi: 0 },
+    'Daily Inspection': { tindakLanjut: 0, validasi: 0 },
+  };
+  for (const r of scopedRecords.value) {
+    const k = jenisOf(r);
+    if (!counts[k]) continue;
+    if (needsTindakLanjut(r)) counts[k].tindakLanjut += 1;
+    if (needsValidasi(r)) counts[k].validasi += 1;
   }
   return counts;
 });
@@ -5554,6 +5607,26 @@ onActivated(() => {
 .jenis-tab.active .jenis-tab-count {
   background: #dbeafe;
   color: #2563eb;
+}
+.jenis-tab-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.jenis-tab-flag.flag-tl {
+  background: #fef3c7;
+  color: #b45309;
+}
+.jenis-tab-flag.flag-val {
+  background: #dcfce7;
+  color: #15803d;
 }
 
 .filter-bar {
