@@ -21,7 +21,31 @@ const routes = [
     meta: { requiresAuth: true },
     children: [
       { path: "", name: "DashboardHome", component: DashboardHome },
-      { path: "modules", name: "SafetyModules", component: SafetyModules },
+      { path: "modules", redirect: "/dashboard/modules/sop" },
+      {
+        path: "modules/sop",
+        name: "ModulSoP",
+        component: SafetyModules,
+        props: { kategori: "SoP", pageTitle: "Standard of Procedure (SoP)" },
+      },
+      {
+        path: "modules/wi",
+        name: "ModulWI",
+        component: SafetyModules,
+        props: { kategori: "WI", pageTitle: "Working Instruction (WI)" },
+      },
+      {
+        path: "modules/form",
+        name: "ModulForm",
+        component: SafetyModules,
+        props: { kategori: "Form", pageTitle: "Form" },
+      },
+      {
+        path: "modules/edukasi",
+        name: "ModulEdukasi",
+        component: SafetyModules,
+        props: { kategori: "Safety Sharing", pageTitle: "Safety Sharing (Edukasi)" },
+      },
       { path: "reports", redirect: "/dashboard/reports/inspection-k3l" },
       {
         path: "reports/inspection-k3l",

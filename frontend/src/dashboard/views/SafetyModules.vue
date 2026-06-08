@@ -2,7 +2,7 @@
   <div class="modules-page">
     <div class="page-header">
       <div>
-        <h2>Safety Modules</h2>
+        <h2>{{ pageTitle || "Safety Modules" }}</h2>
         <p>Pelajari semua modul untuk selalu mengikuti standar keselamatan kerja.</p>
       </div>
       <button v-if="isAdmin" class="btn-upload" @click="openUploadModal">
@@ -146,6 +146,7 @@
             <label>Jenis Peraturan</label>
             <select v-model="uploadForm.peraturan" class="form-input">
               <option value="">— Pilih jenis peraturan —</option>
+              <option value="Peraturan Perusahaan">Peraturan Perusahaan</option>
               <option value="Peraturan Dinas">Peraturan Dinas</option>
               <option value="Peraturan Daerah">Peraturan Daerah</option>
               <option value="Peraturan Pemerintah">Peraturan Pemerintah</option>
@@ -435,6 +436,11 @@ import { ref, computed, onMounted } from "vue";
 import { authService } from "@/services/authService";
 import { safetyModulesService, uploadFile, getMediaType } from "@/services/safetyModulesService";
 
+const props = defineProps({
+  kategori: { type: String, default: null },
+  pageTitle: { type: String, default: null },
+});
+
 const user = authService.getCurrentUser();
 const isAdmin = user?.roleId === 1;
 
@@ -452,6 +458,7 @@ const showDiscardConfirm = ref(false);
 const viewingModule = ref(null);
 
 const PERATURAN_OPTIONS = [
+  "Peraturan Perusahaan",
   "Peraturan Dinas",
   "Peraturan Daerah",
   "Peraturan Pemerintah",
@@ -466,6 +473,7 @@ const filteredModules = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
   const p = filterPeraturan.value;
   return modules.value.filter((mod) => {
+    if (props.kategori && mod.kategori !== props.kategori) return false;
     if (p && mod.peraturan !== p) return false;
     if (!q) return true;
     return (
@@ -555,6 +563,7 @@ async function submitUpload() {
       uploaded,
       uploadForm.value.description.trim() || null,
       uploadForm.value.peraturan || null,
+      props.kategori || null,
     );
     showUploadModal.value = false;
     await fetchModules();
@@ -749,6 +758,7 @@ async function submitEdit() {
       allFiles,
       editForm.value.description.trim(),
       editForm.value.peraturan,
+      props.kategori || null,
     );
     showEditModal.value = false;
     await fetchModules();

@@ -384,6 +384,7 @@ class SafetyModuleType:
     video_url: Optional[str] = None
     media_type: Optional[str] = None
     files: Optional[str] = None  # JSON string
+    kategori: Optional[str] = None
     peraturan: Optional[str] = None
     description: Optional[str] = None
     created_by: Optional[int] = None
@@ -405,6 +406,7 @@ def _module_to_type(r: models.SafetyModule) -> SafetyModuleType:
         video_url=r.video_url,
         media_type=r.media_type or "video",
         files=r.files,
+        kategori=r.kategori,
         peraturan=r.peraturan,
         description=r.description,
         created_by=r.created_by,
@@ -2251,6 +2253,7 @@ class Mutation:
         video_url: Optional[str] = None,
         media_type: Optional[str] = "video",
         files: Optional[str] = None,
+        kategori: Optional[str] = None,
         peraturan: Optional[str] = None,
         description: Optional[str] = None,
     ) -> SafetyModulePayload:
@@ -2266,6 +2269,7 @@ class Mutation:
                 video_url=video_url,
                 media_type=media_type or "video",
                 files=files,
+                kategori=kategori,
                 peraturan=peraturan,
                 description=description,
                 created_by=user.id,
@@ -2295,6 +2299,7 @@ class Mutation:
         video_url: Optional[str] = None,
         media_type: Optional[str] = None,
         files: Optional[str] = None,
+        kategori: Optional[str] = None,
         peraturan: Optional[str] = None,
         description: Optional[str] = None,
     ) -> SafetyModulePayload:
@@ -2316,6 +2321,8 @@ class Mutation:
                 record.media_type = media_type
             if files is not None:
                 record.files = files
+            if kategori is not None:
+                record.kategori = kategori if kategori != "" else None
             if peraturan is not None:
                 record.peraturan = peraturan if peraturan != "" else None
             if description is not None:

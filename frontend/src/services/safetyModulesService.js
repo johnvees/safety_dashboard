@@ -92,7 +92,7 @@ export const safetyModulesService = {
     const data = await gql(`
       query {
         safetyModules {
-          id title videoUrl mediaType files peraturan description createdBy createdAt updatedAt
+          id title videoUrl mediaType files kategori peraturan description createdBy createdAt updatedAt
         }
       }
     `);
@@ -100,17 +100,17 @@ export const safetyModulesService = {
     return data.safetyModules;
   },
 
-  async create(title, files, description = null, peraturan = null) {
+  async create(title, files, description = null, peraturan = null, kategori = null) {
     const filesJson = JSON.stringify(files);
     const first = files[0] ?? {};
     const data = await gql(
-      `mutation CreateSafetyModule($title: String!, $videoUrl: String, $mediaType: String, $files: String, $peraturan: String, $description: String) {
-        createSafetyModule(title: $title, videoUrl: $videoUrl, mediaType: $mediaType, files: $files, peraturan: $peraturan, description: $description) {
+      `mutation CreateSafetyModule($title: String!, $videoUrl: String, $mediaType: String, $files: String, $kategori: String, $peraturan: String, $description: String) {
+        createSafetyModule(title: $title, videoUrl: $videoUrl, mediaType: $mediaType, files: $files, kategori: $kategori, peraturan: $peraturan, description: $description) {
           success message
-          module { id title videoUrl mediaType files peraturan description createdAt }
+          module { id title videoUrl mediaType files kategori peraturan description createdAt }
         }
       }`,
-      { title, videoUrl: first.url ?? null, mediaType: first.mediaType ?? "video", files: filesJson, peraturan, description },
+      { title, videoUrl: first.url ?? null, mediaType: first.mediaType ?? "video", files: filesJson, kategori, peraturan, description },
     );
     const result = data.createSafetyModule;
     if (!result.success) throw new Error(result.message);
@@ -118,17 +118,17 @@ export const safetyModulesService = {
     return result.module;
   },
 
-  async update(id, title, files, description, peraturan) {
+  async update(id, title, files, description, peraturan, kategori) {
     const filesJson = JSON.stringify(files);
     const first = files[0] ?? {};
     const data = await gql(
-      `mutation UpdateSafetyModule($id: Int!, $title: String, $videoUrl: String, $mediaType: String, $files: String, $peraturan: String, $description: String) {
-        updateSafetyModule(id: $id, title: $title, videoUrl: $videoUrl, mediaType: $mediaType, files: $files, peraturan: $peraturan, description: $description) {
+      `mutation UpdateSafetyModule($id: Int!, $title: String, $videoUrl: String, $mediaType: String, $files: String, $kategori: String, $peraturan: String, $description: String) {
+        updateSafetyModule(id: $id, title: $title, videoUrl: $videoUrl, mediaType: $mediaType, files: $files, kategori: $kategori, peraturan: $peraturan, description: $description) {
           success message
-          module { id title videoUrl mediaType files peraturan description createdAt }
+          module { id title videoUrl mediaType files kategori peraturan description createdAt }
         }
       }`,
-      { id, title, videoUrl: first.url ?? null, mediaType: first.mediaType ?? "video", files: filesJson, peraturan: peraturan || "", description: description || "" },
+      { id, title, videoUrl: first.url ?? null, mediaType: first.mediaType ?? "video", files: filesJson, kategori: kategori || "", peraturan: peraturan || "", description: description || "" },
     );
     const result = data.updateSafetyModule;
     if (!result.success) throw new Error(result.message);

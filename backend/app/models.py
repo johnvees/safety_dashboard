@@ -301,6 +301,7 @@ class SafetyModule(Base):
     video_url = Column(String(500))
     media_type = Column(String(20), default="video")
     files = Column(Text)  # JSON array: [{url, mediaType, name}]
+    kategori = Column(String(50))  # SoP | WI | Form | Safety Sharing
     peraturan = Column(String(100))
     description = Column(Text)
     created_by = Column(Integer, ForeignKey("users.id"))

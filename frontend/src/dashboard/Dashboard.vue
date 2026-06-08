@@ -30,7 +30,10 @@ const sidebarOpen = ref(window.innerWidth >= 768);
 const route = useRoute();
 const pageTitles = {
   "/dashboard": "Dashboard",
-  "/dashboard/modules": "Modul Keselamatan",
+  "/dashboard/modules/sop": "Modul HSE - Standard of Procedure (SoP)",
+  "/dashboard/modules/wi": "Modul HSE - Working Instruction (WI)",
+  "/dashboard/modules/form": "Modul HSE - Form",
+  "/dashboard/modules/edukasi": "Modul HSE - Safety Sharing (Edukasi)",
   "/dashboard/reports": "Laporan",
   "/dashboard/reports/inspection-k3l": "Inspection K3L",
   "/dashboard/reports/hse-daily": "HSE Daily Report",

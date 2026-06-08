@@ -22,28 +22,70 @@
         Dashboard
       </router-link>
 
-      <router-link
-        to="/dashboard/modules"
-        class="nav-item"
-        active-class="active"
-      >
-        <svg
-          class="nav-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
+      <!-- Modul HSE with submenu -->
+      <div class="nav-group" :class="{ open: hseOpen }">
+        <div
+          class="nav-item nav-parent"
+          :class="{ active: isHseActive }"
+          @click="hseOpen = !hseOpen"
         >
-          <path
-            d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
-          />
-          <polyline points="14 2 14 8 20 8" />
-          <line x1="9" y1="13" x2="15" y2="13" />
-          <line x1="9" y1="17" x2="15" y2="17" />
-          <line x1="9" y1="9" x2="11" y2="9" />
-        </svg>
-        Modul Keselamatan
-      </router-link>
+          <svg
+            class="nav-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+            />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="9" y1="13" x2="15" y2="13" />
+            <line x1="9" y1="17" x2="15" y2="17" />
+            <line x1="9" y1="9" x2="11" y2="9" />
+          </svg>
+          Modul HSE
+          <svg
+            class="nav-chevron"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
+        <div class="nav-submenu" v-show="hseOpen">
+          <router-link
+            to="/dashboard/modules/sop"
+            class="nav-subitem"
+            active-class="active"
+          >
+            Standard of Procedure (SoP)
+          </router-link>
+          <router-link
+            to="/dashboard/modules/wi"
+            class="nav-subitem"
+            active-class="active"
+          >
+            Working Instruction (WI)
+          </router-link>
+          <router-link
+            to="/dashboard/modules/form"
+            class="nav-subitem"
+            active-class="active"
+          >
+            Form
+          </router-link>
+          <router-link
+            to="/dashboard/modules/edukasi"
+            class="nav-subitem"
+            active-class="active"
+          >
+            Safety Sharing (Edukasi)
+          </router-link>
+        </div>
+      </div>
 
       <!-- Reports with submenu -->
       <div class="nav-group" :class="{ open: reportsOpen }">
@@ -195,6 +237,9 @@ const isReportsActive = computed(() =>
   route.path.startsWith("/dashboard/reports"),
 );
 const reportsOpen = ref(isReportsActive.value);
+
+const isHseActive = computed(() => route.path.startsWith("/dashboard/modules"));
+const hseOpen = ref(isHseActive.value);
 
 const user = authService.getCurrentUser();
 const isAdmin = authService.isAdmin();
