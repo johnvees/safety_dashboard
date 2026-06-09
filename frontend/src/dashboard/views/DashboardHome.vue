@@ -317,15 +317,50 @@
           <div
             v-for="d in categoryDeptBreakdown"
             :key="d.id"
-            class="dept-mini"
-            :style="{ position: 'relative' }"
+            class="dept-item-wrap"
           >
             <div
-              class="dept-mini-bar"
-              :style="{ width: (d.count / categoryDeptBreakdown[0].count) * 100 + '%' }"
-            ></div>
-            <span class="dept-mini-label" :title="d.name">{{ d.name }}</span>
-            <span class="dept-mini-value">{{ d.count }}</span>
+              class="dept-mini dept-mini-clickable"
+              :class="{ 'dept-mini-selected': selectedDept === d.id }"
+              :style="{ position: 'relative' }"
+              @click="toggleDept(d.id)"
+            >
+              <div
+                class="dept-mini-bar"
+                :style="{ width: (d.count / categoryDeptBreakdown[0].count) * 100 + '%' }"
+              ></div>
+              <span class="dept-mini-label" :title="d.name">{{ d.name }}</span>
+              <span class="dept-mini-right">
+                <span class="dept-mini-value">{{ d.count }}</span>
+                <svg
+                  class="dept-chevron"
+                  :class="{ 'dept-chevron-open': selectedDept === d.id }"
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                  width="13" height="13"
+                >
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </span>
+            </div>
+
+            <!-- Laporan list inline under this dept -->
+            <div v-if="selectedDept === d.id" class="laporan-list-wrap">
+              <div v-if="deptLaporan.length === 0" class="dept-breakdown-empty">
+                Tidak ada laporan ditemukan.
+              </div>
+              <div class="laporan-list-scroll">
+                <div
+                  v-for="r in deptLaporan"
+                  :key="r.id"
+                  class="laporan-row"
+                  @click="openRecord(r.id)"
+                >
+                  <span class="laporan-row-date">{{ formatDate(r.tanggal) }}</span>
+                  <span class="laporan-row-desc">{{ r.deskripsiTemuan || '-' }}</span>
+                  <span class="laporan-row-status" :class="`sc-${(r.status || '').toLowerCase().replace(' ', '-')}`">{{ r.status }}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1134,6 +1169,225 @@
       </div><!-- end hse tab -->
     </template>
   </div>
+
+  <!-- ── Detail Temuan Modal ───────────────────────────────────────── -->
+  <Transition name="modal">
+    <div v-if="showTemuanModal && viewingTemuan" class="modal-overlay" @click.self="closeTemuanModal">
+      <div class="modal-container modal-lg">
+        <div class="modal-header">
+          <h3 class="modal-title">Detail Temuan</h3>
+          <button class="modal-close" @click="closeTemuanModal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="detail-grid">
+
+            <div class="detail-section">
+              <h4 class="section-title">Dilaporkan Oleh</h4>
+              <div class="detail-row">
+                <span class="detail-label">Nama Lengkap</span>
+                <span class="detail-value">{{ viewingTemuan.pelaporUsername || '-' }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Departemen</span>
+                <span class="detail-value">{{ getDeptName(viewingTemuan.pelaporDepartmentId) }}</span>
+              </div>
+            </div>
+
+            <div class="detail-section" v-if="parsePetugas(viewingTemuan.petugasInspeksi).length">
+              <h4 class="section-title">Petugas Inspeksi</h4>
+              <div v-for="(p, i) in parsePetugas(viewingTemuan.petugasInspeksi)" :key="i" class="detail-row">
+                <span class="detail-label">Petugas {{ i + 1 }}</span>
+                <span class="detail-value">
+                  {{ p.nama }}
+                  <span v-if="p.departmentId" class="petugas-dept-tag">{{ getDeptName(p.departmentId) }}</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="detail-section">
+              <h4 class="section-title">Waktu</h4>
+              <div class="detail-row">
+                <span class="detail-label">Tanggal Kejadian</span>
+                <span class="detail-value">{{ formatDate(viewingTemuan.tanggal) }}</span>
+              </div>
+              <div class="detail-row" v-if="viewingTemuan.tanggalPelaporan">
+                <span class="detail-label">Tanggal Pelaporan</span>
+                <span class="detail-value">{{ formatDate(viewingTemuan.tanggalPelaporan) }}</span>
+              </div>
+            </div>
+
+            <div class="detail-section">
+              <h4 class="section-title">Temuan</h4>
+              <div class="detail-row">
+                <span class="detail-label">Jenis Inspeksi</span>
+                <span class="detail-value">{{ viewingTemuan.jenisInspeksi || '-' }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Kategori</span>
+                <span class="detail-value">
+                  <span :class="['kategori-badge', `kategori-${viewingTemuan.kategoriTemuan?.toLowerCase()}`]">
+                    {{ viewingTemuan.kategoriTemuan }}
+                  </span>
+                </span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Deskripsi</span>
+                <span class="detail-value detail-multiline">{{ viewingTemuan.deskripsiTemuan || '-' }}</span>
+              </div>
+            </div>
+
+            <div class="detail-section" v-if="parsePhotos(viewingTemuan.fotoSebelum).length || parsePhotos(viewingTemuan.fotoSesudah).length">
+              <h4 class="section-title">Foto</h4>
+              <div v-if="parsePhotos(viewingTemuan.fotoSebelum).length">
+                <p class="foto-sublabel">Sebelum</p>
+                <div class="detail-photo-grid">
+                  <img v-for="(url, idx) in parsePhotos(viewingTemuan.fotoSebelum)" :key="'b'+idx"
+                    :src="url" alt="Foto sebelum" class="detail-photo-thumb"
+                    @click="window.open(url, '_blank')" />
+                </div>
+              </div>
+              <div v-if="parsePhotos(viewingTemuan.fotoSesudah).length && !viewingTemuan.tindakLanjutList?.length" style="margin-top:12px">
+                <p class="foto-sublabel">Sesudah</p>
+                <div class="detail-photo-grid">
+                  <img v-for="(url, idx) in parsePhotos(viewingTemuan.fotoSesudah)" :key="'a'+idx"
+                    :src="url" alt="Foto sesudah" class="detail-photo-thumb"
+                    @click="window.open(url, '_blank')" />
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-section">
+              <h4 class="section-title">Lokasi</h4>
+              <div class="detail-row">
+                <span class="detail-label">Lokasi</span>
+                <span class="detail-value">{{ viewingTemuan.lokasi || '-' }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Departemen</span>
+                <span class="detail-value">{{ getDeptName(viewingTemuan.departmentId) }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Business Unit</span>
+                <span class="detail-value">{{ getBusinessUnitName(viewingTemuan.businessUnitId) }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Plant</span>
+                <span class="detail-value">{{ getPlantName(viewingTemuan.plantId) }}</span>
+              </div>
+            </div>
+
+            <div class="detail-section">
+              <h4 class="section-title">Tindakan</h4>
+              <div class="detail-row">
+                <span class="detail-label">Saran Perbaikan</span>
+                <span class="detail-value">
+                  <template v-if="viewingTemuan.saranPerbaikan">
+                    <ul class="saran-list">
+                      <li v-for="(b, i) in viewingTemuan.saranPerbaikan.split('\n').filter(Boolean)" :key="i">{{ b }}</li>
+                    </ul>
+                  </template>
+                  <template v-else>-</template>
+                </span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Target Selesai</span>
+                <span class="detail-value">{{ formatDateOnly(viewingTemuan.targetSelesai) }}</span>
+              </div>
+            </div>
+
+            <div class="detail-section">
+              <h4 class="section-title">Status</h4>
+              <div class="detail-row">
+                <span class="detail-label">Status</span>
+                <span class="detail-value">
+                  <span :class="['status-badge', `status-${(viewingTemuan.status||'').toLowerCase().replace(' ','-')}`]">
+                    {{ viewingTemuan.status }}
+                  </span>
+                </span>
+              </div>
+              <div class="detail-row" v-if="viewingTemuan.aktualClose">
+                <span class="detail-label">Aktual Close</span>
+                <span class="detail-value">{{ formatDate(viewingTemuan.aktualClose) }}</span>
+              </div>
+            </div>
+
+            <div class="detail-section" v-if="viewingTemuan.tindakLanjutList?.length">
+              <h4 class="section-title">Tindak Lanjut <span class="tl-round-count">({{ viewingTemuan.tindakLanjutList.length }}/4)</span></h4>
+              <div v-for="tl in viewingTemuan.tindakLanjutList" :key="tl.id" class="tl-history-item">
+                <div class="tl-history-header"><span class="tl-round-badge">Ke-{{ tl.roundNumber }}</span></div>
+                <div class="detail-row" v-if="tl.ditindaklanjutiOleh">
+                  <span class="detail-label">Ditindaklanjuti Oleh</span>
+                  <span class="detail-value">{{ tl.ditindaklanjutiOleh }}</span>
+                </div>
+                <div class="detail-row" v-if="tl.ditindaklanjutiDepartmentId">
+                  <span class="detail-label">Departemen</span>
+                  <span class="detail-value">{{ getDeptName(tl.ditindaklanjutiDepartmentId) }}</span>
+                </div>
+                <div class="detail-row" v-if="tl.tanggalTindaklanjuti">
+                  <span class="detail-label">Tanggal</span>
+                  <span class="detail-value">{{ formatDate(tl.tanggalTindaklanjuti) }}</span>
+                </div>
+                <div class="detail-row" v-if="tl.tindakanPerbaikan">
+                  <span class="detail-label">Tindakan Perbaikan</span>
+                  <span class="detail-value">
+                    <ul class="saran-list">
+                      <li v-for="(b, i) in tl.tindakanPerbaikan.split('\n').filter(Boolean)" :key="i">{{ b }}</li>
+                    </ul>
+                  </span>
+                </div>
+                <div v-if="parsePhotos(tl.fotoSesudah).length" style="margin-top:8px">
+                  <span class="detail-label">Foto Sesudah</span>
+                  <div class="detail-photo-grid" style="margin-top:4px">
+                    <img v-for="(url, idx) in parsePhotos(tl.fotoSesudah)" :key="'tl'+tl.id+idx"
+                      :src="url" alt="Foto sesudah" class="detail-photo-thumb"
+                      @click="window.open(url, '_blank')" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-section" v-if="viewingTemuan.validasiList?.length">
+              <h4 class="section-title">Validasi Safety <span class="tl-round-count">({{ viewingTemuan.validasiList.length }}/4)</span></h4>
+              <div v-for="val in viewingTemuan.validasiList" :key="val.id" class="tl-history-item">
+                <div class="tl-history-header"><span class="tl-round-badge val-round-badge">Ke-{{ val.roundNumber }}</span></div>
+                <div class="detail-row" v-if="val.divalidasiOleh">
+                  <span class="detail-label">Divalidasi Oleh</span>
+                  <span class="detail-value">{{ val.divalidasiOleh }}</span>
+                </div>
+                <div class="detail-row" v-if="val.divalidasiDepartmentId">
+                  <span class="detail-label">Departemen</span>
+                  <span class="detail-value">{{ getDeptName(val.divalidasiDepartmentId) }}</span>
+                </div>
+                <div class="detail-row" v-if="val.tanggalValidasi">
+                  <span class="detail-label">Tanggal Validasi</span>
+                  <span class="detail-value">{{ formatDate(val.tanggalValidasi) }}</span>
+                </div>
+                <div class="detail-row" v-if="val.alasanValidasi">
+                  <span class="detail-label">Alasan Validasi</span>
+                  <span class="detail-value">
+                    <ul class="saran-list">
+                      <li v-for="(b, i) in val.alasanValidasi.split('\n').filter(Boolean)" :key="i">{{ b }}</li>
+                    </ul>
+                  </span>
+                </div>
+                <div class="detail-row" v-if="val.statusValidasi">
+                  <span class="detail-label">Status Validasi</span>
+                  <span class="detail-value">
+                    <span :class="['status-badge', val.statusValidasi === 'Closed' ? 'status-closed' : 'status-open']">{{ val.statusValidasi }}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </Transition>
 </template>
 
 <script setup>
@@ -1576,6 +1830,7 @@ const selectedKpi = ref(null);
 function toggleKpi(key) {
   selectedKpi.value = selectedKpi.value === key ? null : key;
   selectedCategory.value = null;
+  selectedDept.value = undefined;
 }
 
 const kpiBreakdown = computed(() => {
@@ -1598,10 +1853,27 @@ const kpiArrowOffset = computed(() => {
 });
 
 const selectedCategory = ref(null);
+const selectedDept = ref(undefined);
 
 function toggleCategory(cat) {
   selectedCategory.value = selectedCategory.value === cat ? null : cat;
+  selectedDept.value = undefined;
 }
+
+function toggleDept(id) {
+  selectedDept.value = selectedDept.value === id ? undefined : id;
+}
+
+const deptLaporan = computed(() => {
+  if (selectedDept.value === undefined || !selectedCategory.value || !selectedKpi.value) return [];
+  let rows = filteredByDate.value;
+  if (selectedKpi.value === 'open') rows = rows.filter((r) => r.status === 'Open');
+  else if (selectedKpi.value === 'inProgress') rows = rows.filter((r) => r.status === 'In Progress');
+  else if (selectedKpi.value === 'closed') rows = rows.filter((r) => r.status === 'Closed');
+  return rows.filter(
+    (r) => r.kategoriTemuan === selectedCategory.value && r.departmentId === selectedDept.value,
+  ).sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+});
 
 const categoryDeptBreakdown = computed(() => {
   if (!selectedKpi.value || !selectedCategory.value) return [];
@@ -1912,12 +2184,44 @@ const recentRecords = computed(() =>
     .slice(0, 6),
 );
 
+const viewingTemuan = ref(null);
+const showTemuanModal = ref(false);
+
 function openRecord(id) {
-  router.push({
-    path: '/dashboard/reports/inspection-k3l',
-    query: { view: id },
-  });
+  const rec = records.value.find((r) => r.id === id);
+  if (rec) {
+    viewingTemuan.value = rec;
+    showTemuanModal.value = true;
+  } else {
+    router.push({ path: '/dashboard/reports/inspection-k3l', query: { view: id } });
+  }
 }
+
+function closeTemuanModal() {
+  showTemuanModal.value = false;
+  viewingTemuan.value = null;
+}
+
+function parsePhotos(val) {
+  if (!val) return [];
+  try { const p = JSON.parse(val); return Array.isArray(p) ? p : [val]; } catch { return [val]; }
+}
+
+function parsePetugas(json) {
+  if (!json) return [];
+  try { return JSON.parse(json); } catch { return []; }
+}
+
+function formatDateOnly(val) {
+  if (!val) return '-';
+  const d = new Date(val.replace(' ', 'T'));
+  if (isNaN(d)) return val;
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+
+function getBusinessUnitName(id) { return businessUnits.value.find((u) => u.id === id)?.name ?? '-'; }
+function getPlantName(id) { return plants.value.find((p) => p.id === id)?.name ?? '-'; }
+function getDeptName(id) { return departments.value.find((d) => d.id === id)?.name ?? '-'; }
 
 function openHseRecord(id) {
   router.push({
@@ -1985,6 +2289,89 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* ── Detail Temuan Modal ────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 900; padding: 16px;
+}
+.modal-container {
+  background: #fff; border-radius: 14px; width: 100%; max-width: 560px;
+  max-height: 90vh; display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(15,23,42,0.18);
+}
+.modal-container.modal-lg { max-width: 780px; }
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid #e2e8f0; flex-shrink: 0;
+}
+.modal-title { font-size: 16px; font-weight: 700; color: #0f172a; margin: 0; }
+.modal-close {
+  background: none; border: none; cursor: pointer; color: #64748b;
+  padding: 4px; border-radius: 6px; display: flex;
+}
+.modal-close:hover { background: #f1f5f9; color: #0f172a; }
+.modal-body { overflow-y: auto; padding: 20px; }
+.detail-grid { display: flex; flex-direction: column; gap: 16px; }
+.detail-section {
+  background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: 10px; padding: 14px 16px;
+}
+.section-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.6px; color: #64748b; margin: 0 0 10px;
+}
+.detail-row {
+  display: flex; gap: 8px; padding: 5px 0;
+  border-bottom: 1px solid #f1f5f9; font-size: 13px;
+}
+.detail-row:last-child { border-bottom: none; }
+.detail-label { color: #64748b; flex-shrink: 0; min-width: 130px; }
+.detail-value { color: #1e293b; font-weight: 500; flex: 1; }
+.detail-multiline { white-space: pre-wrap; }
+.kategori-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 5px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+}
+.kategori-minor { background: #dcfce7; color: #16a34a; }
+.kategori-major { background: #fef3c7; color: #b45309; }
+.kategori-critical { background: #fee2e2; color: #dc2626; }
+.kategori-no.findings,.kategori-no\ findings { background: #f1f5f9; color: #475569; }
+.status-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 5px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+}
+.status-open { background: #dbeafe; color: #1d4ed8; }
+.status-closed { background: #dcfce7; color: #16a34a; }
+.status-in-progress { background: #fef3c7; color: #b45309; }
+.status-progress-validasi { background: #ede9fe; color: #7c3aed; }
+.saran-list { margin: 0; padding-left: 18px; }
+.saran-list li { margin-bottom: 2px; }
+.foto-sublabel { font-size: 11px; color: #64748b; margin: 0 0 6px; font-weight: 600; }
+.detail-photo-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.detail-photo-thumb {
+  width: 72px; height: 72px; object-fit: cover; border-radius: 6px;
+  cursor: pointer; border: 1px solid #e2e8f0;
+}
+.detail-photo-thumb:hover { opacity: 0.85; }
+.tl-history-item {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 10px 12px; margin-top: 8px;
+}
+.tl-history-header { margin-bottom: 6px; }
+.tl-round-badge {
+  display: inline-block; background: #dbeafe; color: #1d4ed8;
+  font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px;
+}
+.val-round-badge { background: #ede9fe; color: #7c3aed; }
+.tl-round-count { font-size: 11px; color: #94a3b8; font-weight: 500; }
+.petugas-dept-tag {
+  display: inline-block; background: #f1f5f9; color: #475569;
+  font-size: 10px; padding: 1px 5px; border-radius: 3px; margin-left: 4px;
+}
+.modal-enter-active, .modal-leave-active { transition: opacity 0.2s ease; }
+.modal-enter-from, .modal-leave-to { opacity: 0; }
+
 .dash {
   padding: 28px 32px;
   max-width: 1400px;
@@ -2449,6 +2836,87 @@ onMounted(async () => {
   flex-shrink: 0;
   position: relative;
   z-index: 1;
+}
+.dept-item-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dept-mini-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+.dept-chevron {
+  color: #94a3b8;
+  transition: transform 0.18s ease;
+  flex-shrink: 0;
+}
+.dept-chevron-open {
+  transform: rotate(180deg);
+}
+.dept-mini-clickable {
+  cursor: pointer;
+  transition: box-shadow 0.12s ease;
+}
+.dept-mini-clickable:hover {
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+}
+.dept-mini-selected {
+  border-color: #94a3b8;
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.08);
+}
+
+.laporan-list-wrap {
+  margin-left: 8px;
+  padding-left: 10px;
+  border-left: 2px solid #e2e8f0;
+}
+.laporan-list-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.laporan-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.laporan-row:hover {
+  background: #f1f5f9;
+}
+.laporan-row-date {
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.laporan-row-desc {
+  font-size: 12px;
+  color: #1e293b;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.laporan-row-status {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  text-transform: uppercase;
 }
 
 /* ── Resolution rate ────────────────────────────────────────────── */

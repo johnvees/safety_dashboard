@@ -1553,8 +1553,9 @@ function formatDate(val) {
   box-shadow: 0 4px 20px rgba(0,0,0,0.15);
   white-space: nowrap;
 }
-.toast-success { background: #1e293b; color: #fff; }
-.toast-error { background: #ef4444; color: #fff; }
+.toast-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+.toast-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+.toast-warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
 .toast-fade-enter-active, .toast-fade-leave-active { transition: opacity 0.3s, transform 0.3s; }
 .toast-fade-enter-from, .toast-fade-leave-to { opacity: 0; transform: translateX(-50%) translateY(8px); }
 

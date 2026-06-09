@@ -1543,7 +1543,7 @@ class Mutation:
             record = db.query(models.InspectionK3L).filter(models.InspectionK3L.id == id).first()
             if not record:
                 return InspectionK3LPayload(success=False, message="Record not found")
-            if not record.department_id or user.department_id != record.department_id:
+            if not _is_privileged(user) and (not record.department_id or user.department_id != record.department_id):
                 return InspectionK3LPayload(success=False, message="Hanya departemen yang dipilih pada temuan ini yang dapat melakukan tindak lanjut")
             existing_count = _tl_count(db, id)
             if existing_count >= 4:

@@ -442,7 +442,7 @@ const props = defineProps({
 });
 
 const user = authService.getCurrentUser();
-const isAdmin = user?.roleId === 1;
+const isAdmin = authService.getRoleLevel() <= 3;
 
 const modules = ref([]);
 const loading = ref(true);
