@@ -36,7 +36,7 @@ const pageTitles = {
   "/dashboard/modules/edukasi": "Modul HSE - Safety Sharing (Edukasi)",
   "/dashboard/reports": "Laporan",
   "/dashboard/reports/inspection-k3l": "Inspection K3L",
-  "/dashboard/reports/hse-daily": "HSE Daily Report",
+  "/dashboard/reports/hse-daily": "Permit Kerja HSE",
   "/dashboard/chat": "Chat",
   "/dashboard/master-data": "Master Data",
   "/dashboard/settings": "Pengaturan",

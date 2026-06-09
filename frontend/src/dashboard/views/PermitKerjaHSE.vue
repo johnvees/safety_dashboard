@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="page-header">
       <div>
-        <h1 class="page-title">HSE Daily Report</h1>
+        <h1 class="page-title">Permit Kerja HSE</h1>
         <p class="page-sub">Laporan harian aktivitas keselamatan kerja</p>
       </div>
       <button class="btn-primary" @click="openCreate">+ Tambah Laporan</button>
@@ -253,6 +253,7 @@
           <thead>
             <tr>
               <th style="width: 48px; text-align: center">No</th>
+              <th>Aksi</th>
               <th>Tanggal</th>
               <th>Pekerjaan</th>
               <th>Lokasi</th>
@@ -261,7 +262,6 @@
               <th>Pengawas HSE</th>
               <th>Permit</th>
               <th style="text-align: center">Komentar</th>
-              <th>Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -273,6 +273,16 @@
             >
               <td style="text-align: center">
                 {{ (hseCurrentPage - 1) * hsePerPage + idx + 1 }}
+              </td>
+              <td class="col-actions" @click.stop>
+                <div class="actions-wrap">
+                <button class="btn-icon btn-del" @click="confirmDelete(r)" title="Hapus">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                </button>
+                </div>
               </td>
               <td class="col-nowrap">{{ formatDate(r.tanggal) }}</td>
               <td class="col-pekerjaan">{{ firstBullet(r.pekerjaan) }}</td>
@@ -312,42 +322,6 @@
                   </svg>
                   {{ r.commentCount || 0 }}
                 </span>
-              </td>
-              <td class="col-actions" @click.stop>
-                <div class="actions-wrap">
-                <button class="btn-icon" @click="openEdit(r)" title="Ubah">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path
-                      d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
-                    />
-                    <path
-                      d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
-                    />
-                  </svg>
-                </button>
-                <button
-                  class="btn-icon danger"
-                  @click="confirmDelete(r)"
-                  title="Hapus"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                    <path d="M10 11v6M14 11v6" />
-                    <path d="M9 6V4h6v2" />
-                  </svg>
-                </button>
-                </div>
               </td>
             </tr>
             <tr v-if="pagedRecords.length === 0">
@@ -1072,6 +1046,59 @@
         </div>
       </div>
     </div>
+    <!-- Update confirm -->
+    <div
+      v-if="showUpdateConfirm"
+      class="modal-overlay"
+      @mousedown.self="showUpdateConfirm = false"
+    >
+      <div class="modal modal-sm">
+        <div class="modal-header">
+          <h2>Simpan Perubahan?</h2>
+          <button class="btn-close" @click="showUpdateConfirm = false">✕</button>
+        </div>
+        <p class="delete-msg">
+          Perubahan pada laporan ini akan disimpan. Lanjutkan?
+        </p>
+        <div class="modal-footer">
+          <button class="btn-secondary" @click="showUpdateConfirm = false">
+            Batal
+          </button>
+          <button class="btn-primary" @click="doSave" :disabled="submitting">
+            {{ submitting ? 'Menyimpan…' : 'Ya, Simpan' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Discard changes confirm -->
+    <div
+      v-if="showDiscardConfirm"
+      class="modal-overlay"
+      style="z-index: 1100"
+      @mousedown.self="showDiscardConfirm = false"
+    >
+      <div class="modal modal-sm">
+        <div class="modal-body" style="padding: 28px 24px 20px">
+          <div class="discard-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="36" height="36">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <h4 class="discard-title">Batalkan perubahan?</h4>
+          <p class="discard-desc">
+            Anda memiliki data yang belum disimpan. Apakah yakin ingin menutup form ini?
+          </p>
+        </div>
+        <div class="discard-footer">
+          <button class="btn-secondary" @click="showDiscardConfirm = false">Kembali</button>
+          <button class="btn btn-discard-confirm" @click="forceClose">Ya, Batalkan</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal: Export Bulanan HSE -->
     <div
       v-if="showHseExportModal"
@@ -1097,7 +1124,7 @@
         </div>
         <div class="modal-body">
           <p class="modal-desc">
-            Pilih bulan dan tahun untuk ekspor data HSE Daily Report.
+            Pilih bulan dan tahun untuk ekspor data Permit Kerja HSE.
           </p>
           <div class="export-month-row">
             <div class="export-field">
@@ -1269,6 +1296,10 @@ const formError = ref('');
 const photoWarning = ref('');
 const lightbox = ref(null); // { urls: string[], index: number }
 const deleteTarget = ref(null);
+const showUpdateConfirm = ref(false);
+const pendingPayload = ref(null);
+const showDiscardConfirm = ref(false);
+const originalForm = ref(null);
 
 const search = ref('');
 const filterJenis = ref('');
@@ -1576,6 +1607,7 @@ function lbNext() {
 function openCreate() {
   clearFotos();
   form.value = defaultForm();
+  originalForm.value = null;
   formError.value = '';
   photoWarning.value = '';
   modal.value = { open: true, mode: 'create', record: null };
@@ -1616,6 +1648,25 @@ function openEdit(record) {
     plantId: record.plantId ?? currentUser?.plantId ?? null,
   };
   formError.value = '';
+  originalForm.value = {
+    tanggal: form.value.tanggal,
+    pekerjaan: [...form.value.pekerjaan],
+    pekerja: form.value.pekerja,
+    departmentId: form.value.departmentId,
+    lokasiPekerjaan: form.value.lokasiPekerjaan,
+    statusPermit: form.value.statusPermit,
+    noPermit: form.value.noPermit,
+    jenisPekerjaan: form.value.jenisPekerjaan,
+    jenisPekerjaanLainnya: form.value.jenisPekerjaanLainnya,
+    potensiBahaya: [...form.value.potensiBahaya],
+    levelRisiko: form.value.levelRisiko,
+    pengendalianBahaya: [...form.value.pengendalianBahaya],
+    pengawasHse: form.value.pengawasHse,
+    saranMasukan: [...form.value.saranMasukan],
+    fotoCount: form.value.fotos.length,
+    businessUnitId: form.value.businessUnitId,
+    plantId: form.value.plantId,
+  };
   modal.value = { open: true, mode: 'edit', record };
 }
 
@@ -1631,7 +1682,65 @@ function onCommentCountChange(count) {
     records.value[idx] = { ...records.value[idx], commentCount: count };
 }
 
+function hasFormChanges() {
+  const f = form.value;
+  if (modal.value.mode === 'create') {
+    return !!(
+      f.tanggal ||
+      f.pekerjaan.some((s) => s.trim()) ||
+      f.pekerja ||
+      f.lokasiPekerjaan ||
+      f.statusPermit ||
+      f.noPermit ||
+      f.jenisPekerjaan ||
+      f.jenisPekerjaanLainnya ||
+      f.potensiBahaya.some((s) => s.trim()) ||
+      f.levelRisiko ||
+      f.pengendalianBahaya.some((s) => s.trim()) ||
+      f.pengawasHse ||
+      f.saranMasukan.some((s) => s.trim()) ||
+      f.fotos.length > 0
+    );
+  }
+  if (modal.value.mode === 'edit') {
+    if (!originalForm.value) return false;
+    const o = originalForm.value;
+    return (
+      f.tanggal !== o.tanggal ||
+      f.pekerjaan.join('\n') !== o.pekerjaan.join('\n') ||
+      f.pekerja !== o.pekerja ||
+      f.departmentId !== o.departmentId ||
+      f.lokasiPekerjaan !== o.lokasiPekerjaan ||
+      f.statusPermit !== o.statusPermit ||
+      f.noPermit !== o.noPermit ||
+      f.jenisPekerjaan !== o.jenisPekerjaan ||
+      f.jenisPekerjaanLainnya !== o.jenisPekerjaanLainnya ||
+      f.potensiBahaya.join('\n') !== o.potensiBahaya.join('\n') ||
+      f.levelRisiko !== o.levelRisiko ||
+      f.pengendalianBahaya.join('\n') !== o.pengendalianBahaya.join('\n') ||
+      f.pengawasHse !== o.pengawasHse ||
+      f.saranMasukan.join('\n') !== o.saranMasukan.join('\n') ||
+      f.fotos.some((p) => p.file !== null) ||
+      f.fotos.length !== o.fotoCount ||
+      f.businessUnitId !== o.businessUnitId ||
+      f.plantId !== o.plantId
+    );
+  }
+  return false;
+}
+
 function tryClose() {
+  if (submitting.value) return;
+  if (modal.value.mode !== 'view' && hasFormChanges()) {
+    showDiscardConfirm.value = true;
+    return;
+  }
+  forceClose();
+}
+
+function forceClose() {
+  showDiscardConfirm.value = false;
+  originalForm.value = null;
   modal.value.open = false;
   if (route.query.view) router.replace({ query: {} });
 }
@@ -1690,6 +1799,15 @@ async function submitForm() {
     return;
   }
 
+  if (modal.value.mode === 'edit') {
+    showUpdateConfirm.value = true;
+    return;
+  }
+
+  await doSave();
+}
+
+async function doSave() {
   submitting.value = true;
   try {
     const payload = {
@@ -1722,9 +1840,11 @@ async function submitForm() {
     }
 
     records.value = await hseDailyService.list();
+    showUpdateConfirm.value = false;
     modal.value.open = false;
   } catch (err) {
     formError.value = err.message;
+    showUpdateConfirm.value = false;
   } finally {
     submitting.value = false;
   }
@@ -2332,13 +2452,58 @@ async function downloadMonthlyPDF() {
   color: #94a3b8;
   font-size: 14px;
 }
+thead {
+  background: #f8fafc;
+}
 th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+td {
+  padding: 11px 14px;
+  font-size: 13px;
+  color: #334155;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: none;
+  vertical-align: middle;
+}
+.btn-icon {
+  background: #f1f5f9;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 7px;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: background 0.15s, color 0.15s;
+  position: relative;
+}
+.btn-icon:hover {
+  background: #e2e8f0;
+  color: #3b82f6;
+}
+.btn-del {
+  background: #fef2f2;
+  color: #ef4444;
+}
+.btn-del:hover {
+  background: #fee2e2;
+  color: #dc2626;
 }
 .row-clickable {
   cursor: pointer;
   transition: background 0.1s;
+}
+tbody tr.row-clickable:hover td {
+  background: #f8fafc;
 }
 .col-pekerjaan {
   max-width: 200px;
@@ -2415,9 +2580,8 @@ th {
 }
 .col-actions .actions-wrap {
   display: flex;
-  gap: 6px;
+  gap: 2px;
   align-items: center;
-  justify-content: center;
 }
 
 /* Form */
@@ -3058,4 +3222,45 @@ th {
 }
 
 /* Modal body */
+.discard-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+  color: #f59e0b;
+}
+.discard-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  text-align: center;
+  margin: 0 0 8px;
+}
+.discard-desc {
+  font-size: 13px;
+  color: #64748b;
+  text-align: center;
+  margin: 0;
+  line-height: 1.6;
+}
+.discard-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 24px 20px;
+  border-top: 1px solid #f1f5f9;
+}
+.btn-discard-confirm {
+  padding: 9px 18px;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-discard-confirm:hover {
+  background: #dc2626;
+}
 </style>

@@ -180,7 +180,7 @@
               </div>
 
               <!-- Step 2: full form after selection (or edit mode) -->
-              <form v-else @submit.prevent="submitForm" class="form-grid">
+              <form v-else @submit.prevent="submitForm" class="form-grid" id="k3l-form">
                 <!-- Jenis Inspeksi -->
                 <div class="form-section">
                   <h4 class="section-title">Jenis Inspeksi</h4>
@@ -884,30 +884,30 @@
                   </div>
                 </div>
 
-                <!-- Submit -->
-                <div class="form-actions">
-                  <button
-                    type="submit"
-                    class="btn-primary"
-                    :disabled="submitting"
-                  >
-                    {{
-                      submitting
-                        ? 'Menyimpan...'
-                        : editingId
-                          ? 'Perbarui'
-                          : 'Simpan'
-                    }}
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-secondary"
-                    @click="tryCloseForm"
-                  >
-                    Batal
-                  </button>
-                </div>
               </form>
+            </div>
+            <div class="modal-footer-bar">
+              <button
+                type="button"
+                class="btn-secondary"
+                @click="tryCloseForm"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                form="k3l-form"
+                class="btn-primary"
+                :disabled="submitting"
+              >
+                {{
+                  submitting
+                    ? 'Menyimpan...'
+                    : editingId
+                      ? 'Simpan Perubahan'
+                      : 'Simpan'
+                }}
+              </button>
             </div>
           </div>
         </div>
@@ -1326,6 +1326,16 @@
                 </div>
               </div>
             </div>
+            <div class="modal-footer-bar">
+              <button class="btn-secondary" @click="closeViewModal()">Tutup</button>
+              <button
+                v-if="isPrivileged || currentUser?.department === 'Safety'"
+                class="btn-primary"
+                @click="editRecord(viewingRecord); closeViewModal()"
+              >
+                Ubah
+              </button>
+            </div>
           </div>
         </div>
       </Transition>
@@ -1553,12 +1563,12 @@
         <div
           v-if="showTindakLanjutModal"
           class="modal-overlay"
-          @click.self="closeTindakLanjut"
+          @click.self="tryCloseTindakLanjut"
         >
           <div class="modal-container">
             <div class="modal-header">
               <h3 class="modal-title">Tindak Lanjut Temuan</h3>
-              <button class="modal-close" @click="closeTindakLanjut">
+              <button class="modal-close" @click="tryCloseTindakLanjut">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -1573,7 +1583,7 @@
               </button>
             </div>
             <div class="modal-body">
-              <form @submit.prevent="submitTindakLanjut" class="form-grid">
+              <form @submit.prevent="submitTindakLanjut" class="form-grid" id="tl-form">
                 <!-- Ditindaklanjuti Oleh -->
                 <div class="form-section">
                   <h4 class="section-title">Ditindaklanjuti Oleh</h4>
@@ -1793,23 +1803,13 @@
                   </div>
                 </div>
 
-                <div class="form-actions">
-                  <button
-                    type="submit"
-                    class="btn-primary"
-                    :disabled="tlSubmitting"
-                  >
-                    {{ tlSubmitting ? 'Menyimpan…' : 'Simpan Tindak Lanjut' }}
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-secondary"
-                    @click="closeTindakLanjut"
-                  >
-                    Batal
-                  </button>
-                </div>
               </form>
+            </div>
+            <div class="modal-footer-bar">
+              <button type="button" class="btn-secondary" @click="tryCloseTindakLanjut">Batal</button>
+              <button type="submit" form="tl-form" class="btn-primary" :disabled="tlSubmitting">
+                {{ tlSubmitting ? 'Menyimpan…' : 'Simpan Tindak Lanjut' }}
+              </button>
             </div>
           </div>
         </div>
@@ -1822,12 +1822,12 @@
         <div
           v-if="showValidasiModal"
           class="modal-overlay"
-          @click.self="closeValidasi"
+          @click.self="tryCloseValidasi"
         >
           <div class="modal-container">
             <div class="modal-header">
               <h3 class="modal-title">Validasi Safety</h3>
-              <button class="modal-close" @click="closeValidasi">
+              <button class="modal-close" @click="tryCloseValidasi">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -1842,7 +1842,7 @@
               </button>
             </div>
             <div class="modal-body">
-              <form @submit.prevent="submitValidasi" class="form-grid">
+              <form @submit.prevent="submitValidasi" class="form-grid" id="validasi-form">
                 <!-- Divalidasi Oleh -->
                 <div class="form-section">
                   <h4 class="section-title">Divalidasi Oleh</h4>
@@ -2024,23 +2024,13 @@
                   </div>
                 </div>
 
-                <div class="form-actions">
-                  <button
-                    type="submit"
-                    class="btn-primary"
-                    :disabled="validasiSubmitting"
-                  >
-                    {{ validasiSubmitting ? 'Menyimpan…' : 'Simpan Validasi' }}
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-secondary"
-                    @click="closeValidasi"
-                  >
-                    Batal
-                  </button>
-                </div>
               </form>
+            </div>
+            <div class="modal-footer-bar">
+              <button type="button" class="btn-secondary" @click="tryCloseValidasi">Batal</button>
+              <button type="submit" form="validasi-form" class="btn-primary" :disabled="validasiSubmitting">
+                {{ validasiSubmitting ? 'Menyimpan…' : 'Simpan Validasi' }}
+              </button>
             </div>
           </div>
         </div>
@@ -2085,6 +2075,138 @@
               </button>
               <button class="btn btn-discard-confirm" @click="forceCloseForm">
                 Ya, Batalkan
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- TL Discard Confirm -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showTLDiscardConfirm" class="modal-overlay" style="z-index:1200" @mousedown.self="showTLDiscardConfirm = false">
+          <div class="modal-container modal-sm">
+            <div class="modal-body" style="padding:28px 24px 20px">
+              <div class="discard-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="36" height="36">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
+              <h4 class="discard-title">Batalkan perubahan?</h4>
+              <p class="discard-desc">Anda memiliki data yang belum disimpan. Apakah yakin ingin menutup form ini?</p>
+            </div>
+            <div class="discard-footer">
+              <button class="btn-secondary" @click="showTLDiscardConfirm = false">Kembali</button>
+              <button class="btn btn-discard-confirm" @click="closeTindakLanjut">Ya, Batalkan</button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Validasi Discard Confirm -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showValidasiDiscardConfirm" class="modal-overlay" style="z-index:1200" @mousedown.self="showValidasiDiscardConfirm = false">
+          <div class="modal-container modal-sm">
+            <div class="modal-body" style="padding:28px 24px 20px">
+              <div class="discard-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="36" height="36">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
+              <h4 class="discard-title">Batalkan perubahan?</h4>
+              <p class="discard-desc">Anda memiliki data yang belum disimpan. Apakah yakin ingin menutup form ini?</p>
+            </div>
+            <div class="discard-footer">
+              <button class="btn-secondary" @click="showValidasiDiscardConfirm = false">Kembali</button>
+              <button class="btn btn-discard-confirm" @click="closeValidasi">Ya, Batalkan</button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- TL Save Confirm -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showTLSaveConfirm" class="modal-overlay" style="z-index:1200" @mousedown.self="showTLSaveConfirm = false">
+          <div class="modal-container modal-sm">
+            <div class="modal-header">
+              <h3 class="modal-title">Simpan Tindak Lanjut?</h3>
+              <button class="modal-close" @click="showTLSaveConfirm = false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div class="modal-body" style="padding:16px 24px 20px">
+              <p style="font-size:14px;color:#475569;margin:0">Tindak lanjut akan disimpan. Lanjutkan?</p>
+            </div>
+            <div class="modal-footer-bar">
+              <button class="btn-secondary" @click="showTLSaveConfirm = false">Batal</button>
+              <button class="btn btn-primary" @click="doSubmitTindakLanjut" :disabled="tlSubmitting">
+                {{ tlSubmitting ? 'Menyimpan…' : 'Ya, Simpan' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Validasi Save Confirm -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showValidasiSaveConfirm" class="modal-overlay" style="z-index:1200" @mousedown.self="showValidasiSaveConfirm = false">
+          <div class="modal-container modal-sm">
+            <div class="modal-header">
+              <h3 class="modal-title">Simpan Validasi?</h3>
+              <button class="modal-close" @click="showValidasiSaveConfirm = false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div class="modal-body" style="padding:16px 24px 20px">
+              <p style="font-size:14px;color:#475569;margin:0">Validasi akan disimpan. Lanjutkan?</p>
+            </div>
+            <div class="modal-footer-bar">
+              <button class="btn-secondary" @click="showValidasiSaveConfirm = false">Batal</button>
+              <button class="btn btn-primary" @click="doSubmitValidasi" :disabled="validasiSubmitting">
+                {{ validasiSubmitting ? 'Menyimpan…' : 'Ya, Simpan' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Update Confirm Dialog -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div
+          v-if="showUpdateConfirm"
+          class="modal-overlay"
+          style="z-index: 1100"
+          @mousedown.self="showUpdateConfirm = false"
+        >
+          <div class="modal-container modal-sm">
+            <div class="modal-header">
+              <h3 class="modal-title">Simpan Perubahan?</h3>
+              <button class="modal-close" @click="showUpdateConfirm = false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div class="modal-body" style="padding: 16px 24px 20px">
+              <p style="font-size:14px;color:#475569;margin:0">
+                Perubahan pada laporan ini akan disimpan. Lanjutkan?
+              </p>
+            </div>
+            <div class="modal-footer-bar">
+              <button class="btn-secondary" @click="showUpdateConfirm = false">Batal</button>
+              <button class="btn btn-primary" @click="doSave" :disabled="submitting">
+                {{ submitting ? 'Menyimpan...' : 'Ya, Simpan' }}
               </button>
             </div>
           </div>
@@ -2460,28 +2582,6 @@
                       class="val-badge"
                       >{{ item.validasiCount }}</span
                     >
-                  </button>
-                  <button
-                    v-if="isPrivileged || currentUser?.department === 'Safety'"
-                    class="btn-icon"
-                    title="Ubah"
-                    @click="editRecord(item)"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      width="16"
-                      height="16"
-                    >
-                      <path
-                        d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
-                      />
-                      <path
-                        d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
-                      />
-                    </svg>
                   </button>
                   <button
                     v-if="isPrivileged || currentUser?.department === 'Safety'"
@@ -2933,6 +3033,7 @@ const submitting = ref(false);
 const loading = ref(false);
 const editingId = ref(null);
 const showDiscardConfirm = ref(false);
+const showUpdateConfirm = ref(false);
 const originalForm = ref(null);
 const records = ref([]);
 const businessUnits = ref([]);
@@ -3652,9 +3753,23 @@ function openTindakLanjut(item) {
   showTindakLanjutModal.value = true;
 }
 
+const showTLDiscardConfirm = ref(false);
+const showTLSaveConfirm = ref(false);
+
 function closeTindakLanjut() {
   showTindakLanjutModal.value = false;
+  showTLDiscardConfirm.value = false;
   tlTargetRecord.value = null;
+}
+
+function tryCloseTindakLanjut() {
+  if (tlSubmitting.value) return;
+  const hasChanges = tlForm.value.tindakanBullets.some(b => b.trim()) || tlPhotos.value.length > 0;
+  if (hasChanges) {
+    showTLDiscardConfirm.value = true;
+  } else {
+    closeTindakLanjut();
+  }
 }
 
 function tlAddBullet(afterIndex) {
@@ -3696,7 +3811,12 @@ function tlHandlePhotos(e) {
   e.target.value = '';
 }
 
-async function submitTindakLanjut() {
+function submitTindakLanjut() {
+  if (!tlTargetRecord.value) return;
+  showTLSaveConfirm.value = true;
+}
+
+async function doSubmitTindakLanjut() {
   if (!tlTargetRecord.value) return;
   tlSubmitting.value = true;
   try {
@@ -3711,10 +3831,12 @@ async function submitTindakLanjut() {
       ditindaklanjutiDepartmentId: currentUser?.departmentId ?? null,
     });
     showMessage('Tindak lanjut berhasil disimpan');
+    showTLSaveConfirm.value = false;
     closeTindakLanjut();
     await loadData();
   } catch (e) {
     console.error('[TindakLanjut]', e);
+    showTLSaveConfirm.value = false;
     showMessage(e.message, true);
   } finally {
     tlSubmitting.value = false;
@@ -3744,9 +3866,23 @@ function openValidasi(item) {
   showValidasiModal.value = true;
 }
 
+const showValidasiDiscardConfirm = ref(false);
+const showValidasiSaveConfirm = ref(false);
+
 function closeValidasi() {
   showValidasiModal.value = false;
+  showValidasiDiscardConfirm.value = false;
   validasiTargetRecord.value = null;
+}
+
+function tryCloseValidasi() {
+  if (validasiSubmitting.value) return;
+  const hasChanges = validasiForm.value.statusValidasi || validasiForm.value.alasanBullets.some(b => b.trim());
+  if (hasChanges) {
+    showValidasiDiscardConfirm.value = true;
+  } else {
+    closeValidasi();
+  }
 }
 
 function validasiAddBullet(afterIndex) {
@@ -3770,12 +3906,17 @@ function validasiRemoveBulletOnEmpty(i, e) {
   }
 }
 
-async function submitValidasi() {
+function submitValidasi() {
   if (!validasiTargetRecord.value) return;
   if (!validasiForm.value.statusValidasi) {
     showToast('Pilih status validasi terlebih dahulu', 'warning');
     return;
   }
+  showValidasiSaveConfirm.value = true;
+}
+
+async function doSubmitValidasi() {
+  if (!validasiTargetRecord.value) return;
   validasiSubmitting.value = true;
   try {
     const alasanValidasi =
@@ -3787,10 +3928,12 @@ async function submitValidasi() {
       divalidasiDepartmentId: currentUser?.departmentId ?? null,
     });
     showMessage('Validasi berhasil disimpan');
+    showValidasiSaveConfirm.value = false;
     closeValidasi();
     await loadData();
   } catch (e) {
     console.error('[Validasi]', e);
+    showValidasiSaveConfirm.value = false;
     showMessage(e.message, true);
   } finally {
     validasiSubmitting.value = false;
@@ -3806,6 +3949,14 @@ function buildWIBDatetime(dateStr) {
 }
 
 async function submitForm() {
+  if (editingId.value) {
+    showUpdateConfirm.value = true;
+    return;
+  }
+  await doSave();
+}
+
+async function doSave() {
   submitting.value = true;
   try {
     const base = {
@@ -3858,11 +4009,13 @@ async function submitForm() {
     }
     // Jump to the tab of the inspection we just saved so the new row is visible.
     const savedJenis = form.value.jenisInspeksi || 'Ronda Kepatuhan';
+    showUpdateConfirm.value = false;
     cancelForm();
     await loadData();
     if (JENIS_TABS.includes(savedJenis)) activeJenisTab.value = savedJenis;
   } catch (e) {
-    console.error('[InspectionK3L] submitForm:', e);
+    console.error('[InspectionK3L] doSave:', e);
+    showUpdateConfirm.value = false;
   } finally {
     submitting.value = false;
   }
@@ -6046,8 +6199,16 @@ onActivated(() => {
 
 .form-actions {
   display: flex;
-  gap: 12px;
-  padding-top: 8px;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 24px 18px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 0 0 14px 14px;
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
 }
 
 .field-auto-tag {

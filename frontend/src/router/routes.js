@@ -5,7 +5,7 @@ import Dashboard from "../dashboard/Dashboard.vue";
 import DashboardHome from "../dashboard/views/DashboardHome.vue";
 import SafetyModules from "../dashboard/views/SafetyModules.vue";
 import InspectionK3L from "../dashboard/views/InspectionK3L.vue";
-import HseDailyReport from "../dashboard/views/HseDailyReport.vue";
+import PermitKerjaHSE from "../dashboard/views/PermitKerjaHSE.vue";
 import CaseIncident from "../dashboard/views/CaseIncident.vue";
 import MasterData from "../dashboard/views/MasterData.vue";
 import Settings from "../dashboard/views/Settings.vue";
@@ -54,8 +54,8 @@ const routes = [
       },
       {
         path: "reports/hse-daily",
-        name: "HseDailyReport",
-        component: HseDailyReport,
+        name: "PermitKerjaHSE",
+        component: PermitKerjaHSE,
       },
       {
         path: "reports/case-incident",

@@ -5,7 +5,7 @@
       <div>
         <h2>Dashboard Overview</h2>
         <p class="dash-sub">
-          {{ activeTab === 'k3l' ? 'Ringkasan inspeksi keselamatan K3L' : 'Ringkasan HSE Daily Report' }} &middot; {{ currentMonthYear }}
+          {{ activeTab === 'k3l' ? 'Ringkasan inspeksi keselamatan K3L' : 'Ringkasan Permit Kerja HSE' }} &middot; {{ currentMonthYear }}
         </p>
       </div>
       <div class="welcome-pill">
@@ -22,7 +22,7 @@
       </button>
       <button class="dash-tab" :class="{ active: activeTab === 'hse' }" @click="activeTab = 'hse'">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        HSE Daily Report
+        Permit Kerja HSE
       </button>
     </div>
 
@@ -807,7 +807,7 @@
       </div>
       </div><!-- end k3l tab -->
 
-      <!-- ── HSE Daily Report tab ───────────────────────────────── -->
+      <!-- ── Permit Kerja HSE tab ───────────────────────────────── -->
       <div v-show="activeTab === 'hse'">
         <!-- HSE Date filter -->
         <div class="date-filter-row">
@@ -852,7 +852,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" width="40" height="40">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
-          <p>Belum ada data HSE Daily Report</p>
+          <p>Belum ada data Permit Kerja HSE</p>
           <button class="empty-btn" @click="$router.push('/dashboard/reports/hse-daily')">+ Tambah Laporan</button>
         </div>
 

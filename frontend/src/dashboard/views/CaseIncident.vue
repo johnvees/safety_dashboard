@@ -73,12 +73,6 @@
             <td style="text-align:center">{{ (ciCurrentPage - 1) * ciPerPage + idx + 1 }}</td>
             <td class="td-actions" @click.stop>
               <div class="actions-wrap">
-                <button class="btn-icon" title="Ubah" @click="editRecord(item)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                  </svg>
-                </button>
                 <button class="btn-icon btn-danger" title="Hapus" @click="deleteRecord(item)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                     <polyline points="3 6 5 6 21 6"/>
@@ -412,6 +406,55 @@
               <button type="submit" form="ci-form" class="btn-primary" :disabled="submitting">
                 {{ submitting ? 'Menyimpan...' : (editingId ? 'Simpan Perubahan' : 'Simpan Laporan') }}
               </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Update Confirm -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showUpdateConfirm" class="modal-overlay" style="z-index:1100" @mousedown.self="showUpdateConfirm = false">
+          <div class="modal-container modal-sm">
+            <div class="modal-header">
+              <h3 class="modal-title">Simpan Perubahan?</h3>
+              <button class="modal-close" type="button" @click="showUpdateConfirm = false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div class="modal-body" style="padding:16px 24px 20px">
+              <p style="font-size:14px;color:#475569;margin:0">Perubahan pada laporan ini akan disimpan. Lanjutkan?</p>
+            </div>
+            <div class="modal-footer-bar">
+              <button class="btn-cancel" @click="showUpdateConfirm = false">Batal</button>
+              <button class="btn-primary" @click="doSaveCI" :disabled="submitting">
+                {{ submitting ? 'Menyimpan...' : 'Ya, Simpan' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Discard Confirm -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showDiscardConfirm" class="modal-overlay" style="z-index:1100" @mousedown.self="showDiscardConfirm = false">
+          <div class="modal-container modal-sm">
+            <div class="modal-body" style="padding:28px 24px 20px">
+              <div class="discard-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="36" height="36">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
+              <h4 class="discard-title">Batalkan perubahan?</h4>
+              <p class="discard-desc">Anda memiliki data yang belum disimpan. Apakah yakin ingin menutup form ini?</p>
+            </div>
+            <div class="discard-footer">
+              <button class="btn-cancel" @click="showDiscardConfirm = false">Kembali</button>
+              <button class="btn btn-discard-confirm" @click="forceCloseCI">Ya, Batalkan</button>
             </div>
           </div>
         </div>
@@ -776,6 +819,9 @@ function jenisClass(j) {
 const showForm = ref(false);
 const editingId = ref(null);
 const submitting = ref(false);
+const showUpdateConfirm = ref(false);
+const showDiscardConfirm = ref(false);
+const originalForm = ref(null);
 const departments = ref([]);
 const usersForMention = ref([]);
 const businessUnits = ref([]);
@@ -961,6 +1007,7 @@ function currentTimeWIB() {
 function openForm() {
   editingId.value = null;
   form.value = emptyForm();
+  originalForm.value = null;
   saksiList.value = [{ nama: '', departmentId: null }];
   photos.value = [];
   showForm.value = true;
@@ -995,6 +1042,7 @@ function editRecord(item) {
     targetPenyelesaian: item.targetPenyelesaian || '',
     status: item.status || 'Open',
   };
+  originalForm.value = { ...form.value, saksiCount: saksiList.value.length, photoCount: photos.value.length };
   showForm.value = true;
 }
 
@@ -1024,15 +1072,64 @@ async function confirmDelete() {
   }
 }
 
+function hasFormChanges() {
+  const f = form.value;
+  if (!editingId.value) {
+    return !!(
+      f.tanggalKejadianDate || f.namaKorban || f.statusKaryawan ||
+      f.jenisKecelakaan || f.lokasiKecelakaan || f.deskripsiKecelakaan ||
+      f.penyebabKecelakaan || f.perbaikanDilakukan || f.targetPenyelesaian ||
+      saksiList.value.some(s => s.nama.trim()) || photos.value.length > 0
+    );
+  }
+  if (!originalForm.value) return false;
+  const o = originalForm.value;
+  return (
+    f.tanggalKejadianDate !== o.tanggalKejadianDate ||
+    f.namaKorban !== o.namaKorban ||
+    f.korbanDeptId !== o.korbanDeptId ||
+    f.statusKaryawan !== o.statusKaryawan ||
+    f.jenisKecelakaan !== o.jenisKecelakaan ||
+    f.lokasiKecelakaan !== o.lokasiKecelakaan ||
+    f.deskripsiKecelakaan !== o.deskripsiKecelakaan ||
+    f.penyebabKecelakaan !== o.penyebabKecelakaan ||
+    f.perbaikanDilakukan !== o.perbaikanDilakukan ||
+    f.targetPenyelesaian !== o.targetPenyelesaian ||
+    f.status !== o.status ||
+    saksiList.value.length !== o.saksiCount ||
+    photos.value.some(p => p.file !== null) ||
+    photos.value.length !== o.photoCount
+  );
+}
+
 function tryClose() {
+  if (submitting.value) return;
+  if (hasFormChanges()) {
+    showDiscardConfirm.value = true;
+    return;
+  }
+  forceCloseCI();
+}
+
+function forceCloseCI() {
+  showDiscardConfirm.value = false;
   showForm.value = false;
   editingId.value = null;
+  originalForm.value = null;
   form.value = emptyForm();
   saksiList.value = [{ nama: '', departmentId: null }];
   clearPhotos();
 }
 
 async function submitForm() {
+  if (editingId.value) {
+    showUpdateConfirm.value = true;
+    return;
+  }
+  await doSaveCI();
+}
+
+async function doSaveCI() {
   submitting.value = true;
   try {
     const tanggalKejadian = form.value.tanggalKejadianDate
@@ -1074,10 +1171,12 @@ async function submitForm() {
       await caseIncidentService.create(payload);
       showToast('Laporan berhasil disimpan');
     }
-    tryClose();
+    showUpdateConfirm.value = false;
+    forceCloseCI();
     await loadRecords();
   } catch (e) {
     showToast(e.message, 'error');
+    showUpdateConfirm.value = false;
   } finally {
     submitting.value = false;
   }
@@ -1578,4 +1677,10 @@ tbody td { padding: 10px 14px; font-size: 13px; color: #1e293b; }
 .lightbox-dot.active { background: #fff; }
 .lightbox-fade-enter-active, .lightbox-fade-leave-active { transition: opacity 0.2s ease; }
 .lightbox-fade-enter-from, .lightbox-fade-leave-to { opacity: 0; }
+.discard-icon { display:flex; justify-content:center; margin-bottom:12px; color:#f59e0b; }
+.discard-title { font-size:16px; font-weight:700; color:#1e293b; text-align:center; margin:0 0 8px; }
+.discard-desc { font-size:13px; color:#64748b; text-align:center; margin:0; line-height:1.6; }
+.discard-footer { display:flex; justify-content:flex-end; gap:10px; padding:12px 24px 20px; border-top:1px solid #f1f5f9; }
+.btn-discard-confirm { padding:9px 18px; background:#ef4444; color:#fff; border:none; border-radius:7px; font-size:14px; font-weight:600; cursor:pointer; transition:background 0.15s; }
+.btn-discard-confirm:hover { background:#dc2626; }
 </style>
