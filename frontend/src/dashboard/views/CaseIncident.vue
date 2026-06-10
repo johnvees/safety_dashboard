@@ -2297,9 +2297,11 @@ onMounted(async () => {
 
 /* ── Filter bar ── */
 .filter-bar {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 10px; flex-wrap: nowrap;
   padding: 12px 20px; border-bottom: 1px solid #f1f5f9;
+  overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
 }
+.filter-bar::-webkit-scrollbar { display: none; }
 /* Data header export button */
 .btn-export {
   display: inline-flex; align-items: center; gap: 5px;
@@ -2310,6 +2312,19 @@ onMounted(async () => {
 .btn-export:hover:not(:disabled) { background: #dcfce7; border-color: #86efac; }
 .btn-export:disabled { opacity: 0.5; cursor: not-allowed; }
 /* Date filter chips */
+.date-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.date-filter-row::-webkit-scrollbar {
+  display: none;
+}
 .date-chip {
   background: #f1f5f9; border: 1px solid transparent; border-radius: 20px;
   padding: 5px 14px; font-size: 13px; color: #64748b; cursor: pointer;
@@ -2319,7 +2334,7 @@ onMounted(async () => {
 .date-chip.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
 .custom-date-row {
   display: flex; align-items: center; gap: 8px;
-  padding: 0 20px 10px; flex-wrap: wrap; border-bottom: 1px solid #f1f5f9;
+  padding: 0 16px 10px; flex-wrap: wrap; border-bottom: 1px solid #f1f5f9;
 }
 .toolbar-date-wrap {
   display: inline-flex; border: 1px solid #cbd5e1; border-radius: 8px;
@@ -2335,8 +2350,8 @@ onMounted(async () => {
   position: relative;
   display: flex;
   align-items: center;
-  flex: 1;
-  min-width: 200px;
+  flex-shrink: 0;
+  width: 200px;
 }
 .search-icon {
   position: absolute;
@@ -2346,17 +2361,19 @@ onMounted(async () => {
 }
 .search-input {
   width: 100%;
-  padding: 8px 32px 8px 32px;
+  padding: 7px 32px 7px 32px;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 7px;
+  font-size: 13px;
   color: #1e293b;
-  background: #fff;
+  background: #f8fafc;
   outline: none;
   transition: border-color 0.15s;
 }
 .search-input:focus {
   border-color: #3b82f6;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
 }
 .search-clear {
   position: absolute;
@@ -2365,7 +2382,7 @@ onMounted(async () => {
   border: none;
   cursor: pointer;
   color: #94a3b8;
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1;
   padding: 2px 4px;
 }
@@ -2373,12 +2390,12 @@ onMounted(async () => {
   color: #475569;
 }
 .filter-select {
-  padding: 8px 10px;
+  padding: 7px 10px;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border-radius: 7px;
   font-size: 13px;
-  color: #374151;
-  background: #fff;
+  color: #475569;
+  background: #f8fafc;
   cursor: pointer;
   outline: none;
   min-width: 140px;
@@ -2387,21 +2404,22 @@ onMounted(async () => {
   border-color: #3b82f6;
 }
 .btn-reset-filters {
-  padding: 8px 14px;
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  font-size: 13px;
+  padding: 6px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  font-size: 12px;
   font-weight: 600;
+  background: #fff;
+  color: #64748b;
   cursor: pointer;
 }
 .btn-reset-filters:hover {
-  background: #fee2e2;
+  background: #f1f5f9;
+  color: #334155;
 }
 .filter-count {
-  font-size: 13px;
-  color: #64748b;
+  font-size: 12px;
+  color: #94a3b8;
   white-space: nowrap;
 }
 
