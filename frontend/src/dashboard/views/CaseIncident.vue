@@ -35,7 +35,7 @@
           v-for="opt in DATE_PRESETS"
           :key="opt.value"
           class="date-chip"
-          :class="{ active: filterDate === opt.value }"
+          :class="{ active: filterDate === opt.value, 'chip-today': opt.value === 'today' }"
           @click="setDatePreset(opt.value)"
         >
           {{ opt.label }}
@@ -3462,5 +3462,60 @@ tbody td:not(:first-child) { border-left: 1px solid #e2e8f0; }
 }
 .btn-discard-confirm:hover {
   background: #dc2626;
+}
+
+/* ── Mobile: stack filters, no horizontal scroll (placed last to win cascade) ── */
+@media (max-width: 768px) {
+  /* Date presets: wrap instead of scroll; hide "Hari ini" to save space */
+  .date-filter-row {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    padding: 10px 12px 6px;
+  }
+  .date-chip {
+    flex: 1 1 auto;
+    text-align: center;
+    padding: 6px 10px;
+  }
+  .date-chip.chip-today {
+    display: none;
+  }
+
+  /* Custom date range: keep both inputs inline on one row */
+  .custom-date-row {
+    flex-wrap: nowrap;
+    padding: 0 12px 10px;
+  }
+  .toolbar-date-wrap {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .toolbar-date {
+    width: 100%;
+    min-width: 0;
+    padding: 7px 8px;
+  }
+
+  /* Search full-width on its own row; Jenis/Status selects share the next row */
+  .filter-bar {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    padding: 12px;
+    gap: 8px;
+  }
+  .search-wrapper {
+    flex: 1 1 100%;
+    width: auto;
+    min-width: 0;
+  }
+  .search-input {
+    background: #fff;
+    padding: 9px 32px;
+    font-size: 14px;
+  }
+  .filter-select {
+    flex: 1 1 0;
+    min-width: 0;
+  }
 }
 </style>

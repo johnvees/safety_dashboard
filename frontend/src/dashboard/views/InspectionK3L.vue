@@ -2486,7 +2486,7 @@
           v-for="opt in DATE_PRESETS"
           :key="opt.value"
           class="date-chip"
-          :class="{ active: filterDate === opt.value }"
+          :class="{ active: filterDate === opt.value, 'chip-today': opt.value === 'today' }"
           @click="setDatePreset(opt.value)"
         >
           {{ opt.label }}
@@ -7568,6 +7568,111 @@ tbody tr.row-overdue:hover {
 @keyframes k3l-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* ── Mobile: stack filters/tabs, no horizontal scroll (placed last to win cascade) ── */
+@media (max-width: 768px) {
+  /* Scope selects stack full-width, matching the Tambah Temuan button */
+  .scope-filter-inline {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  .scope-select {
+    flex: none;
+    width: 100%;
+    max-width: none;
+  }
+  .scope-reset-btn {
+    width: 100%;
+  }
+
+  /* Inspection tabs: fit both on one screen — no horizontal scroll */
+  .jenis-tabs {
+    overflow-x: visible;
+    padding: 10px 10px 0;
+    gap: 4px;
+  }
+  .jenis-tab {
+    flex: 1 1 0;
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: center;
+    white-space: normal;
+    line-height: 1.25;
+    padding: 9px 6px;
+    font-size: 13px;
+    column-gap: 5px;
+    row-gap: 4px;
+  }
+  .jenis-tab-count {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: 11px;
+  }
+  .jenis-tab-flag {
+    height: 18px;
+    padding: 0 5px;
+    font-size: 10px;
+    gap: 3px;
+  }
+  .jenis-tab-flag svg {
+    width: 11px;
+    height: 11px;
+  }
+
+  /* Date presets: wrap instead of scroll; hide "Hari ini" to save space */
+  .date-filter-row {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    padding: 10px 12px 6px;
+  }
+  .date-chip {
+    flex: 1 1 auto;
+    text-align: center;
+    padding: 6px 10px;
+  }
+  .date-chip.chip-today {
+    display: none;
+  }
+
+  /* Custom date range: keep both inputs inline on one row */
+  .custom-date-row {
+    flex-wrap: nowrap;
+    padding: 0 12px 10px;
+  }
+  .toolbar-date-wrap {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .toolbar-date {
+    width: 100%;
+    min-width: 0;
+    padding: 7px 8px;
+  }
+
+  /* Search full-width on its own row; Kategori/Status selects share the next row */
+  .filter-bar {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    padding: 12px;
+    gap: 8px;
+  }
+  .search-wrapper {
+    flex: 1 1 100%;
+    width: auto;
+  }
+  .search-input {
+    background: #fff;
+    padding: 10px 34px;
+    font-size: 14px;
+  }
+  .filter-select {
+    flex: 1 1 0;
+    min-width: 0;
   }
 }
 </style>

@@ -177,7 +177,7 @@
           v-for="opt in DATE_PRESETS"
           :key="opt.value"
           class="date-chip"
-          :class="{ active: filterDate === opt.value }"
+          :class="{ active: filterDate === opt.value, 'chip-today': opt.value === 'today' }"
           @click="setDatePreset(opt.value)"
         >
           {{ opt.label }}
@@ -3387,5 +3387,69 @@ tbody tr.row-clickable:hover td {
 }
 .btn-discard-confirm:hover {
   background: #dc2626;
+}
+
+/* ── Mobile: stack filters, no horizontal scroll (placed last to win cascade) ── */
+@media (max-width: 768px) {
+  /* Scope selects stack full-width, matching the Tambah Laporan button */
+  .scope-filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .scope-select {
+    flex: none;
+    width: 100%;
+    max-width: none;
+  }
+  .scope-reset-btn {
+    width: 100%;
+  }
+
+  /* Date presets: wrap instead of scroll; hide "Hari ini" to save space */
+  .date-filter-row {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    padding: 10px 12px 6px;
+  }
+  .date-chip {
+    flex: 1 1 auto;
+    text-align: center;
+    padding: 6px 10px;
+  }
+  .date-chip.chip-today {
+    display: none;
+  }
+
+  /* Custom date range: keep both inputs inline on one row */
+  .custom-date-row {
+    flex-wrap: nowrap;
+    padding: 0 12px 10px;
+  }
+  .toolbar-date-wrap {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .toolbar-date {
+    width: 100%;
+    min-width: 0;
+    padding: 7px 8px;
+  }
+
+  /* Search full-width on its own row; Jenis/Risiko selects share the next row */
+  .table-toolbar {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    padding: 12px;
+    gap: 8px;
+  }
+  .search-box {
+    flex: 1 1 100%;
+    width: auto;
+    background: #fff;
+  }
+  .toolbar-select {
+    flex: 1 1 0;
+    min-width: 0;
+  }
 }
 </style>
