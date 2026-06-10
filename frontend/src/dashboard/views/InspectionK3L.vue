@@ -2342,9 +2342,9 @@
             </svg>
             Ringkasan
           </button>
-          <button class="btn btn-sm" @click="loadData" :disabled="loading">
+          <!-- <button class="btn btn-sm" @click="loadData" :disabled="loading">
             {{ loading ? 'Memuat...' : 'Segarkan' }}
-          </button>
+          </button> -->
         </div>
       </div>
 
@@ -5814,11 +5814,11 @@ onActivated(() => {
 }
 
 .btn-validasi {
-  color: #0284c7;
+  color: #16a34a;
 }
 .btn-validasi:hover {
-  background: #e0f2fe;
-  color: #0369a1;
+  background: #dcfce7;
+  color: #15803d;
 }
 
 .val-icon-wrap {
@@ -5828,7 +5828,7 @@ onActivated(() => {
   position: absolute;
   top: -6px;
   right: -6px;
-  background: #2563eb;
+  background: #16a34a;
   color: #fff;
   border-radius: 50%;
   width: 16px;

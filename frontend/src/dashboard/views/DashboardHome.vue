@@ -3505,6 +3505,10 @@ onMounted(async () => {
   background: #dcfce7;
   color: #166534;
 }
+.sc-progress-validasi {
+  background: #ede9fe;
+  color: #7c3aed;
+}
 
 .recent-date {
   font-size: 11px;

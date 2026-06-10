@@ -389,7 +389,20 @@
               </div>
               <div class="view-meta-item">
                 <span class="view-label">Pekerja</span>
-                <span class="view-val">{{ modal.record.pekerja || '-' }}</span>
+                <span class="view-val">
+                  <ul
+                    v-if="parseBullets(modal.record.pekerja).length"
+                    class="view-bullets"
+                  >
+                    <li
+                      v-for="(item, i) in parseBullets(modal.record.pekerja)"
+                      :key="i"
+                    >
+                      {{ item }}
+                    </li>
+                  </ul>
+                  <template v-else>-</template>
+                </span>
               </div>
               <div class="view-meta-item">
                 <span class="view-label">Department</span>
@@ -558,7 +571,7 @@
               <div class="form-group">
                 <label>Tanggal <span class="req">*</span></label>
                 <input
-                  type="datetime-local"
+                  type="date"
                   v-model="form.tanggal"
                   required
                   class="input-date"
@@ -613,12 +626,36 @@
             <!-- Pekerja -->
             <div class="form-group">
               <label>Pekerja <span class="req">*</span></label>
-              <input
-                type="text"
-                v-model="form.pekerja"
-                placeholder="Nama pekerja (pisah koma jika lebih dari satu)"
-                required
-              />
+              <div class="bullet-list">
+                <div
+                  v-for="(item, i) in form.pekerja"
+                  :key="i"
+                  class="bullet-row"
+                >
+                  <span class="bullet-dot">•</span>
+                  <input
+                    type="text"
+                    v-model="form.pekerja[i]"
+                    placeholder="Nama pekerja"
+                    @keydown.enter.prevent="addBullet('pekerja', i)"
+                  />
+                  <button
+                    type="button"
+                    class="btn-remove-bullet"
+                    @click="removeBullet('pekerja', i)"
+                    :disabled="form.pekerja.length === 1"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  class="btn-add-bullet"
+                  @click="addBullet('pekerja')"
+                >
+                  + Tambah pekerja
+                </button>
+              </div>
             </div>
 
             <div class="form-row">
@@ -1428,7 +1465,7 @@ const router = useRouter();
 const defaultForm = () => ({
   tanggal: '',
   pekerjaan: [''],
-  pekerja: '',
+  pekerja: [''],
   departmentId: null,
   lokasiPekerjaan: '',
   statusPermit: false,
@@ -1618,13 +1655,13 @@ function openEdit(record) {
   formError.value = '';
   photoWarning.value = '';
   form.value = {
-    tanggal: record.tanggal
-      ? record.tanggal.replace(' ', 'T').slice(0, 16)
-      : '',
+    tanggal: record.tanggal ? record.tanggal.slice(0, 10) : '',
     pekerjaan: parseBullets(record.pekerjaan).length
       ? parseBullets(record.pekerjaan)
       : [''],
-    pekerja: record.pekerja || '',
+    pekerja: parseBullets(record.pekerja).length
+      ? parseBullets(record.pekerja)
+      : [''],
     departmentId: record.departmentId ?? null,
     lokasiPekerjaan: record.lokasiPekerjaan || '',
     statusPermit: record.statusPermit || false,
@@ -1651,7 +1688,7 @@ function openEdit(record) {
   originalForm.value = {
     tanggal: form.value.tanggal,
     pekerjaan: [...form.value.pekerjaan],
-    pekerja: form.value.pekerja,
+    pekerja: [...form.value.pekerja],
     departmentId: form.value.departmentId,
     lokasiPekerjaan: form.value.lokasiPekerjaan,
     statusPermit: form.value.statusPermit,
@@ -1688,7 +1725,7 @@ function hasFormChanges() {
     return !!(
       f.tanggal ||
       f.pekerjaan.some((s) => s.trim()) ||
-      f.pekerja ||
+      f.pekerja.some((s) => s.trim()) ||
       f.lokasiPekerjaan ||
       f.statusPermit ||
       f.noPermit ||
@@ -1708,7 +1745,7 @@ function hasFormChanges() {
     return (
       f.tanggal !== o.tanggal ||
       f.pekerjaan.join('\n') !== o.pekerjaan.join('\n') ||
-      f.pekerja !== o.pekerja ||
+      f.pekerja.join('\n') !== o.pekerja.join('\n') ||
       f.departmentId !== o.departmentId ||
       f.lokasiPekerjaan !== o.lokasiPekerjaan ||
       f.statusPermit !== o.statusPermit ||
@@ -1753,6 +1790,19 @@ function displayJenis(r) {
   return r.jenisPekerjaan;
 }
 
+// Combine a date-only string (YYYY-MM-DD) with the device's current time,
+// converted to GMT+7, producing "YYYY-MM-DD HH:mm:ss".
+function toGmt7DateTime(dateStr) {
+  if (!dateStr) return dateStr;
+  const now = new Date();
+  const gmt7Ms = now.getTime() + (now.getTimezoneOffset() + 7 * 60) * 60000;
+  const gmt7 = new Date(gmt7Ms);
+  const hh = String(gmt7.getUTCHours()).padStart(2, '0');
+  const mm = String(gmt7.getUTCMinutes()).padStart(2, '0');
+  const ss = String(gmt7.getUTCSeconds()).padStart(2, '0');
+  return `${dateStr} ${hh}:${mm}:${ss}`;
+}
+
 function formatDate(d) {
   if (!d) return '-';
   const dt = new Date(d.replace ? d.replace(' ', 'T') : d);
@@ -1794,7 +1844,7 @@ async function submitForm() {
     formError.value = 'Pekerjaan wajib diisi';
     return;
   }
-  if (!form.value.pekerja.trim()) {
+  if (!form.value.pekerja.some((s) => s.trim())) {
     formError.value = 'Pekerja wajib diisi';
     return;
   }
@@ -1811,9 +1861,9 @@ async function doSave() {
   submitting.value = true;
   try {
     const payload = {
-      tanggal: form.value.tanggal,
+      tanggal: toGmt7DateTime(form.value.tanggal),
       pekerjaan: bulletsToJson(form.value.pekerjaan),
-      pekerja: form.value.pekerja.trim(),
+      pekerja: bulletsToJson(form.value.pekerja),
       lokasiPekerjaan: form.value.lokasiPekerjaan || null,
       statusPermit: form.value.statusPermit,
       noPermit: form.value.statusPermit ? form.value.noPermit || null : null,
@@ -1935,7 +1985,7 @@ function buildHseExport(source) {
       no: idx + 1,
       tanggal: r.tanggal || '',
       pekerjaan: parseBullets(r.pekerjaan).join(', '),
-      pekerja: r.pekerja || '',
+      pekerja: parseBullets(r.pekerja).join(', '),
       department: r.departmentName || '',
       plant: r.plantName || '',
       businessUnit: r.businessUnitName || '',

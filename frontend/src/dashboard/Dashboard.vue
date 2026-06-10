@@ -37,6 +37,7 @@ const pageTitles = {
   "/dashboard/reports": "Laporan",
   "/dashboard/reports/inspection-k3l": "Inspection K3L",
   "/dashboard/reports/hse-daily": "Permit Kerja HSE",
+  "/dashboard/reports/case-incident": "Case Incident",
   "/dashboard/chat": "Chat",
   "/dashboard/master-data": "Master Data",
   "/dashboard/settings": "Pengaturan",

@@ -218,7 +218,7 @@
                       </div>
                     </div>
                     <button type="button" class="bullet-add" @click="addSaksi" style="margin-top:8px">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                       Tambah Saksi
                     </button>
                   </div>
@@ -1537,8 +1537,8 @@ tbody td { padding: 10px 14px; font-size: 13px; color: #1e293b; }
 
 /* ── Saksi / Petugas rows ── */
 .petugas-list { display: flex; flex-direction: column; gap: 8px; }
-.petugas-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.petugas-nama-wrap { position: relative; flex: 1; min-width: 0; }
+.petugas-row { display: grid; grid-template-columns: 1fr 1fr auto; align-items: center; gap: 8px; }
+.petugas-nama-wrap { position: relative; min-width: 0; }
 .petugas-nama-input {
   width: 100%; padding: 9px 12px; border: 1px solid #e2e8f0;
   border-radius: 8px; font-size: 14px; color: #1e293b; outline: none;
@@ -1546,13 +1546,13 @@ tbody td { padding: 10px 14px; font-size: 13px; color: #1e293b; }
 }
 .petugas-nama-input:focus { border-color: #3b82f6; }
 .petugas-dept-select {
-  width: 160px; flex-shrink: 0; padding: 9px 10px; border: 1px solid #e2e8f0;
+  width: 100%; min-width: 0; padding: 9px 10px; border: 1px solid #e2e8f0;
   border-radius: 8px; font-size: 14px; color: #1e293b; background: #fff;
   outline: none; cursor: pointer;
 }
 @media (max-width: 560px) {
-  .petugas-row { flex-direction: column; align-items: stretch; }
-  .petugas-dept-select { width: 100%; }
+  .petugas-row { grid-template-columns: 1fr; }
+  .petugas-remove { justify-self: end; }
 }
 .petugas-remove {
   flex-shrink: 0; width: 28px; height: 28px; border: 1px solid #fecaca;
@@ -1581,9 +1581,9 @@ tbody td { padding: 10px 14px; font-size: 13px; color: #1e293b; }
 
 /* ── Add button ── */
 .bullet-add {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 12px; background: #f8fafc; border: 1px dashed #cbd5e1;
-  border-radius: 6px; font-size: 13px; color: #475569; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px; align-self: flex-start;
+  padding: 4px 10px; background: #f8fafc; border: 1px dashed #cbd5e1;
+  border-radius: 6px; font-size: 12px; color: #475569; cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
 .bullet-add:hover { background: #f1f5f9; border-color: #94a3b8; color: #1e293b; }
