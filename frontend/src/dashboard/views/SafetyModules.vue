@@ -781,9 +781,13 @@ async function submitEdit() {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 32px;
+  margin-bottom: 16px;
   gap: 16px;
   flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .btn-upload { width: 100%; justify-content: center; }
 }
 
 .page-header h2 {
@@ -935,8 +939,16 @@ async function submitEdit() {
 
 .modules-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 18px;
+}
+
+@media (max-width: 1024px) {
+  .modules-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .modules-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 .module-card {

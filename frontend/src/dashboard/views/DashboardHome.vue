@@ -48,7 +48,7 @@
       </svg>
       <h3>Tidak dapat memuat data</h3>
       <p>Pastikan server backend sudah berjalan, lalu refresh halaman ini.</p>
-      <button class="empty-btn" @click="() => window.location.reload()">
+      <button class="empty-btn" @click="loadDashboardData" :disabled="loading">
         Segarkan
       </button>
     </div>
@@ -2251,8 +2251,12 @@ function getLocationLabel(rec) {
   return parts.join(' / ') || 'No location specified';
 }
 
-onMounted(async () => {
+async function loadDashboardData() {
+  loading.value = true;
+  loadFailed.value = false;
+  let timedOut = false;
   const timeout = setTimeout(() => {
+    timedOut = true;
     loading.value = false;
     loadFailed.value = true;
   }, 30000);
@@ -2273,6 +2277,7 @@ onMounted(async () => {
       availablePlants.value = plants.value;
       hseAvailablePlants.value = plants.value;
     }
+    if (!timedOut) loadFailed.value = false;
   } catch (e) {
     console.error(e);
     loadFailed.value = true;
@@ -2285,7 +2290,9 @@ onMounted(async () => {
     }
     scrollHseBarToLatest();
   }
-});
+}
+
+onMounted(loadDashboardData);
 </script>
 
 <style scoped>
