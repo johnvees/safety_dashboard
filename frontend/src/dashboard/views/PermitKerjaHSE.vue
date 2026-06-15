@@ -810,7 +810,37 @@
                 />
               </div>
               <div class="form-group">
-                <label>Level Risiko</label>
+                <label
+                  >Level Risiko
+                  <span class="info-tooltip" @mouseenter="positionTooltip">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      width="13"
+                      height="13"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span class="tooltip-box" :style="risikoTooltipStyle">
+                      <span class="tooltip-row"
+                        ><b>Critical</b> — harus diselesaikan dalam waktu
+                        <b>24 jam</b></span
+                      >
+                      <span class="tooltip-row"
+                        ><b>Major</b> — harus diselesaikan dalam waktu
+                        <b>1 bulan</b></span
+                      >
+                      <span class="tooltip-row"
+                        ><b>Minor</b> — harus diselesaikan dalam waktu
+                        <b>2 bulan</b></span
+                      >
+                    </span>
+                  </span>
+                </label>
                 <select v-model="form.levelRisiko">
                   <option value="">Pilih level risiko</option>
                   <option value="Minor">Minor</option>
@@ -1520,6 +1550,20 @@ const defaultForm = () => ({
 });
 
 const form = ref(defaultForm());
+
+// Position the Level Risiko tooltip so it isn't clipped by the modal.
+const risikoTooltipStyle = ref({});
+function positionTooltip(e) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const width = 260;
+  let left = rect.left;
+  if (left + width > window.innerWidth - 12) left = window.innerWidth - width - 12;
+  if (left < 12) left = 12;
+  risikoTooltipStyle.value = {
+    left: `${left}px`,
+    top: `${rect.bottom + 8}px`,
+  };
+}
 
 const hseFilteredPlants = computed(() => {
   if (!form.value.businessUnitId) return [];
@@ -3458,5 +3502,50 @@ tbody tr.row-clickable:hover td {
     flex: 1 1 0;
     min-width: 0;
   }
+}
+
+/* ── Level Risiko info tooltip ── */
+.info-tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  vertical-align: middle;
+  color: #94a3b8;
+  cursor: default;
+}
+.info-tooltip svg {
+  display: block;
+}
+.tooltip-box {
+  visibility: hidden;
+  opacity: 0;
+  position: fixed;
+  background: #111827;
+  color: #f1f5f9;
+  font-size: 12px;
+  font-weight: 400;
+  border-radius: 8px;
+  padding: 10px 12px;
+  width: 260px;
+  max-width: calc(100vw - 24px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 9999;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+.info-tooltip:hover .tooltip-box {
+  visibility: visible;
+  opacity: 1;
+}
+.tooltip-row {
+  display: block;
+  line-height: 1.4;
+}
+.tooltip-row b {
+  color: #fff;
 }
 </style>

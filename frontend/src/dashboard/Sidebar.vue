@@ -339,6 +339,9 @@ async function handleLogout() {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  /* Reserve space for the scrollbar so opening a submenu doesn't shift
+     the chevron arrows left/right when the scrollbar appears. */
+  scrollbar-gutter: stable;
 }
 
 .nav-item {
