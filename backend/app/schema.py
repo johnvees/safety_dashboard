@@ -285,6 +285,7 @@ class CaseIncidentType:
     plant_name: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
+    comment_count: int = 0
 
 
 @strawberry.type
@@ -329,6 +330,7 @@ def _ci_to_type(r: models.CaseIncident, db=None) -> CaseIncidentType:
             plant_name=plant.name if plant else None,
             created_at=str(r.created_at) if r.created_at else None,
             updated_at=str(r.updated_at) if r.updated_at else None,
+            comment_count=_comment_count(db, "case_incident", r.id),
         )
     finally:
         if close_db:
@@ -642,7 +644,7 @@ class CommentPayload:
     comment: Optional[CommentType] = None
 
 
-_VALID_REPORT_TYPES = ("inspection_k3l", "hse_daily")
+_VALID_REPORT_TYPES = ("inspection_k3l", "hse_daily", "case_incident")
 
 
 def _comment_to_type(c: models.Comment, db: Session, current_user: models.User) -> CommentType:
@@ -671,6 +673,8 @@ def _can_access_report(db: Session, user: models.User, report_type: str, report_
         record = db.query(models.InspectionK3L).filter(models.InspectionK3L.id == report_id).first()
     elif report_type == "hse_daily":
         record = db.query(models.HseDailyReport).filter(models.HseDailyReport.id == report_id).first()
+    elif report_type == "case_incident":
+        record = db.query(models.CaseIncident).filter(models.CaseIncident.id == report_id).first()
     else:
         return False
     if not record:
@@ -1164,7 +1168,7 @@ class Query:
         db = _get_db()
         try:
             records = db.query(models.CaseIncident).order_by(models.CaseIncident.tanggal_kejadian.desc()).all()
-            return [_ci_to_type(r) for r in records]
+            return [_ci_to_type(r, db) for r in records]
         finally:
             db.close()
 

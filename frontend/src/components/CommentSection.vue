@@ -265,7 +265,7 @@ function isEdited(c) {
 
 .comment-compose { display: flex; flex-direction: column; gap: 6px; padding-top: 6px; }
 .comment-textarea {
-  width: 100%; border: 1px solid #e2e8f0; border-radius: 8px;
+  width: 100%; box-sizing: border-box; border: 1px solid #e2e8f0; border-radius: 8px;
   padding: 8px 12px; font-size: 13px; color: #1e293b; background: #fff;
   outline: none; resize: vertical; font-family: inherit;
   transition: border-color 0.15s, box-shadow 0.15s;

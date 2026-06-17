@@ -212,7 +212,7 @@ class Comment(Base):
     __tablename__ = "report_comments"
 
     id = Column(Integer, primary_key=True, index=True)
-    report_type = Column(String(20), nullable=False)  # 'inspection_k3l' or 'hse_daily'
+    report_type = Column(String(20), nullable=False)  # 'inspection_k3l' | 'hse_daily' | 'case_incident'
     report_id = Column(Integer, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     content = Column(Text, nullable=False)
@@ -221,7 +221,7 @@ class Comment(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "report_type IN ('inspection_k3l', 'hse_daily')",
+            "report_type IN ('inspection_k3l', 'hse_daily', 'case_incident')",
             name="report_comments_report_type_check",
         ),
     )

@@ -276,7 +276,7 @@
               </td>
               <td class="col-actions" @click.stop>
                 <div class="actions-wrap">
-                <button class="btn-icon btn-del" @click="confirmDelete(r)" title="Hapus">
+                <button class="btn-icon btn-danger" @click="confirmDelete(r)" title="Hapus">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                     <polyline points="3 6 5 6 21 6"/>
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -360,7 +360,7 @@
                 </span>
               </div>
               <div class="rc-actions" @click.stop>
-                <button class="btn-icon btn-del" @click="confirmDelete(r)" title="Hapus">
+                <button class="btn-icon btn-danger" @click="confirmDelete(r)" title="Hapus">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                     <polyline points="3 6 5 6 21 6"/>
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -2665,11 +2665,11 @@ td:not(:first-child) {
   background: #e2e8f0;
   color: #3b82f6;
 }
-.btn-del {
+.btn-danger {
   background: #fef2f2;
   color: #ef4444;
 }
-.btn-del:hover {
+.btn-danger:hover {
   background: #fee2e2;
   color: #dc2626;
 }
@@ -2680,6 +2680,8 @@ td:not(:first-child) {
 tbody tr.row-clickable:hover td {
   background: #f8fafc;
 }
+tbody tr.row-clickable:hover .btn-icon { background: #e2e8f0; }
+tbody tr.row-clickable:hover .btn-danger { background: #fecaca; }
 .col-pekerjaan {
   max-width: 200px;
   overflow: hidden;
@@ -2755,7 +2757,7 @@ tbody tr.row-clickable:hover td {
 }
 .col-actions .actions-wrap {
   display: flex;
-  gap: 2px;
+  gap: 6px;
   align-items: center;
   justify-content: center;
 }

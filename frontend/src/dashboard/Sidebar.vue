@@ -201,8 +201,8 @@
         <div class="sidebar-user-details">
           <span class="sidebar-user-name">{{ displayName }}</span>
           <span class="sidebar-user-meta"
-            >{{ user?.role || "-"
-            }}{{ user?.businessUnit ? " · " + user.businessUnit : "" }}</span
+            >{{ user?.role || '-'
+            }}{{ user?.businessUnit ? ' · ' + user.businessUnit : '' }}</span
           >
         </div>
       </div>
@@ -223,10 +223,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { authService } from "@/services/authService";
-import { disablePush } from "@/services/pushService.js";
+import { ref, computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { authService } from '@/services/authService';
+import { disablePush } from '@/services/pushService.js';
 
 defineProps({ open: { type: Boolean, default: true } });
 
@@ -234,33 +234,33 @@ const route = useRoute();
 const router = useRouter();
 
 const isReportsActive = computed(() =>
-  route.path.startsWith("/dashboard/reports"),
+  route.path.startsWith('/dashboard/reports'),
 );
 const reportsOpen = ref(isReportsActive.value);
 
-const isHseActive = computed(() => route.path.startsWith("/dashboard/modules"));
+const isHseActive = computed(() => route.path.startsWith('/dashboard/modules'));
 const hseOpen = ref(isHseActive.value);
 
 const user = authService.getCurrentUser();
 const isAdmin = authService.isAdmin();
 const canAccessMasterData = authService.canAccessMasterData();
 const displayName = computed(
-  () => user?.fullName || user?.username || user?.email || "",
+  () => user?.fullName || user?.username || user?.email || '',
 );
 const initials = computed(() => {
-  const name = user?.fullName || user?.username || user?.email || "U";
+  const name = user?.fullName || user?.username || user?.email || 'U';
   return name
-    .split(" ")
+    .split(' ')
     .slice(0, 2)
     .map((w) => w[0].toUpperCase())
-    .join("");
+    .join('');
 });
 
 async function handleLogout() {
   // Remove this browser's push subscription while the token is still valid.
   await disablePush();
   authService.logout();
-  router.push("/login");
+  router.push('/login');
 }
 </script>
 
@@ -279,6 +279,7 @@ async function handleLogout() {
 .sidebar > * {
   width: 240px;
   min-width: 240px;
+  box-sizing: border-box;
 }
 
 .sidebar.collapsed {

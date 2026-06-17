@@ -19,7 +19,14 @@
             :disabled="filteredRecords.length === 0"
             title="Ekspor data ke Excel"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              width="14"
+              height="14"
+            >
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
@@ -35,7 +42,10 @@
           v-for="opt in DATE_PRESETS"
           :key="opt.value"
           class="date-chip"
-          :class="{ active: filterDate === opt.value, 'chip-today': opt.value === 'today' }"
+          :class="{
+            active: filterDate === opt.value,
+            'chip-today': opt.value === 'today',
+          }"
           @click="setDatePreset(opt.value)"
         >
           {{ opt.label }}
@@ -43,116 +53,347 @@
       </div>
       <div v-if="filterDate === 'custom'" class="custom-date-row">
         <label class="toolbar-date-wrap">
-          <input type="date" v-model="customDateFrom" class="toolbar-date" @click="$event.target.showPicker?.()" />
+          <input
+            type="date"
+            v-model="customDateFrom"
+            class="toolbar-date"
+            @click="$event.target.showPicker?.()"
+          />
         </label>
         <span class="date-sep">–</span>
         <label class="toolbar-date-wrap">
-          <input type="date" v-model="customDateTo" class="toolbar-date" @click="$event.target.showPicker?.()" />
+          <input
+            type="date"
+            v-model="customDateTo"
+            class="toolbar-date"
+            @click="$event.target.showPicker?.()"
+          />
         </label>
       </div>
 
       <!-- Filter bar -->
       <div class="filter-bar">
-      <div class="search-wrapper">
-        <svg
-          class="search-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          width="15"
-          height="15"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-        <input
-          type="text"
-          v-model="searchQuery"
-          class="search-input"
-          placeholder="Cari korban, pelapor, lokasi..."
-        />
+        <div class="search-wrapper">
+          <svg
+            class="search-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            width="15"
+            height="15"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            type="text"
+            v-model="searchQuery"
+            class="search-input"
+            placeholder="Cari korban, pelapor, lokasi..."
+          />
+          <button
+            v-if="searchQuery"
+            class="search-clear"
+            @click="searchQuery = ''"
+          >
+            &times;
+          </button>
+        </div>
+
+        <select v-model="filterJenis" class="filter-select">
+          <option value="">Semua Jenis</option>
+          <option value="Near Miss">Near Miss</option>
+          <option value="P3K">P3K</option>
+          <option value="Medical Treatment">Medical Treatment</option>
+          <option value="LTI (Lost Time Injury)">LTI (Lost Time Injury)</option>
+          <option value="Fire">Fire</option>
+          <option value="Explosion">Explosion</option>
+          <option value="Konsleting Listrik">Konsleting Listrik</option>
+          <option value="Kerusakan Properti">Kerusakan Properti</option>
+          <option value="Kecelakaan Transportasi">
+            Kecelakaan Transportasi
+          </option>
+          <option value="Fatality">Fatality</option>
+          <option value="Pencemaran / Polusi Lingkungan">
+            Pencemaran / Polusi Lingkungan
+          </option>
+        </select>
+
+        <select v-model="filterStatus" class="filter-select">
+          <option value="">Semua Status</option>
+          <option value="Open">Open</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Closed">Closed</option>
+        </select>
+
         <button
-          v-if="searchQuery"
-          class="search-clear"
-          @click="searchQuery = ''"
+          v-if="hasActiveFilters"
+          class="btn-reset-filters"
+          @click="resetFilters"
         >
-          &times;
+          Reset
         </button>
+        <span v-if="hasActiveFilters" class="filter-count"
+          >{{ filteredRecords.length }} / {{ records.length }} data</span
+        >
       </div>
 
-      <select v-model="filterJenis" class="filter-select">
-        <option value="">Semua Jenis</option>
-        <option value="Near Miss">Near Miss</option>
-        <option value="P3K">P3K</option>
-        <option value="Medical Treatment">Medical Treatment</option>
-        <option value="LTI (Lost Time Injury)">LTI (Lost Time Injury)</option>
-        <option value="Fire">Fire</option>
-        <option value="Explosion">Explosion</option>
-        <option value="Konsleting Listrik">Konsleting Listrik</option>
-        <option value="Kerusakan Properti">Kerusakan Properti</option>
-        <option value="Kecelakaan Transportasi">Kecelakaan Transportasi</option>
-        <option value="Fatality">Fatality</option>
-        <option value="Pencemaran / Polusi Lingkungan">
-          Pencemaran / Polusi Lingkungan
-        </option>
-      </select>
+      <!-- Table -->
+      <div class="table-wrapper">
+        <div v-if="loading" class="ci-loading">
+          <div class="ci-spinner"></div>
+          <span>Memuat data…</span>
+        </div>
+        <table v-else-if="pagedRecords.length > 0">
+          <thead>
+            <tr>
+              <th style="text-align: center; width: 48px">No</th>
+              <th>Aksi</th>
+              <th>Tanggal Kejadian</th>
+              <th>Tanggal Pelaporan</th>
+              <th>Business Unit</th>
+              <th>Plant</th>
+              <th>Nama Pelapor</th>
+              <th>Nama Korban</th>
+              <th>Status Karyawan</th>
+              <th>Jenis Kecelakaan</th>
+              <th>Lokasi</th>
+              <th style="text-align: center">Foto</th>
+              <th>Status</th>
+              <th style="text-align: center">Komentar</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="(item, idx) in pagedRecords"
+              :key="item.id"
+              :class="[
+                'row-clickable',
+                {
+                  'row-overdue': isOverdueRow(item),
+                  'row-warning-urgent': isUrgentWarningRow(item),
+                  'row-warning-soon': isSoonWarningRow(item),
+                },
+              ]"
+              @click="viewRecord(item)"
+            >
+              <td style="text-align: center">
+                {{ (ciCurrentPage - 1) * ciPerPage + idx + 1 }}
+              </td>
+              <td class="td-actions" @click.stop>
+                <div class="actions-wrap">
+                  <button
+                    class="btn-icon btn-danger"
+                    title="Hapus"
+                    @click="deleteRecord(item)"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      width="16"
+                      height="16"
+                    >
+                      <polyline points="3 6 5 6 21 6" />
+                      <path
+                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </td>
+              <td class="td-nowrap">{{ formatDate(item.tanggalKejadian) }}</td>
+              <td class="td-nowrap">
+                {{
+                  item.tanggalPelaporan
+                    ? formatDate(item.tanggalPelaporan)
+                    : '-'
+                }}
+              </td>
+              <td class="td-nowrap">
+                {{
+                  item.businessUnitName ||
+                  getBusinessUnitName(item.businessUnitId)
+                }}
+              </td>
+              <td class="td-nowrap">
+                {{ item.plantName || getPlantName(item.plantId) }}
+              </td>
+              <td class="td-nowrap">{{ item.namaPelapor || '-' }}</td>
+              <td class="td-nowrap">{{ item.namaKorban || '-' }}</td>
+              <td class="td-nowrap">{{ item.statusKaryawan || '-' }}</td>
+              <td>
+                <span
+                  :class="['jenis-badge', jenisClass(item.jenisKecelakaan)]"
+                  >{{ item.jenisKecelakaan || '-' }}</span
+                >
+              </td>
+              <td class="td-truncate">{{ item.lokasiKecelakaan || '-' }}</td>
+              <td style="text-align: center" @click.stop>
+                <button
+                  v-if="parsePhotos(item.fotoKejadian).length"
+                  class="photo-count-badge photo-count-btn"
+                  @click="
+                    openPhotoModalFromUrls(parsePhotos(item.fotoKejadian), 0)
+                  "
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    width="13"
+                    height="13"
+                  >
+                    <path
+                      d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
+                    />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
+                  {{ parsePhotos(item.fotoKejadian).length }}
+                </button>
+                <span v-else class="text-muted">-</span>
+              </td>
+              <td style="text-align: center">
+                <span
+                  :class="[
+                    'status-badge',
+                    `status-${(item.status || 'open').toLowerCase().replace(' ', '-')}`,
+                  ]"
+                >
+                  {{ item.status || 'Open' }}
+                </span>
+              </td>
+              <td style="text-align: center">
+                <span
+                  class="comment-badge"
+                  :class="{ 'has-comments': (item.commentCount || 0) > 0 }"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    width="13"
+                    height="13"
+                  >
+                    <path
+                      d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                    />
+                  </svg>
+                  {{ item.commentCount || 0 }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
-      <select v-model="filterStatus" class="filter-select">
-        <option value="">Semua Status</option>
-        <option value="Open">Open</option>
-        <option value="In Progress">In Progress</option>
-        <option value="Closed">Closed</option>
-      </select>
-
-      <button
-        v-if="hasActiveFilters"
-        class="btn-reset-filters"
-        @click="resetFilters"
-      >
-        Reset
-      </button>
-      <span v-if="hasActiveFilters" class="filter-count"
-        >{{ filteredRecords.length }} / {{ records.length }} data</span
-      >
-    </div>
-
-    <!-- Table -->
-    <div class="table-wrapper">
-      <div v-if="loading" class="ci-loading">
-        <div class="ci-spinner"></div>
-        <span>Memuat data…</span>
-      </div>
-      <table v-else-if="pagedRecords.length > 0">
-        <thead>
-          <tr>
-            <th style="text-align: center; width: 48px">No</th>
-            <th>Aksi</th>
-            <th>Tanggal Kejadian</th>
-            <th>Tanggal Pelaporan</th>
-            <th>Business Unit</th>
-            <th>Plant</th>
-            <th>Nama Pelapor</th>
-            <th>Nama Korban</th>
-            <th>Status Karyawan</th>
-            <th>Jenis Kecelakaan</th>
-            <th>Lokasi</th>
-            <th style="text-align: center">Foto</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
+        <!-- Mobile card list -->
+        <div class="card-list" v-if="!loading && pagedRecords.length > 0">
+          <div
             v-for="(item, idx) in pagedRecords"
             :key="item.id"
-            :class="['row-clickable', { 'row-overdue': isOverdueRow(item), 'row-warning-urgent': isUrgentWarningRow(item), 'row-warning-soon': isSoonWarningRow(item) }]"
+            :class="[
+              'row-card',
+              {
+                'row-overdue': isOverdueRow(item),
+                'row-warning-urgent': isUrgentWarningRow(item),
+                'row-warning-soon': isSoonWarningRow(item),
+              },
+            ]"
             @click="viewRecord(item)"
           >
-            <td style="text-align: center">
-              {{ (ciCurrentPage - 1) * ciPerPage + idx + 1 }}
-            </td>
-            <td class="td-actions" @click.stop>
-              <div class="actions-wrap">
+            <div class="rc-head">
+              <div>
+                <div class="rc-title">
+                  {{ item.namaKorban || 'Tanpa nama korban' }}
+                </div>
+                <div class="rc-sub">{{ formatDate(item.tanggalKejadian) }}</div>
+              </div>
+              <span
+                :class="['jenis-badge', jenisClass(item.jenisKecelakaan)]"
+                >{{ item.jenisKecelakaan || '-' }}</span
+              >
+            </div>
+            <div class="rc-body">
+              <div class="rc-row">
+                <span class="rc-label">Pelapor</span
+                ><span class="rc-value">{{ item.namaPelapor || '-' }}</span>
+              </div>
+              <div class="rc-row">
+                <span class="rc-label">Lokasi</span
+                ><span class="rc-value">{{
+                  item.lokasiKecelakaan || '-'
+                }}</span>
+              </div>
+              <div class="rc-row">
+                <span class="rc-label">Plant</span
+                ><span class="rc-value">{{
+                  item.plantName || getPlantName(item.plantId)
+                }}</span>
+              </div>
+              <div class="rc-row">
+                <span class="rc-label">Status Karyawan</span
+                ><span class="rc-value">{{ item.statusKaryawan || '-' }}</span>
+              </div>
+              <div class="rc-row" v-if="parsePhotos(item.fotoKejadian).length">
+                <span class="rc-label">Foto</span>
+                <span class="rc-value">
+                  <button
+                    class="photo-count-badge photo-count-btn"
+                    @click.stop="
+                      openPhotoModalFromUrls(parsePhotos(item.fotoKejadian), 0)
+                    "
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      width="13"
+                      height="13"
+                    >
+                      <path
+                        d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
+                      />
+                      <circle cx="12" cy="13" r="4" />
+                    </svg>
+                    {{ parsePhotos(item.fotoKejadian).length }}
+                  </button>
+                </span>
+              </div>
+            </div>
+            <div class="rc-footer">
+              <div class="rc-foot-badges">
+                <span
+                  :class="[
+                    'status-badge',
+                    `status-${(item.status || 'open').toLowerCase().replace(' ', '-')}`,
+                  ]"
+                  >{{ item.status || 'Open' }}</span
+                >
+                <span
+                  class="comment-badge"
+                  :class="{ 'has-comments': (item.commentCount || 0) > 0 }"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    width="13"
+                    height="13"
+                  >
+                    <path
+                      d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                    />
+                  </svg>
+                  {{ item.commentCount || 0 }}
+                </span>
+              </div>
+              <div class="rc-actions" @click.stop>
                 <button
                   class="btn-icon btn-danger"
                   title="Hapus"
@@ -173,118 +414,10 @@
                   </svg>
                 </button>
               </div>
-            </td>
-            <td class="td-nowrap">{{ formatDate(item.tanggalKejadian) }}</td>
-            <td class="td-nowrap">
-              {{
-                item.tanggalPelaporan ? formatDate(item.tanggalPelaporan) : '-'
-              }}
-            </td>
-            <td class="td-nowrap">
-              {{
-                item.businessUnitName ||
-                getBusinessUnitName(item.businessUnitId)
-              }}
-            </td>
-            <td class="td-nowrap">
-              {{ item.plantName || getPlantName(item.plantId) }}
-            </td>
-            <td class="td-nowrap">{{ item.namaPelapor || '-' }}</td>
-            <td class="td-nowrap">{{ item.namaKorban || '-' }}</td>
-            <td class="td-nowrap">{{ item.statusKaryawan || '-' }}</td>
-            <td>
-              <span
-                :class="['jenis-badge', jenisClass(item.jenisKecelakaan)]"
-                >{{ item.jenisKecelakaan || '-' }}</span
-              >
-            </td>
-            <td class="td-truncate">{{ item.lokasiKecelakaan || '-' }}</td>
-            <td style="text-align: center" @click.stop>
-              <button
-                v-if="parsePhotos(item.fotoKejadian).length"
-                class="photo-count-badge photo-count-btn"
-                @click="
-                  openPhotoModalFromUrls(parsePhotos(item.fotoKejadian), 0)
-                "
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  width="13"
-                  height="13"
-                >
-                  <path
-                    d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
-                  />
-                  <circle cx="12" cy="13" r="4" />
-                </svg>
-                {{ parsePhotos(item.fotoKejadian).length }}
-              </button>
-              <span v-else class="text-muted">-</span>
-            </td>
-            <td style="text-align: center">
-              <span
-                :class="[
-                  'status-badge',
-                  `status-${(item.status || 'open').toLowerCase().replace(' ', '-')}`,
-                ]"
-              >
-                {{ item.status || 'Open' }}
-              </span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- Mobile card list -->
-      <div class="card-list" v-if="!loading && pagedRecords.length > 0">
-        <div
-          v-for="(item, idx) in pagedRecords"
-          :key="item.id"
-          :class="['row-card', { 'row-overdue': isOverdueRow(item), 'row-warning-urgent': isUrgentWarningRow(item), 'row-warning-soon': isSoonWarningRow(item) }]"
-          @click="viewRecord(item)"
-        >
-          <div class="rc-head">
-            <div>
-              <div class="rc-title">{{ item.namaKorban || 'Tanpa nama korban' }}</div>
-              <div class="rc-sub">{{ formatDate(item.tanggalKejadian) }}</div>
-            </div>
-            <span :class="['jenis-badge', jenisClass(item.jenisKecelakaan)]">{{ item.jenisKecelakaan || '-' }}</span>
-          </div>
-          <div class="rc-body">
-            <div class="rc-row"><span class="rc-label">Pelapor</span><span class="rc-value">{{ item.namaPelapor || '-' }}</span></div>
-            <div class="rc-row"><span class="rc-label">Lokasi</span><span class="rc-value">{{ item.lokasiKecelakaan || '-' }}</span></div>
-            <div class="rc-row"><span class="rc-label">Plant</span><span class="rc-value">{{ item.plantName || getPlantName(item.plantId) }}</span></div>
-            <div class="rc-row"><span class="rc-label">Status Karyawan</span><span class="rc-value">{{ item.statusKaryawan || '-' }}</span></div>
-            <div class="rc-row" v-if="parsePhotos(item.fotoKejadian).length">
-              <span class="rc-label">Foto</span>
-              <span class="rc-value">
-                <button class="photo-count-badge photo-count-btn" @click.stop="openPhotoModalFromUrls(parsePhotos(item.fotoKejadian), 0)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                    <circle cx="12" cy="13" r="4"/>
-                  </svg>
-                  {{ parsePhotos(item.fotoKejadian).length }}
-                </button>
-              </span>
-            </div>
-          </div>
-          <div class="rc-footer">
-            <span :class="['status-badge', `status-${(item.status || 'open').toLowerCase().replace(' ', '-')}`]">{{ item.status || 'Open' }}</span>
-            <div class="rc-actions" @click.stop>
-              <button class="btn-icon btn-danger" title="Hapus" @click="deleteRecord(item)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                  <polyline points="3 6 5 6 21 6"/>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                </svg>
-              </button>
             </div>
           </div>
         </div>
       </div>
-
       <PaginationBar
         v-if="!loading && pagedRecords.length > 0"
         :current-page="ciCurrentPage"
@@ -319,7 +452,6 @@
         <p>
           Belum ada laporan insiden. Klik "+ Tambah Laporan" untuk menambahkan.
         </p>
-      </div>
       </div>
     </div>
 
@@ -733,7 +865,11 @@
                           style="display: none"
                         />
                       </label>
-                      <button type="button" class="photo-btn" @click="openCamera">
+                      <button
+                        type="button"
+                        class="photo-btn"
+                        @click="openCamera"
+                      >
                         <svg
                           viewBox="0 0 24 24"
                           fill="none"
@@ -1180,6 +1316,13 @@
                     }}</span>
                   </div>
                 </div>
+                <div class="detail-section detail-comments">
+                  <CommentSection
+                    :report-type="'case_incident'"
+                    :report-id="viewingRecord.id"
+                    @count-change="onCommentCountChange"
+                  />
+                </div>
               </div>
             </div>
             <div class="modal-footer-bar">
@@ -1438,6 +1581,7 @@ import { usePagination } from '@/composables/usePagination.js';
 import { exportToCsv } from '@/services/exportCsvService.js';
 import PaginationBar from '@/components/PaginationBar.vue';
 import CameraCaptureModal from '@/components/CameraCaptureModal.vue';
+import CommentSection from '@/components/CommentSection.vue';
 
 const currentUser = authService.getCurrentUser();
 const roleLevel = authService.getRoleLevel();
@@ -1464,6 +1608,7 @@ const loading = ref(false);
 
 async function loadRecords() {
   loading.value = true;
+  caseIncidentService.bustList();
   try {
     records.value = await caseIncidentService.list();
   } catch (e) {
@@ -1514,7 +1659,10 @@ function matchesDateFilter(item) {
     return d >= start && d <= end;
   }
   if (filterDate.value === 'month') {
-    return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+    return (
+      d.getMonth() === today.getMonth() &&
+      d.getFullYear() === today.getFullYear()
+    );
   }
   if (filterDate.value === 'custom') {
     if (customDateFrom.value) {
@@ -1597,14 +1745,18 @@ function resetFilters() {
 
 // ── Excel export ──
 function buildCiExport(source) {
-  const parsedFotos = source.map(r => parsePhotos(r.fotoKejadian));
-  const maxFotos = Math.max(parsedFotos.reduce((m, p) => Math.max(m, p.length), 0), 1);
+  const parsedFotos = source.map((r) => parsePhotos(r.fotoKejadian));
+  const maxFotos = Math.max(
+    parsedFotos.reduce((m, p) => Math.max(m, p.length), 0),
+    1,
+  );
   const fotoCols = Array.from({ length: maxFotos }, (_, i) => ({
     label: maxFotos === 1 ? 'Foto Kejadian' : `Foto Kejadian ${i + 1}`,
     key: `foto_${i}`,
     image: true,
   }));
-  const deptName = (id) => departments.value.find(d => d.id === id)?.name || '';
+  const deptName = (id) =>
+    departments.value.find((d) => d.id === id)?.name || '';
 
   const columns = [
     { label: 'No', key: 'no' },
@@ -1633,7 +1785,9 @@ function buildCiExport(source) {
     return {
       no: idx + 1,
       tanggalKejadian: r.tanggalKejadian ? formatDate(r.tanggalKejadian) : '',
-      tanggalPelaporan: r.tanggalPelaporan ? formatDate(r.tanggalPelaporan) : '',
+      tanggalPelaporan: r.tanggalPelaporan
+        ? formatDate(r.tanggalPelaporan)
+        : '',
       businessUnit: r.businessUnitName || getBusinessUnitName(r.businessUnitId),
       plant: r.plantName || getPlantName(r.plantId),
       namaPelapor: r.namaPelapor || '',
@@ -2176,6 +2330,14 @@ function closeViewModal() {
   viewingRecord.value = null;
 }
 
+function onCommentCountChange(count) {
+  if (!viewingRecord.value) return;
+  viewingRecord.value.commentCount = count;
+  const idx = records.value.findIndex((r) => r.id === viewingRecord.value.id);
+  if (idx !== -1)
+    records.value[idx] = { ...records.value[idx], commentCount: count };
+}
+
 function openEditFromDetail() {
   const r = viewingRecord.value;
   closeViewModal();
@@ -2328,20 +2490,43 @@ onMounted(async () => {
 
 /* ── Filter bar ── */
 .filter-bar {
-  display: flex; align-items: center; gap: 10px; flex-wrap: nowrap;
-  padding: 12px 20px; border-bottom: 1px solid #f1f5f9;
-  overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  padding: 12px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
-.filter-bar::-webkit-scrollbar { display: none; }
+.filter-bar::-webkit-scrollbar {
+  display: none;
+}
 /* Data header export button */
 .btn-export {
-  display: inline-flex; align-items: center; gap: 5px;
-  background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0;
-  border-radius: 6px; padding: 7px 12px; font-size: 13px; font-weight: 500;
-  cursor: pointer; white-space: nowrap; transition: background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
 }
-.btn-export:hover:not(:disabled) { background: #dcfce7; border-color: #86efac; }
-.btn-export:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-export:hover:not(:disabled) {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+.btn-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 /* Date filter chips */
 .date-filter-row {
   display: flex;
@@ -2357,26 +2542,61 @@ onMounted(async () => {
   display: none;
 }
 .date-chip {
-  background: #f1f5f9; border: 1px solid transparent; border-radius: 20px;
-  padding: 5px 14px; font-size: 13px; color: #64748b; cursor: pointer;
-  transition: all 0.15s; white-space: nowrap; flex-shrink: 0;
+  background: #f1f5f9;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 13px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
-.date-chip:hover { background: #e2e8f0; color: #1e293b; }
-.date-chip.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+.date-chip:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+.date-chip.active {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+}
 .custom-date-row {
-  display: flex; align-items: center; gap: 8px;
-  padding: 0 16px 10px; flex-wrap: wrap; border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 10px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #f1f5f9;
 }
 .toolbar-date-wrap {
-  display: inline-flex; border: 1px solid #cbd5e1; border-radius: 8px;
-  background: #fff; overflow: hidden; cursor: pointer; transition: border-color 0.15s;
+  display: inline-flex;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s;
 }
-.toolbar-date-wrap:focus-within { border-color: #3b82f6; }
+.toolbar-date-wrap:focus-within {
+  border-color: #3b82f6;
+}
 .toolbar-date {
-  border: none; background: transparent; color: #1e293b; font-size: 13px;
-  padding: 6px 10px; outline: none; cursor: pointer; color-scheme: light; width: 140px;
+  border: none;
+  background: transparent;
+  color: #1e293b;
+  font-size: 13px;
+  padding: 6px 10px;
+  outline: none;
+  cursor: pointer;
+  color-scheme: light;
+  width: 140px;
 }
-.date-sep { color: #94a3b8; font-size: 13px; }
+.date-sep {
+  color: #94a3b8;
+  font-size: 13px;
+}
 .search-wrapper {
   position: relative;
   display: flex;
@@ -2463,28 +2683,87 @@ onMounted(async () => {
 }
 
 /* ── Mobile card list ── */
-.card-list { display: none; }
+.card-list {
+  display: none;
+}
 .row-card {
-  border: 1px solid #e2e8f0; border-radius: 12px; background: #fff;
-  padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;
-  cursor: pointer; transition: box-shadow 0.15s;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
 }
-.row-card:active { box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
-.rc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-.rc-title { font-size: 14px; font-weight: 700; color: #1e293b; line-height: 1.3; }
-.rc-sub { font-size: 12px; color: #64748b; margin-top: 2px; }
-.rc-body { display: flex; flex-direction: column; gap: 6px; }
-.rc-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
-.rc-label { color: #64748b; flex-shrink: 0; }
-.rc-value { color: #1e293b; text-align: right; word-break: break-word; }
+.row-card:active {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+.rc-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.rc-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.3;
+}
+.rc-sub {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+.rc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rc-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+.rc-label {
+  color: #64748b;
+  flex-shrink: 0;
+}
+.rc-value {
+  color: #1e293b;
+  text-align: right;
+  word-break: break-word;
+}
 .rc-footer {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding-top: 10px; border-top: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
 }
-.rc-actions { display: flex; gap: 6px; }
+.rc-foot-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rc-actions {
+  display: flex;
+  gap: 6px;
+}
 @media (max-width: 768px) {
-  .table-wrapper table { display: none; }
-  .card-list { display: flex; flex-direction: column; gap: 12px; padding: 12px; }
+  .table-wrapper table {
+    display: none;
+  }
+  .card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+  }
 }
 
 table {
@@ -2497,61 +2776,182 @@ thead tr {
   border-bottom: 1px solid #e2e8f0;
 }
 thead th {
-  padding: 11px 14px; font-size: 12px; font-weight: 700; color: #64748b;
-  text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap;
+  padding: 11px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
   text-align: center;
 }
-tbody tr { border-bottom: 1px solid #f1f5f9; transition: background 0.1s; }
-tbody tr:last-child { border-bottom: none; }
-tbody tr:hover { background: #f8fafc; }
-tbody td { padding: 10px 14px; font-size: 13px; color: #1e293b; text-align: left; }
+tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.1s;
+}
+tbody tr:last-child {
+  border-bottom: none;
+}
+tbody tr:hover {
+  background: #f8fafc;
+}
+tbody tr:not(.row-overdue):not(.row-warning-urgent):not(.row-warning-soon):hover .btn-icon { background: #e2e8f0; }
+tbody tr:not(.row-overdue):not(.row-warning-urgent):not(.row-warning-soon):hover .btn-danger { background: #fecaca; }
+tbody td {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #1e293b;
+  text-align: left;
+}
 /* Vertical dividers between columns */
 thead th:not(:first-child),
-tbody td:not(:first-child) { border-left: 1px solid #e2e8f0; }
+tbody td:not(:first-child) {
+  border-left: 1px solid #e2e8f0;
+}
 
-.row-clickable { cursor: pointer; }
-.row-card.row-overdue { border-color: #fecaca; background: #fff5f5; animation: pulse-overdue-card 1.2s ease-in-out 0s 3; }
-.row-card.row-warning-urgent { border-color: #fdba74; background: #fff7ed; animation: pulse-warning-urgent-card 1.2s ease-in-out 0s 3; }
-.row-card.row-warning-soon { border-color: #fde68a; background: #fffbeb; animation: pulse-warning-soon-card 1.2s ease-in-out 0s 3; }
-tbody tr.row-overdue { background: #fff1f1; animation: pulse-overdue 1.2s ease-in-out 0s 3; }
-tbody tr.row-overdue td { border-top: 0.5px solid #f87171; border-bottom: 0.5px solid #f87171; }
-tbody tr.row-overdue:hover { background: #ffe4e4; }
-tbody tr.row-warning-urgent { background: #fff7ed; animation: pulse-warning-urgent 1.2s ease-in-out 0s 3; }
-tbody tr.row-warning-urgent td { border-top: 0.5px solid #fb923c; border-bottom: 0.5px solid #fb923c; }
-tbody tr.row-warning-urgent:hover { background: #ffedd5; }
-tbody tr.row-warning-soon { background: #fffbeb; animation: pulse-warning-soon 1.2s ease-in-out 0s 3; }
-tbody tr.row-warning-soon td { border-top: 0.5px solid #fbbf24; border-bottom: 0.5px solid #fbbf24; }
-tbody tr.row-warning-soon:hover { background: #fef3c7; }
+.row-clickable {
+  cursor: pointer;
+}
+.row-card.row-overdue {
+  border-color: #fecaca;
+  background: #fff5f5;
+  animation: pulse-overdue-card 1.2s ease-in-out 0s 3;
+}
+.row-card.row-warning-urgent {
+  border-color: #fdba74;
+  background: #fff7ed;
+  animation: pulse-warning-urgent-card 1.2s ease-in-out 0s 3;
+}
+.row-card.row-warning-soon {
+  border-color: #fde68a;
+  background: #fffbeb;
+  animation: pulse-warning-soon-card 1.2s ease-in-out 0s 3;
+}
+tbody tr.row-overdue {
+  background: #fff1f1;
+  animation: pulse-overdue 1.2s ease-in-out 0s 3;
+}
+tbody tr.row-overdue td {
+  border-top: 0.5px solid #f87171;
+  border-bottom: 0.5px solid #f87171;
+}
+tbody tr.row-overdue:hover {
+  background: #ffe4e4;
+}
+tbody tr.row-warning-urgent {
+  background: #ffedd5;
+  animation: pulse-warning-urgent 1.2s ease-in-out 0s 3;
+}
+tbody tr.row-warning-urgent td {
+  border-top: 0.5px solid #fb923c;
+  border-bottom: 0.5px solid #fb923c;
+}
+tbody tr.row-warning-urgent:hover {
+  background: #fed7aa;
+}
+tbody tr.row-warning-soon {
+  background: #fef9c3;
+  animation: pulse-warning-soon 1.2s ease-in-out 0s 3;
+}
+tbody tr.row-warning-soon td {
+  border-top: 0.5px solid #fbbf24;
+  border-bottom: 0.5px solid #fbbf24;
+}
+tbody tr.row-warning-soon:hover {
+  background: #fef08a;
+}
+
+/* btn visibility on colored rows */
+tbody tr.row-overdue .btn-icon            { background: rgba(255,255,255,0.8); }
+tbody tr.row-overdue .btn-danger          { background: #fecaca; }
+tbody tr.row-overdue:hover .btn-icon      { background: #fff; }
+tbody tr.row-overdue:hover .btn-danger    { background: #fca5a5; }
+
+tbody tr.row-warning-urgent .btn-icon            { background: rgba(255,255,255,0.8); }
+tbody tr.row-warning-urgent .btn-danger          { background: #fed7aa; }
+tbody tr.row-warning-urgent:hover .btn-icon      { background: #fff; }
+tbody tr.row-warning-urgent:hover .btn-danger    { background: #fdba74; }
+
+tbody tr.row-warning-soon .btn-icon            { background: rgba(255,255,255,0.8); }
+tbody tr.row-warning-soon .btn-danger          { background: #fde68a; }
+tbody tr.row-warning-soon:hover .btn-icon      { background: #fff; }
+tbody tr.row-warning-soon:hover .btn-danger    { background: #fcd34d; }
 
 @keyframes pulse-overdue {
-  0%, 100% { background-color: #fff1f1; }
-  50% { background-color: #fecaca; }
+  0%,
+  100% {
+    background-color: #fff1f1;
+  }
+  50% {
+    background-color: #fecaca;
+  }
 }
 @keyframes pulse-warning-urgent {
-  0%, 100% { background-color: #fff7ed; }
-  50% { background-color: #fdba74; }
+  0%,
+  100% {
+    background-color: #fff7ed;
+  }
+  50% {
+    background-color: #fdba74;
+  }
 }
 @keyframes pulse-warning-soon {
-  0%, 100% { background-color: #fffbeb; }
-  50% { background-color: #fde68a; }
+  0%,
+  100% {
+    background-color: #fffbeb;
+  }
+  50% {
+    background-color: #fde68a;
+  }
 }
 @keyframes pulse-overdue-card {
-  0%, 100% { background-color: #fff5f5; }
-  50% { background-color: #fecaca; }
+  0%,
+  100% {
+    background-color: #fff5f5;
+  }
+  50% {
+    background-color: #fecaca;
+  }
 }
 @keyframes pulse-warning-urgent-card {
-  0%, 100% { background-color: #fff7ed; }
-  50% { background-color: #fdba74; }
+  0%,
+  100% {
+    background-color: #fff7ed;
+  }
+  50% {
+    background-color: #fdba74;
+  }
 }
 @keyframes pulse-warning-soon-card {
-  0%, 100% { background-color: #fffbeb; }
-  50% { background-color: #fde68a; }
+  0%,
+  100% {
+    background-color: #fffbeb;
+  }
+  50% {
+    background-color: #fde68a;
+  }
 }
-.td-nowrap { white-space: nowrap; }
-.td-truncate { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.td-actions { white-space: nowrap; }
-.actions-wrap { display: flex; gap: 6px; align-items: center; justify-content: center; }
-.text-muted { color: #94a3b8; }
+.td-nowrap {
+  white-space: nowrap;
+}
+.td-truncate {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.td-actions {
+  white-space: nowrap;
+}
+.actions-wrap {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+}
+.text-muted {
+  color: #94a3b8;
+}
 
 /* ── Action buttons ── */
 .btn-icon {
@@ -3530,6 +3930,28 @@ tbody tr.row-warning-soon:hover { background: #fef3c7; }
 }
 .btn-discard-confirm:hover {
   background: #dc2626;
+}
+
+/* ── Comment badge ── */
+.comment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #94a3b8;
+  border: 1px solid #e2e8f0;
+}
+.comment-badge.has-comments {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+.detail-comments {
+  margin-top: 6px;
 }
 
 /* ── Mobile: stack filters, no horizontal scroll (placed last to win cascade) ── */

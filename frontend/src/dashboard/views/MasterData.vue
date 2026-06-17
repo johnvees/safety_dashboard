@@ -110,17 +110,16 @@
                 </td>
                 <td class="td-date">{{ formatDate(item.createdAt) }}</td>
                 <td class="td-action">
-                  <button class="btn-icon-sm btn-edit" title="Ubah" @click="openBuForm(item)">
+                  <button class="btn-icon btn-edit" title="Ubah" @click="openBuForm(item)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                     </svg>
                   </button>
-                  <button class="btn-icon-sm btn-delete" title="Hapus" @click="confirmDeleteBu(item)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
-                      <path d="M10 11v6"/><path d="M14 11v6"/>
-                      <path d="M9 6V4h6v2"/>
+                  <button class="btn-icon btn-danger" title="Hapus" @click="confirmDeleteBu(item)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                     </svg>
                   </button>
                 </td>
@@ -201,17 +200,16 @@
                 </td>
                 <td class="td-date">{{ formatDate(item.createdAt) }}</td>
                 <td class="td-action">
-                  <button class="btn-icon-sm btn-edit" title="Ubah" @click="openPlantForm(item)">
+                  <button class="btn-icon btn-edit" title="Ubah" @click="openPlantForm(item)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                     </svg>
                   </button>
-                  <button class="btn-icon-sm btn-delete" title="Hapus" @click="confirmDeletePlant(item)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
-                      <path d="M10 11v6"/><path d="M14 11v6"/>
-                      <path d="M9 6V4h6v2"/>
+                  <button class="btn-icon btn-danger" title="Hapus" @click="confirmDeletePlant(item)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                     </svg>
                   </button>
                 </td>
@@ -381,17 +379,16 @@
                   </span>
                 </td>
                 <td class="td-action">
-                  <button class="btn-icon-sm btn-edit" title="Ubah" @click="openUserForm(item)">
+                  <button class="btn-icon btn-edit" title="Ubah" @click="openUserForm(item)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                     </svg>
                   </button>
-                  <button class="btn-icon-sm btn-delete" title="Hapus" @click="confirmDeleteUser(item)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
-                      <path d="M10 11v6"/><path d="M14 11v6"/>
-                      <path d="M9 6V4h6v2"/>
+                  <button class="btn-icon btn-danger" title="Hapus" @click="confirmDeleteUser(item)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                     </svg>
                   </button>
                 </td>
@@ -458,17 +455,16 @@
                 <td><span class="level-badge">Level {{ item.level }}</span></td>
                 <td class="td-desc">{{ item.description || '-' }}</td>
                 <td v-if="roleLevel <= 2" class="td-action">
-                  <button class="btn-icon-sm btn-edit" title="Ubah" @click="openRoleForm(item)">
+                  <button class="btn-icon btn-edit" title="Ubah" @click="openRoleForm(item)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                     </svg>
                   </button>
-                  <button class="btn-icon-sm btn-delete" title="Hapus" @click="confirmDeleteRole(item)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
-                      <path d="M10 11v6"/><path d="M14 11v6"/>
-                      <path d="M9 6V4h6v2"/>
+                  <button class="btn-icon btn-danger" title="Hapus" @click="confirmDeleteRole(item)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                     </svg>
                   </button>
                 </td>
@@ -654,17 +650,16 @@
                 </td>
                 <td class="td-date">{{ formatDate(item.createdAt) }}</td>
                 <td class="td-action">
-                  <button class="btn-icon-sm btn-edit" title="Ubah" @click="openDeptForm(item)">
+                  <button class="btn-icon btn-edit" title="Ubah" @click="openDeptForm(item)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                     </svg>
                   </button>
-                  <button class="btn-icon-sm btn-delete" title="Hapus" @click="confirmDeleteDept(item)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
-                      <path d="M10 11v6"/><path d="M14 11v6"/>
-                      <path d="M9 6V4h6v2"/>
+                  <button class="btn-icon btn-danger" title="Hapus" @click="confirmDeleteDept(item)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                     </svg>
                   </button>
                 </td>
@@ -1478,7 +1473,7 @@ function formatDate(val) {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 .th-action { text-align: center; width: 90px; }
-.td-action { text-align: center; white-space: nowrap; }
+.td-action { text-align: center; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 6px; }
 
 .code-badge {
   display: inline-block;
@@ -1518,23 +1513,24 @@ function formatDate(val) {
 .btn-icon-inline { width: 16px; height: 16px; flex-shrink: 0; }
 
 /* Action buttons */
-.btn-icon-sm {
+.btn-icon {
+  background: #f1f5f9;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 7px;
+  color: #64748b;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
+  gap: 3px;
   transition: background 0.15s, color 0.15s;
+  position: relative;
 }
-.btn-icon-sm svg { width: 15px; height: 15px; }
+.btn-icon:hover { background: #e2e8f0; color: #3b82f6; }
 .btn-edit { color: #2563eb; }
 .btn-edit:hover { background: #eff6ff; }
-.btn-delete { color: #ef4444; margin-left: 2px; }
-.btn-delete:hover { background: #fef2f2; }
+.btn-danger { background: #fef2f2; color: #ef4444; }
+.btn-danger:hover { background: #fee2e2; color: #dc2626; }
 
 /* Modal max-width override for this page */
 .modal { max-width: 460px; }

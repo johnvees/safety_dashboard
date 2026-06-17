@@ -21,6 +21,10 @@ async function gql(query, variables = {}) {
 }
 
 export const caseIncidentService = {
+  bustList() {
+    _cache.del('ci_list');
+  },
+
   async list() {
     const hit = _cache.get('ci_list');
     if (hit) return hit;
@@ -35,7 +39,7 @@ export const caseIncidentService = {
           deskripsiKecelakaan penyebabKecelakaan perbaikanDilakukan
           saksiList fotoKejadian targetPenyelesaian status
           businessUnitId businessUnitName plantId plantName
-          createdBy createdAt updatedAt
+          createdBy createdAt updatedAt commentCount
         }
       }
     `);

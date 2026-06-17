@@ -114,12 +114,10 @@
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
             </svg>
           </button>
-          <button v-if="isAdmin" class="btn-delete" @click="confirmDelete(mod)" title="Hapus">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <button v-if="isAdmin" class="btn-icon btn-danger" @click="confirmDelete(mod)" title="Hapus">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
               <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-              <path d="M10 11v6M14 11v6"/>
-              <path d="M9 6V4h6v2"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
             </svg>
           </button>
         </div>
@@ -1122,23 +1120,22 @@ async function submitEdit() {
 .btn-edit:hover { background: #dbeafe; }
 .btn-edit svg { width: 15px; height: 15px; }
 
-.btn-delete {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  background: #fee2e2;
-  color: #dc2626;
+.btn-icon {
+  background: #f1f5f9;
   border: none;
-  border-radius: 7px;
   cursor: pointer;
-  transition: background 0.15s;
-  flex-shrink: 0;
+  padding: 6px;
+  border-radius: 7px;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: background 0.15s, color 0.15s;
+  position: relative;
 }
-
-.btn-delete:hover { background: #fecaca; }
-.btn-delete svg { width: 15px; height: 15px; }
+.btn-icon:hover { background: #e2e8f0; color: #3b82f6; }
+.btn-danger { background: #fef2f2; color: #ef4444; }
+.btn-danger:hover { background: #fee2e2; color: #dc2626; }
 
 /* Modal */
 .modal-overlay {

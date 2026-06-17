@@ -7040,7 +7040,7 @@ td:not(:first-child) {
 }
 .td-actions .actions-wrap {
   display: flex;
-  gap: 2px;
+  gap: 6px;
   align-items: center;
   justify-content: center;
 }
@@ -7165,6 +7165,8 @@ td:not(:first-child) {
 tbody tr:hover {
   background: #f8fafc;
 }
+tbody tr:not(.row-overdue):not(.row-warning-urgent):not(.row-warning-soon):hover .btn-icon { background: #e2e8f0; }
+tbody tr:not(.row-overdue):not(.row-warning-urgent):not(.row-warning-soon):hover .btn-danger { background: #fecaca; }
 
 tbody tr.row-clickable {
   cursor: pointer;
@@ -7181,7 +7183,7 @@ tbody tr.row-overdue:hover {
   background: #ffe4e4;
 }
 tbody tr.row-warning-urgent {
-  background: #fff7ed;
+  background: #ffedd5;
   animation: pulse-warning-urgent 1.2s ease-in-out 0s 3;
 }
 tbody tr.row-warning-urgent td {
@@ -7189,10 +7191,10 @@ tbody tr.row-warning-urgent td {
   border-bottom: 0.5px solid #fb923c;
 }
 tbody tr.row-warning-urgent:hover {
-  background: #ffedd5;
+  background: #fed7aa;
 }
 tbody tr.row-warning-soon {
-  background: #fffbeb;
+  background: #fef9c3;
   animation: pulse-warning-soon 1.2s ease-in-out 0s 3;
 }
 tbody tr.row-warning-soon td {
@@ -7200,8 +7202,24 @@ tbody tr.row-warning-soon td {
   border-bottom: 0.5px solid #fbbf24;
 }
 tbody tr.row-warning-soon:hover {
-  background: #fef3c7;
+  background: #fef08a;
 }
+
+/* btn visibility on colored rows */
+tbody tr.row-overdue .btn-icon            { background: rgba(255,255,255,0.8); }
+tbody tr.row-overdue .btn-danger          { background: #fecaca; }
+tbody tr.row-overdue:hover .btn-icon      { background: #fff; }
+tbody tr.row-overdue:hover .btn-danger    { background: #fca5a5; }
+
+tbody tr.row-warning-urgent .btn-icon            { background: rgba(255,255,255,0.8); }
+tbody tr.row-warning-urgent .btn-danger          { background: #fed7aa; }
+tbody tr.row-warning-urgent:hover .btn-icon      { background: #fff; }
+tbody tr.row-warning-urgent:hover .btn-danger    { background: #fdba74; }
+
+tbody tr.row-warning-soon .btn-icon            { background: rgba(255,255,255,0.8); }
+tbody tr.row-warning-soon .btn-danger          { background: #fde68a; }
+tbody tr.row-warning-soon:hover .btn-icon      { background: #fff; }
+tbody tr.row-warning-soon:hover .btn-danger    { background: #fcd34d; }
 
 @keyframes pulse-overdue {
   0%, 100% { background-color: #fff1f1; }
