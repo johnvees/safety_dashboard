@@ -1500,9 +1500,11 @@ class Mutation:
                 record.saran_perbaikan = tindakan_perbaikan
             if target_selesai is not None:
                 record.target_selesai = date.fromisoformat(target_selesai)
+            reopened = False
             if status is not None:
                 if status not in ("Open", "Closed", "Progress Validasi"):
                     return InspectionK3LPayload(success=False, message="Status must be Open, Progress Validasi, or Closed")
+                reopened = record.status in ("Closed", "Progress Validasi") and status == "Open"
                 record.status = status
             if aktual_close is not None:
                 record.aktual_close = datetime.fromisoformat(aktual_close)
@@ -1525,7 +1527,10 @@ class Mutation:
             try:
                 actor = user.full_name or user.username or user.email
                 level3_ids = [u.id for u in db.query(models.User.id).join(models.Role, models.User.role_id == models.Role.id).filter(models.User.is_active == True, models.Role.level == 0).all()]
-                _notify_users(db, level3_ids, "update_report", "Laporan K3L Diperbarui", f"Laporan Inspeksi K3L telah diperbarui oleh {actor}.", "/dashboard/reports/inspection-k3l", exclude_id=user.id)
+                if reopened:
+                    _notify_users(db, level3_ids, "reopen_report", "Temuan K3L Dibuka Kembali", f"Temuan Inspeksi K3L telah dibuka kembali (status Open) oleh {actor}.", "/dashboard/reports/inspection-k3l", exclude_id=user.id)
+                else:
+                    _notify_users(db, level3_ids, "update_report", "Laporan K3L Diperbarui", f"Laporan Inspeksi K3L telah diperbarui oleh {actor}.", "/dashboard/reports/inspection-k3l", exclude_id=user.id)
                 db.commit()
             except Exception:
                 pass
@@ -3129,7 +3134,10 @@ class Mutation:
             if saksi_list is not None: record.saksi_list = saksi_list
             if foto_kejadian is not None: record.foto_kejadian = foto_kejadian
             if target_penyelesaian is not None: record.target_penyelesaian = date.fromisoformat(target_penyelesaian) if target_penyelesaian else None
-            if status is not None: record.status = status
+            reopened = False
+            if status is not None:
+                reopened = record.status == "Closed" and status == "Open"
+                record.status = status
             if business_unit_id is not None: record.business_unit_id = business_unit_id
             if plant_id is not None: record.plant_id = plant_id
             # Record whoever last edited the data
@@ -3139,7 +3147,10 @@ class Mutation:
             try:
                 actor = user.full_name or user.username or user.email
                 level3_ids = [u.id for u in db.query(models.User.id).join(models.Role, models.User.role_id == models.Role.id).filter(models.User.is_active == True, models.Role.level == 0).all()]
-                _notify_users(db, level3_ids, "update_report", "Laporan Insiden Diperbarui", f"Laporan Insiden & Kecelakaan Kerja telah diperbarui oleh {actor}.", "/dashboard/reports/case-incident", exclude_id=user.id)
+                if reopened:
+                    _notify_users(db, level3_ids, "reopen_report", "Laporan Insiden Dibuka Kembali", f"Laporan Insiden & Kecelakaan Kerja telah dibuka kembali (status Open) oleh {actor}.", "/dashboard/reports/case-incident", exclude_id=user.id)
+                else:
+                    _notify_users(db, level3_ids, "update_report", "Laporan Insiden Diperbarui", f"Laporan Insiden & Kecelakaan Kerja telah diperbarui oleh {actor}.", "/dashboard/reports/case-incident", exclude_id=user.id)
                 db.commit()
             except Exception:
                 pass

@@ -42,6 +42,9 @@
                 <svg v-if="isOverdue(n.type)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                 </svg>
+                <svg v-else-if="n.type.startsWith('reopen')" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                </svg>
                 <svg v-else-if="n.type === 'new_chat'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                 </svg>
@@ -333,6 +336,7 @@ onUnmounted(() => {
 // ── Helpers ────────────────────────────────────────────────────────
 function iconClass(type) {
   if (isOverdue(type)) return "icon-overdue";
+  if (type.startsWith("reopen")) return "icon-reopen";
   if (type.startsWith("delete_")) return "icon-delete";
   if (type.startsWith("update_")) return "icon-update";
   if (type === "new_chat") return "icon-chat";
@@ -569,6 +573,7 @@ function timeAgo(ts) {
 .icon-update { background: #dbeafe; color: #2563eb; }
 .icon-delete { background: #fee2e2; color: #dc2626; }
 .icon-overdue { background: #fee2e2; color: #dc2626; }
+.icon-reopen { background: #ffedd5; color: #ea580c; }
 
 /* Overdue/escalation items: pinned visually with red emphasis */
 .notif-item.overdue { background: #fef2f2; border-left: 3px solid #dc2626; }
@@ -670,6 +675,7 @@ function timeAgo(ts) {
 .toast-item .icon-update { background: #dbeafe; color: #2563eb; }
 .toast-item .icon-delete { background: #fee2e2; color: #dc2626; }
 .toast-item .icon-overdue { background: #fee2e2; color: #dc2626; }
+.toast-item .icon-reopen { background: #ffedd5; color: #ea580c; }
 
 .toast-item .toast-icon svg {
   width: 16px;
