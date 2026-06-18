@@ -32,14 +32,17 @@
           </div>
           <div v-else class="notif-list">
             <div
-              v-for="n in notifications"
+              v-for="n in sortedNotifications"
               :key="n.id"
               class="notif-item"
-              :class="{ unread: !n.isRead }"
+              :class="{ unread: !n.isRead, overdue: isOverdue(n.type) }"
               @click="handleNotifClick(n)"
             >
               <div class="notif-icon" :class="iconClass(n.type)">
-                <svg v-if="n.type === 'new_chat'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg v-if="isOverdue(n.type)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <svg v-else-if="n.type === 'new_chat'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                 </svg>
                 <svg v-else-if="n.type.startsWith('delete_')" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -133,6 +136,20 @@ const pendingDeletes = new Set(); // IDs deleted locally but not yet confirmed b
 const unreadCount = computed(() => notifications.value.filter((n) => !n.isRead).length);
 // Tab title + favicon badge reflect unread bell items plus any live toasts.
 const totalBadge = computed(() => unreadCount.value + toasts.value.length);
+
+// Overdue/escalation notifications (type starts with "overdue").
+function isOverdue(type) {
+  return typeof type === "string" && type.startsWith("overdue");
+}
+// Always surface overdue items at the top; otherwise keep newest-first order.
+const sortedNotifications = computed(() =>
+  [...notifications.value].sort((a, b) => {
+    const ao = isOverdue(a.type) ? 1 : 0;
+    const bo = isOverdue(b.type) ? 1 : 0;
+    if (ao !== bo) return bo - ao; // overdue first
+    return new Date(b.createdAt) - new Date(a.createdAt); // newest first
+  }),
+);
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 const GRAPHQL_URL = `${API_BASE}/graphql`;
@@ -315,6 +332,7 @@ onUnmounted(() => {
 
 // ── Helpers ────────────────────────────────────────────────────────
 function iconClass(type) {
+  if (isOverdue(type)) return "icon-overdue";
   if (type.startsWith("delete_")) return "icon-delete";
   if (type.startsWith("update_")) return "icon-update";
   if (type === "new_chat") return "icon-chat";
@@ -550,6 +568,13 @@ function timeAgo(ts) {
 .icon-chat   { background: #ede9fe; color: #7c3aed; }
 .icon-update { background: #dbeafe; color: #2563eb; }
 .icon-delete { background: #fee2e2; color: #dc2626; }
+.icon-overdue { background: #fee2e2; color: #dc2626; }
+
+/* Overdue/escalation items: pinned visually with red emphasis */
+.notif-item.overdue { background: #fef2f2; border-left: 3px solid #dc2626; }
+.notif-item.overdue:hover { background: #fee2e2; }
+.notif-item.overdue .notif-title { color: #dc2626; font-weight: 700; }
+.notif-item.overdue .notif-message { color: #b91c1c; }
 
 .notif-body {
   flex: 1;
@@ -644,6 +669,7 @@ function timeAgo(ts) {
 .toast-item .icon-chat   { background: #ede9fe; color: #7c3aed; }
 .toast-item .icon-update { background: #dbeafe; color: #2563eb; }
 .toast-item .icon-delete { background: #fee2e2; color: #dc2626; }
+.toast-item .icon-overdue { background: #fee2e2; color: #dc2626; }
 
 .toast-item .toast-icon svg {
   width: 16px;

@@ -46,11 +46,18 @@ def _run_overdue_notifications() -> None:
                     f"akan overdue besok (target: {record.target_selesai})"
                 )
             elif days_left < 0:
-                notif_type = "overdue_daily"
-                title = "Temuan Overdue"
+                days_overdue = -days_left
+                desc = record.deskripsi_temuan or record.kategori_temuan
+                if days_overdue >= 3:
+                    notif_type = "overdue_critical"
+                    title = "URGENT — Temuan K3L Belum Ditindaklanjuti"
+                else:
+                    notif_type = "overdue_daily"
+                    title = "Tindakan Segera: Temuan K3L Melewati Batas Waktu"
                 message = (
-                    f'Temuan "{record.deskripsi_temuan or record.kategori_temuan}" '
-                    f"telah melewati target selesai ({record.target_selesai})"
+                    f'Temuan "{desc}" telah melewati target selesai selama '
+                    f'{days_overdue} hari (target: {record.target_selesai}) dan masih '
+                    f'berstatus {record.status}. Tindakan perbaikan segera diperlukan.'
                 )
             else:
                 continue
@@ -116,11 +123,17 @@ def _run_overdue_notifications() -> None:
                     f"akan overdue besok (target: {record.target_penyelesaian})"
                 )
             elif days_left < 0:
-                notif_type = "overdue_daily"
-                title = "Tindak Lanjut Kasus Overdue"
+                days_overdue = -days_left
+                if days_overdue >= 3:
+                    notif_type = "overdue_critical"
+                    title = "URGENT — Kasus Belum Ditindaklanjuti"
+                else:
+                    notif_type = "overdue_daily"
+                    title = "Tindakan Segera: Tindak Lanjut Kasus Melewati Batas Waktu"
                 message = (
-                    f'Tindak lanjut kasus "{record.nama_korban}" '
-                    f"telah melewati target penyelesaian ({record.target_penyelesaian})"
+                    f'Tindak lanjut kasus "{record.nama_korban}" telah melewati target '
+                    f'penyelesaian selama {days_overdue} hari (target: {record.target_penyelesaian}) '
+                    f'dan masih berstatus {record.status}. Penyelesaian segera diperlukan.'
                 )
             else:
                 continue
@@ -170,16 +183,16 @@ def _run_overdue_notifications() -> None:
 
 
 async def _overdue_scheduler() -> None:
+    # Run shortly after startup so overdue items surface promptly, then re-check
+    # every hour. Notifications are de-duplicated to once per report per day,
+    # so hourly polling will not spam users.
+    await asyncio.sleep(10)
     while True:
-        now = datetime.now(_WIB)
-        target = now.replace(hour=7, minute=0, second=0, microsecond=0)
-        if now >= target:
-            target += timedelta(days=1)
-        await asyncio.sleep((target - now).total_seconds())
         try:
             _run_overdue_notifications()
         except Exception as exc:
             print(f"[overdue-notif] scheduler error: {exc}")
+        await asyncio.sleep(3600)
 
 
 @asynccontextmanager
