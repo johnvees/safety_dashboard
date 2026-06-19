@@ -216,7 +216,7 @@ export const masterDataService = {
     if (hit) return hit;
     const data = await gql(`
       query {
-        users { id email username fullName roleId businessUnitId plantId departmentId isActive createdAt updatedAt }
+        users { id email username fullName roleId businessUnitId plantId departmentId isActive createdAt updatedAt lastLogin }
       }
     `);
     _cache.set('users', data.users);

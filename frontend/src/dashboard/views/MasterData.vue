@@ -361,18 +361,20 @@
                 <th>Plant</th>
                 <th>Departemen</th>
                 <th>Status</th>
+                <th>Dibuat</th>
+                <th>Terakhir Aktif</th>
                 <th class="th-action">Aksi</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="userLoading">
-                <td colspan="10" class="td-empty td-loading">
+                <td colspan="12" class="td-empty td-loading">
                   <div class="spinner"></div>
                   <span>Memuat data…</span>
                 </td>
               </tr>
               <tr v-else-if="!filteredUsers.length">
-                <td colspan="10" class="td-empty">
+                <td colspan="12" class="td-empty">
                   {{ userSearch ? 'Tidak ada hasil untuk "' + userSearch + '"' : 'Belum ada data Pengguna' }}
                 </td>
               </tr>
@@ -390,6 +392,8 @@
                     {{ item.isActive ? 'Aktif' : 'Nonaktif' }}
                   </span>
                 </td>
+                <td class="td-date">{{ formatDate(item.createdAt) }}</td>
+                <td class="td-date" :class="{ 'td-never': !item.lastLogin }">{{ item.lastLogin ? formatDate(item.lastLogin) : 'Belum pernah' }}</td>
                 <td class="td-action">
                   <button class="btn-icon btn-edit" title="Ubah" @click="openUserForm(item)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1471,6 +1475,8 @@ function formatDate(val) {
 .td-desc { color: #64748b; max-width: 220px; }
 .td-date { color: #64748b; white-space: nowrap; }
 .td-email { color: #64748b; font-size: 12px; }
+.td-date { color: #64748b; font-size: 11px; white-space: nowrap; }
+.td-never { color: #cbd5e1; font-style: italic; }
 .td-empty { text-align: center; color: #94a3b8; padding: 40px 0; font-size: 13px; }
 .td-loading { display: flex; align-items: center; justify-content: center; gap: 10px; }
 .td-loading .spinner, .td-empty .spinner {

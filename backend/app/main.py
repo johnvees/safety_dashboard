@@ -9,7 +9,7 @@ import os
 from dotenv import load_dotenv
 
 from app.schema import graphql_router, _notify_users
-from app.cloudinary_utils import upload_image, upload_video, upload_document
+from app.storage_utils import upload_image, upload_video, upload_document
 from app.database import get_db
 from app import models as _models
 from app import auth as _auth
@@ -185,9 +185,6 @@ def _run_overdue_notifications() -> None:
 
 
 async def _overdue_scheduler() -> None:
-    # Run shortly after startup so overdue items surface promptly, then re-check
-    # every hour. Notifications are de-duplicated to once per report per day,
-    # so hourly polling will not spam users.
     await asyncio.sleep(10)
     while True:
         try:
@@ -197,15 +194,62 @@ async def _overdue_scheduler() -> None:
         await asyncio.sleep(3600)
 
 
+def _run_inactive_user_cleanup() -> None:
+    db = next(get_db())
+    try:
+        cutoff = datetime.now(_WIB).replace(tzinfo=None) - timedelta(days=90)
+        inactive = (
+            db.query(_models.User)
+            .filter(
+                _models.User.is_active == False,
+                _models.User.last_login < cutoff,
+            )
+            .all()
+        )
+        never_logged_in = (
+            db.query(_models.User)
+            .filter(
+                _models.User.is_active == False,
+                _models.User.last_login.is_(None),
+                _models.User.created_at < cutoff,
+            )
+            .all()
+        )
+        to_delete = {u.id: u for u in inactive + never_logged_in}
+        for u in to_delete.values():
+            print(f"[user-cleanup] deleting inactive user id={u.id} email={u.email}")
+            db.delete(u)
+        if to_delete:
+            db.commit()
+            print(f"[user-cleanup] deleted {len(to_delete)} inactive users")
+    except Exception as exc:
+        db.rollback()
+        print(f"[user-cleanup] error: {exc}")
+    finally:
+        db.close()
+
+
+async def _inactive_user_scheduler() -> None:
+    await asyncio.sleep(30)
+    while True:
+        try:
+            _run_inactive_user_cleanup()
+        except Exception as exc:
+            print(f"[user-cleanup] scheduler error: {exc}")
+        await asyncio.sleep(86400)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    task = asyncio.create_task(_overdue_scheduler())
+    task1 = asyncio.create_task(_overdue_scheduler())
+    task2 = asyncio.create_task(_inactive_user_scheduler())
     yield
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
+    for task in (task1, task2):
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(title="Safety Dashboard API", lifespan=lifespan)

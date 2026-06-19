@@ -10,7 +10,7 @@ from datetime import date, datetime
 
 from app import models, auth
 from app.database import get_db
-from app.cloudinary_utils import delete_image, delete_video, delete_document
+from app.storage_utils import delete_image, delete_video, delete_document
 from app.chat_broker import broker as chat_broker
 from app.notification_broker import broker as notif_broker
 from app import web_push
@@ -109,6 +109,7 @@ class FullUserType:
     is_active: bool = True
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
+    last_login: Optional[str] = None
 
 
 @strawberry.type
@@ -462,6 +463,7 @@ def _user_to_full_type(u: models.User) -> FullUserType:
         is_active=u.is_active if u.is_active is not None else True,
         created_at=str(u.created_at) if u.created_at else None,
         updated_at=str(u.updated_at) if u.updated_at else None,
+        last_login=str(u.last_login) if u.last_login else None,
     )
 
 
@@ -1289,6 +1291,9 @@ class Mutation:
                 return AuthPayload(success=False, message="User not found. Please register first")
             if not auth.verify_password(password, user.hashed_password):
                 return AuthPayload(success=False, message="Invalid password")
+
+            user.last_login = datetime.now()
+            db.commit()
 
             token = auth.create_token(user.email)
             role_name = db.query(models.Role).filter(models.Role.id == user.role_id).first()
