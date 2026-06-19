@@ -34,7 +34,7 @@
     <div v-else-if="roleLevel <= 4" class="scope-filter-row">
       <span class="scope-bu-label">{{
         businessUnits.find((b) => b.id === currentUser.businessUnitId)?.name ||
-        "Business Unit"
+        'Business Unit'
       }}</span>
       <select v-model="filterPlant" class="scope-select">
         <option :value="null">Semua Plant</option>
@@ -302,21 +302,21 @@
               </td>
               <td class="col-nowrap">{{ formatDate(r.tanggal) }}</td>
               <td class="col-pekerjaan">{{ firstBullet(r.pekerjaan) }}</td>
-              <td class="col-trunc">{{ r.lokasiPekerjaan || "-" }}</td>
+              <td class="col-trunc">{{ r.lokasiPekerjaan || '-' }}</td>
               <td class="col-nowrap">{{ displayJenis(r) }}</td>
               <td class="col-nowrap">
                 <span
                   class="badge-risiko"
                   :class="r.levelRisiko?.toLowerCase()"
-                  >{{ r.levelRisiko || "-" }}</span
+                  >{{ r.levelRisiko || '-' }}</span
                 >
               </td>
-              <td class="col-nowrap">{{ r.pengawasHse || "-" }}</td>
+              <td class="col-nowrap">{{ r.pengawasHse || '-' }}</td>
               <td>
                 <span
                   class="badge-permit"
                   :class="r.statusPermit ? 'ada' : 'tidak'"
-                  >{{ r.statusPermit ? "Ada" : "Tidak" }}</span
+                  >{{ r.statusPermit ? 'Ada' : 'Tidak' }}</span
                 >
               </td>
               <td style="text-align: center">
@@ -361,13 +361,13 @@
               <span
                 class="badge-risiko"
                 :class="r.levelRisiko?.toLowerCase()"
-                >{{ r.levelRisiko || "-" }}</span
+                >{{ r.levelRisiko || '-' }}</span
               >
             </div>
             <div class="rc-body">
               <div class="rc-row">
                 <span class="rc-label">Lokasi</span
-                ><span class="rc-value">{{ r.lokasiPekerjaan || "-" }}</span>
+                ><span class="rc-value">{{ r.lokasiPekerjaan || '-' }}</span>
               </div>
               <div class="rc-row">
                 <span class="rc-label">Jenis Pekerjaan</span
@@ -375,7 +375,7 @@
               </div>
               <div class="rc-row">
                 <span class="rc-label">Pengawas HSE</span
-                ><span class="rc-value">{{ r.pengawasHse || "-" }}</span>
+                ><span class="rc-value">{{ r.pengawasHse || '-' }}</span>
               </div>
             </div>
             <div class="rc-footer">
@@ -383,7 +383,7 @@
                 <span
                   class="badge-permit"
                   :class="r.statusPermit ? 'ada' : 'tidak'"
-                  >{{ r.statusPermit ? "Ada" : "Tidak" }}</span
+                  >{{ r.statusPermit ? 'Ada' : 'Tidak' }}</span
                 >
                 <span
                   class="comment-badge"
@@ -445,11 +445,11 @@
         <div class="modal-header">
           <h2>
             {{
-              modal.mode === "view"
-                ? "Detail Laporan"
-                : modal.mode === "edit"
-                  ? "Ubah Laporan"
-                  : "Tambah Laporan"
+              modal.mode === 'view'
+                ? 'Detail Laporan'
+                : modal.mode === 'edit'
+                  ? 'Ubah Laporan'
+                  : 'Tambah Laporan'
             }}
           </h2>
           <button class="btn-close" @click="tryClose">✕</button>
@@ -483,7 +483,7 @@
               <div class="view-meta-item">
                 <span class="view-label">Lokasi</span>
                 <span class="view-val">{{
-                  modal.record.lokasiPekerjaan || "-"
+                  modal.record.lokasiPekerjaan || '-'
                 }}</span>
               </div>
               <div class="view-meta-item">
@@ -506,23 +506,25 @@
               <div class="view-meta-item">
                 <span class="view-label">Department</span>
                 <span class="view-val">{{
-                  modal.record.departmentName || "-"
+                  modal.record.departmentName || '-'
                 }}</span>
               </div>
               <div class="view-meta-item">
                 <span class="view-label">Terakhir Diubah Oleh</span>
-                <span class="view-val">{{ modal.record.updatedByName || '-' }}</span>
+                <span class="view-val">{{
+                  modal.record.updatedByName || '-'
+                }}</span>
               </div>
               <div class="view-meta-item">
                 <span class="view-label">Business Unit</span>
                 <span class="view-val">{{
-                  modal.record.businessUnitName || "-"
+                  modal.record.businessUnitName || '-'
                 }}</span>
               </div>
               <div class="view-meta-item">
                 <span class="view-label">Plant</span>
                 <span class="view-val">{{
-                  modal.record.plantName || "-"
+                  modal.record.plantName || '-'
                 }}</span>
               </div>
               <div class="view-meta-item">
@@ -531,13 +533,13 @@
                   ><span
                     class="badge-permit"
                     :class="modal.record.statusPermit ? 'ada' : 'tidak'"
-                    >{{ modal.record.statusPermit ? "Ada" : "Tidak Ada" }}</span
+                    >{{ modal.record.statusPermit ? 'Ada' : 'Tidak Ada' }}</span
                   ></span
                 >
               </div>
               <div v-if="modal.record.statusPermit" class="view-meta-item">
                 <span class="view-label">No. Permit</span>
-                <span class="view-val">{{ modal.record.noPermit || "-" }}</span>
+                <span class="view-val">{{ modal.record.noPermit || '-' }}</span>
               </div>
               <div class="view-meta-item">
                 <span class="view-label">Jenis Pekerjaan</span>
@@ -549,14 +551,14 @@
                   ><span
                     class="badge-risiko"
                     :class="modal.record.levelRisiko?.toLowerCase()"
-                    >{{ modal.record.levelRisiko || "-" }}</span
+                    >{{ modal.record.levelRisiko || '-' }}</span
                   ></span
                 >
               </div>
               <div class="view-meta-item">
                 <span class="view-label">Pengawas HSE</span>
                 <span class="view-val">{{
-                  modal.record.pengawasHse || "-"
+                  modal.record.pengawasHse || '-'
                 }}</span>
               </div>
             </div>
@@ -838,7 +840,7 @@
                     <span class="toggle-slider"></span>
                   </label>
                   <span class="toggle-label">{{
-                    form.statusPermit ? "Ada" : "Tidak Ada"
+                    form.statusPermit ? 'Ada' : 'Tidak Ada'
                   }}</span>
                 </div>
               </div>
@@ -890,16 +892,19 @@
                     </svg>
                     <span class="tooltip-box" :style="risikoTooltipStyle">
                       <span class="tooltip-row"
-                        ><b>Critical</b> — harus diselesaikan dalam waktu
-                        <b>24 jam</b></span
+                        ><b>Critical</b> — Pekerjaan berisiko tinggi (hot work,
+                        ruang terbatas, ketinggian). Selesaikan dalam
+                        <b>1x24 jam</b></span
                       >
                       <span class="tooltip-row"
-                        ><b>Major</b> — harus diselesaikan dalam waktu
-                        <b>1 bulan</b></span
+                        ><b>Major</b> — Pekerjaan berisiko sedang (mesin berat,
+                        bahan kimia, penggalian). Selesaikan dalam
+                        <b>30 hari</b></span
                       >
                       <span class="tooltip-row"
-                        ><b>Minor</b> — harus diselesaikan dalam waktu
-                        <b>2 bulan</b></span
+                        ><b>Minor</b> — Pekerjaan berisiko rendah (pemeliharaan
+                        rutin, perbaikan kecil). Selesaikan dalam
+                        <b>60 hari</b></span
                       >
                     </span>
                   </span>
@@ -1118,10 +1123,10 @@
             <button type="submit" class="btn-primary" :disabled="submitting">
               {{
                 submitting
-                  ? "Menyimpan…"
-                  : modal.mode === "edit"
-                    ? "Simpan Perubahan"
-                    : "Simpan"
+                  ? 'Menyimpan…'
+                  : modal.mode === 'edit'
+                    ? 'Simpan Perubahan'
+                    : 'Simpan'
               }}
             </button>
           </div>
@@ -1205,7 +1210,7 @@
             Batal
           </button>
           <button class="btn-danger" @click="doDelete" :disabled="submitting">
-            {{ submitting ? "Menghapus…" : "Hapus" }}
+            {{ submitting ? 'Menghapus…' : 'Hapus' }}
           </button>
         </div>
       </div>
@@ -1231,7 +1236,7 @@
             Batal
           </button>
           <button class="btn-primary" @click="doSave" :disabled="submitting">
-            {{ submitting ? "Menyimpan…" : "Ya, Simpan" }}
+            {{ submitting ? 'Menyimpan…' : 'Ya, Simpan' }}
           </button>
         </div>
       </div>
@@ -1378,7 +1383,7 @@
                 />
                 <polyline points="14 2 14 8 20 8" />
               </svg>
-              {{ pdfGenerating ? "Membuat..." : "PDF" }}
+              {{ pdfGenerating ? 'Membuat...' : 'PDF' }}
             </button>
           </div>
         </div>
@@ -1390,39 +1395,39 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { authService } from "@/services/authService.js";
-import { hseDailyService, uploadImage } from "@/services/hseDailyService.js";
-import { inspectionK3LService } from "@/services/inspectionK3LService.js";
-import { usePagination } from "@/composables/usePagination.js";
-import PaginationBar from "@/components/PaginationBar.vue";
-import CommentSection from "@/components/CommentSection.vue";
-import CameraCaptureModal from "@/components/CameraCaptureModal.vue";
-import { exportToCsv } from "@/services/exportCsvService.js";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { authService } from '@/services/authService.js';
+import { hseDailyService, uploadImage } from '@/services/hseDailyService.js';
+import { inspectionK3LService } from '@/services/inspectionK3LService.js';
+import { usePagination } from '@/composables/usePagination.js';
+import PaginationBar from '@/components/PaginationBar.vue';
+import CommentSection from '@/components/CommentSection.vue';
+import CameraCaptureModal from '@/components/CameraCaptureModal.vue';
+import { exportToCsv } from '@/services/exportCsvService.js';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const vClickOutside = {
   mounted(el, binding) {
     el._clickOutsideHandler = (e) => {
       if (!el.contains(e.target)) binding.value(e);
     };
-    document.addEventListener("mousedown", el._clickOutsideHandler);
+    document.addEventListener('mousedown', el._clickOutsideHandler);
   },
   unmounted(el) {
-    document.removeEventListener("mousedown", el._clickOutsideHandler);
+    document.removeEventListener('mousedown', el._clickOutsideHandler);
   },
 };
 
 const JENIS_OPTIONS = [
-  "Ketinggian",
-  "Pekerjaan Listrik",
-  "Ruang Terbatas",
-  "Pekerjaan Panas (Hot Work)",
-  "Bahan Kimia",
-  "Penggalian",
-  "Lainnya",
+  'Ketinggian',
+  'Pekerjaan Listrik',
+  'Ruang Terbatas',
+  'Pekerjaan Panas (Hot Work)',
+  'Bahan Kimia',
+  'Penggalian',
+  'Lainnya',
 ];
 
 const currentUser = authService.getCurrentUser();
@@ -1474,8 +1479,8 @@ function resetScopeFilter() {
 }
 const loading = ref(true);
 const submitting = ref(false);
-const formError = ref("");
-const photoWarning = ref("");
+const formError = ref('');
+const photoWarning = ref('');
 const lightbox = ref(null); // { urls: string[], index: number }
 const deleteTarget = ref(null);
 const showUpdateConfirm = ref(false);
@@ -1483,36 +1488,36 @@ const pendingPayload = ref(null);
 const showDiscardConfirm = ref(false);
 const originalForm = ref(null);
 
-const search = ref("");
-const filterJenis = ref("");
-const filterRisiko = ref("");
-const filterDate = ref("all");
-const customDateFrom = ref("");
-const customDateTo = ref("");
+const search = ref('');
+const filterJenis = ref('');
+const filterRisiko = ref('');
+const filterDate = ref('all');
+const customDateFrom = ref('');
+const customDateTo = ref('');
 
 const DATE_PRESETS = [
-  { label: "Semua", value: "all" },
-  { label: "Hari ini", value: "today" },
-  { label: "Minggu ini", value: "week" },
-  { label: "Bulan ini", value: "month" },
-  { label: "Kustom Periode", value: "custom" },
+  { label: 'Semua', value: 'all' },
+  { label: 'Hari ini', value: 'today' },
+  { label: 'Minggu ini', value: 'week' },
+  { label: 'Bulan ini', value: 'month' },
+  { label: 'Kustom Periode', value: 'custom' },
 ];
 
 function setDatePreset(val) {
   filterDate.value = val;
-  if (val !== "custom") {
-    customDateFrom.value = "";
-    customDateTo.value = "";
+  if (val !== 'custom') {
+    customDateFrom.value = '';
+    customDateTo.value = '';
   }
 }
 
 function resetFilters() {
-  search.value = "";
-  filterJenis.value = "";
-  filterRisiko.value = "";
-  filterDate.value = "all";
-  customDateFrom.value = "";
-  customDateTo.value = "";
+  search.value = '';
+  filterJenis.value = '';
+  filterRisiko.value = '';
+  filterDate.value = 'all';
+  customDateFrom.value = '';
+  customDateTo.value = '';
   resetScopeFilter();
 }
 
@@ -1521,7 +1526,7 @@ const hasActiveFilter = computed(
     search.value ||
     filterJenis.value ||
     filterRisiko.value ||
-    filterDate.value !== "all" ||
+    filterDate.value !== 'all' ||
     (roleLevel <= 2 && (filterBU.value != null || filterPlant.value != null)) ||
     (roleLevel >= 3 && roleLevel < 5 && filterPlant.value != null),
 );
@@ -1545,28 +1550,28 @@ const filteredRecords = computed(() => {
         r.jenisPekerjaanLainnya,
       ]
         .filter(Boolean)
-        .join(" ")
+        .join(' ')
         .toLowerCase();
       if (!hay.includes(q)) return false;
     }
-    if (filterDate.value !== "all") {
+    if (filterDate.value !== 'all') {
       const d = new Date(r.tanggal);
       d.setHours(0, 0, 0, 0);
-      if (filterDate.value === "today") {
+      if (filterDate.value === 'today') {
         if (d.getTime() !== today.getTime()) return false;
-      } else if (filterDate.value === "week") {
+      } else if (filterDate.value === 'week') {
         const start = new Date(today);
         start.setDate(today.getDate() - today.getDay());
         const end = new Date(start);
         end.setDate(start.getDate() + 6);
         if (d < start || d > end) return false;
-      } else if (filterDate.value === "month") {
+      } else if (filterDate.value === 'month') {
         if (
           d.getMonth() !== today.getMonth() ||
           d.getFullYear() !== today.getFullYear()
         )
           return false;
-      } else if (filterDate.value === "custom") {
+      } else if (filterDate.value === 'custom') {
         if (customDateFrom.value) {
           const from = new Date(customDateFrom.value);
           from.setHours(0, 0, 0, 0);
@@ -1598,30 +1603,30 @@ function showPhotoWarning(msg) {
   photoWarning.value = msg;
   if (photoWarnTimer) clearTimeout(photoWarnTimer);
   photoWarnTimer = setTimeout(() => {
-    photoWarning.value = "";
+    photoWarning.value = '';
   }, 3500);
 }
 
-const modal = ref({ open: false, mode: "create", record: null });
+const modal = ref({ open: false, mode: 'create', record: null });
 
 const route = useRoute();
 const router = useRouter();
 
 const defaultForm = () => ({
-  tanggal: "",
-  pekerjaan: [""],
-  pekerja: [""],
+  tanggal: '',
+  pekerjaan: [''],
+  pekerja: [''],
   departmentId: null,
-  lokasiPekerjaan: "",
+  lokasiPekerjaan: '',
   statusPermit: false,
-  noPermit: "",
-  jenisPekerjaan: "",
-  jenisPekerjaanLainnya: "",
-  potensiBahaya: [""],
-  levelRisiko: "",
-  pengendalianBahaya: [""],
-  pengawasHse: "",
-  saranMasukan: [""],
+  noPermit: '',
+  jenisPekerjaan: '',
+  jenisPekerjaanLainnya: '',
+  potensiBahaya: [''],
+  levelRisiko: '',
+  pengendalianBahaya: [''],
+  pengawasHse: '',
+  saranMasukan: [''],
   fotos: [], // [{ file: File|null, preview: string }]
   businessUnitId: currentUser?.businessUnitId ?? null,
   plantId: currentUser?.plantId ?? null,
@@ -1693,9 +1698,9 @@ onMounted(async () => {
 // ── Bullet helpers ─────────────────────────────────────────────────────
 function addBullet(field, afterIndex = null) {
   if (afterIndex !== null) {
-    form.value[field].splice(afterIndex + 1, 0, "");
+    form.value[field].splice(afterIndex + 1, 0, '');
   } else {
-    form.value[field].push("");
+    form.value[field].push('');
   }
 }
 
@@ -1716,13 +1721,13 @@ function parseBullets(raw) {
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [raw];
   } catch {
-    return raw.split("\n").filter(Boolean);
+    return raw.split('\n').filter(Boolean);
   }
 }
 
 function firstBullet(raw) {
   const items = parseBullets(raw);
-  if (!items.length) return "-";
+  if (!items.length) return '-';
   return items.length > 1
     ? `${items[0]} +${items.length - 1} lainnya`
     : items[0];
@@ -1741,14 +1746,14 @@ function parseFotos(raw) {
 
 function onFotoSelect(e) {
   const files = Array.from(e.target.files);
-  e.target.value = "";
+  e.target.value = '';
   if (!files.length) return;
   const remaining = 10 - form.value.fotos.length;
   if (files.length > remaining) {
     showPhotoWarning(
       remaining > 0
         ? `Maksimal 10 foto. Hanya dapat menambahkan ${remaining} foto lagi.`
-        : "Batas 10 foto sudah tercapai.",
+        : 'Batas 10 foto sudah tercapai.',
     );
     return;
   }
@@ -1759,7 +1764,7 @@ function onFotoSelect(e) {
 
 function removeFoto(index) {
   const photo = form.value.fotos[index];
-  if (photo.preview?.startsWith("blob:")) URL.revokeObjectURL(photo.preview);
+  if (photo.preview?.startsWith('blob:')) URL.revokeObjectURL(photo.preview);
   form.value.fotos.splice(index, 1);
 }
 
@@ -1771,12 +1776,12 @@ function openCamera() {
 }
 
 function handleCameraCapture(file) {
-  onFotoSelect({ target: { files: [file], value: "" } });
+  onFotoSelect({ target: { files: [file], value: '' } });
 }
 
 function clearFotos() {
   form.value.fotos.forEach((p) => {
-    if (p.preview?.startsWith("blob:")) URL.revokeObjectURL(p.preview);
+    if (p.preview?.startsWith('blob:')) URL.revokeObjectURL(p.preview);
   });
   form.value.fotos = [];
 }
@@ -1797,7 +1802,7 @@ async function uploadFotoList() {
 function openLightbox(urls, index = 0) {
   const list = Array.isArray(urls) ? urls : [urls];
   lightbox.value = { urls: list, index };
-  nextTick(() => document.querySelector(".lightbox")?.focus());
+  nextTick(() => document.querySelector('.lightbox')?.focus());
 }
 function lbPrev() {
   if (!lightbox.value) return;
@@ -1816,46 +1821,46 @@ function openCreate() {
   clearFotos();
   form.value = defaultForm();
   originalForm.value = null;
-  formError.value = "";
-  photoWarning.value = "";
-  modal.value = { open: true, mode: "create", record: null };
+  formError.value = '';
+  photoWarning.value = '';
+  modal.value = { open: true, mode: 'create', record: null };
 }
 
 function openEdit(record) {
   clearFotos();
-  formError.value = "";
-  photoWarning.value = "";
+  formError.value = '';
+  photoWarning.value = '';
   form.value = {
-    tanggal: record.tanggal ? record.tanggal.slice(0, 10) : "",
+    tanggal: record.tanggal ? record.tanggal.slice(0, 10) : '',
     pekerjaan: parseBullets(record.pekerjaan).length
       ? parseBullets(record.pekerjaan)
-      : [""],
+      : [''],
     pekerja: parseBullets(record.pekerja).length
       ? parseBullets(record.pekerja)
-      : [""],
+      : [''],
     departmentId: record.departmentId ?? null,
-    lokasiPekerjaan: record.lokasiPekerjaan || "",
+    lokasiPekerjaan: record.lokasiPekerjaan || '',
     statusPermit: record.statusPermit || false,
-    noPermit: record.noPermit || "",
-    jenisPekerjaan: record.jenisPekerjaan || "",
-    jenisPekerjaanLainnya: record.jenisPekerjaanLainnya || "",
+    noPermit: record.noPermit || '',
+    jenisPekerjaan: record.jenisPekerjaan || '',
+    jenisPekerjaanLainnya: record.jenisPekerjaanLainnya || '',
     potensiBahaya: parseBullets(record.potensiBahaya).length
       ? parseBullets(record.potensiBahaya)
-      : [""],
-    levelRisiko: record.levelRisiko || "",
+      : [''],
+    levelRisiko: record.levelRisiko || '',
     pengendalianBahaya: parseBullets(record.pengendalianBahaya).length
       ? parseBullets(record.pengendalianBahaya)
-      : [""],
-    pengawasHse: record.pengawasHse || "",
+      : [''],
+    pengawasHse: record.pengawasHse || '',
     saranMasukan: parseBullets(record.saranMasukan).length
       ? parseBullets(record.saranMasukan)
-      : [""],
+      : [''],
     fotos: parseFotos(record.foto).map((url) => ({ file: null, preview: url })),
     businessUnitId:
       record.businessUnitId ?? currentUser?.businessUnitId ?? null,
     plantId: record.plantId ?? currentUser?.plantId ?? null,
   };
-  formError.value = "";
+  formError.value = '';
   originalForm.value = {
     tanggal: form.value.tanggal,
     pekerjaan: [...form.value.pekerjaan],
@@ -1875,11 +1880,11 @@ function openEdit(record) {
     businessUnitId: form.value.businessUnitId,
     plantId: form.value.plantId,
   };
-  modal.value = { open: true, mode: "edit", record };
+  modal.value = { open: true, mode: 'edit', record };
 }
 
 function openView(record) {
-  modal.value = { open: true, mode: "view", record };
+  modal.value = { open: true, mode: 'view', record };
 }
 
 function onCommentCountChange(count) {
@@ -1892,7 +1897,7 @@ function onCommentCountChange(count) {
 
 function hasFormChanges() {
   const f = form.value;
-  if (modal.value.mode === "create") {
+  if (modal.value.mode === 'create') {
     return !!(
       f.tanggal ||
       f.pekerjaan.some((s) => s.trim()) ||
@@ -1910,24 +1915,24 @@ function hasFormChanges() {
       f.fotos.length > 0
     );
   }
-  if (modal.value.mode === "edit") {
+  if (modal.value.mode === 'edit') {
     if (!originalForm.value) return false;
     const o = originalForm.value;
     return (
       f.tanggal !== o.tanggal ||
-      f.pekerjaan.join("\n") !== o.pekerjaan.join("\n") ||
-      f.pekerja.join("\n") !== o.pekerja.join("\n") ||
+      f.pekerjaan.join('\n') !== o.pekerjaan.join('\n') ||
+      f.pekerja.join('\n') !== o.pekerja.join('\n') ||
       f.departmentId !== o.departmentId ||
       f.lokasiPekerjaan !== o.lokasiPekerjaan ||
       f.statusPermit !== o.statusPermit ||
       f.noPermit !== o.noPermit ||
       f.jenisPekerjaan !== o.jenisPekerjaan ||
       f.jenisPekerjaanLainnya !== o.jenisPekerjaanLainnya ||
-      f.potensiBahaya.join("\n") !== o.potensiBahaya.join("\n") ||
+      f.potensiBahaya.join('\n') !== o.potensiBahaya.join('\n') ||
       f.levelRisiko !== o.levelRisiko ||
-      f.pengendalianBahaya.join("\n") !== o.pengendalianBahaya.join("\n") ||
+      f.pengendalianBahaya.join('\n') !== o.pengendalianBahaya.join('\n') ||
       f.pengawasHse !== o.pengawasHse ||
-      f.saranMasukan.join("\n") !== o.saranMasukan.join("\n") ||
+      f.saranMasukan.join('\n') !== o.saranMasukan.join('\n') ||
       f.fotos.some((p) => p.file !== null) ||
       f.fotos.length !== o.fotoCount ||
       f.businessUnitId !== o.businessUnitId ||
@@ -1939,7 +1944,7 @@ function hasFormChanges() {
 
 function tryClose() {
   if (submitting.value) return;
-  if (modal.value.mode !== "view" && hasFormChanges()) {
+  if (modal.value.mode !== 'view' && hasFormChanges()) {
     showDiscardConfirm.value = true;
     return;
   }
@@ -1955,9 +1960,9 @@ function forceClose() {
 
 // ── Display helpers ────────────────────────────────────────────────────
 function displayJenis(r) {
-  if (!r.jenisPekerjaan) return "-";
-  if (r.jenisPekerjaan === "Lainnya")
-    return r.jenisPekerjaanLainnya || "Lainnya";
+  if (!r.jenisPekerjaan) return '-';
+  if (r.jenisPekerjaan === 'Lainnya')
+    return r.jenisPekerjaanLainnya || 'Lainnya';
   return r.jenisPekerjaan;
 }
 
@@ -1968,59 +1973,59 @@ function toGmt7DateTime(dateStr) {
   const now = new Date();
   const gmt7Ms = now.getTime() + (now.getTimezoneOffset() + 7 * 60) * 60000;
   const gmt7 = new Date(gmt7Ms);
-  const hh = String(gmt7.getUTCHours()).padStart(2, "0");
-  const mm = String(gmt7.getUTCMinutes()).padStart(2, "0");
-  const ss = String(gmt7.getUTCSeconds()).padStart(2, "0");
+  const hh = String(gmt7.getUTCHours()).padStart(2, '0');
+  const mm = String(gmt7.getUTCMinutes()).padStart(2, '0');
+  const ss = String(gmt7.getUTCSeconds()).padStart(2, '0');
   return `${dateStr} ${hh}:${mm}:${ss}`;
 }
 
 function formatDate(d) {
-  if (!d) return "-";
-  const dt = new Date(d.replace ? d.replace(" ", "T") : d);
-  if (isNaN(dt)) return "-";
-  const date = dt.toLocaleDateString("id-ID", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
+  if (!d) return '-';
+  const dt = new Date(d.replace ? d.replace(' ', 'T') : d);
+  if (isNaN(dt)) return '-';
+  const date = dt.toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
   });
-  const time = dt.toLocaleTimeString("id-ID", {
-    hour: "2-digit",
-    minute: "2-digit",
+  const time = dt.toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
   });
   return `${date} ${time}`;
 }
 
 function formatDateFull(d) {
-  if (!d) return "-";
-  const dt = new Date(d.replace ? d.replace(" ", "T") : d);
-  if (isNaN(dt)) return "-";
-  const date = dt.toLocaleDateString("id-ID", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
+  if (!d) return '-';
+  const dt = new Date(d.replace ? d.replace(' ', 'T') : d);
+  if (isNaN(dt)) return '-';
+  const date = dt.toLocaleDateString('id-ID', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
   });
-  const time = dt.toLocaleTimeString("id-ID", {
-    hour: "2-digit",
-    minute: "2-digit",
+  const time = dt.toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
   });
   return `${date}, ${time}`;
 }
 
 // ── Submit ─────────────────────────────────────────────────────────────
 async function submitForm() {
-  formError.value = "";
+  formError.value = '';
   const clean = form.value.pekerjaan.map((s) => s.trim()).filter(Boolean);
   if (!clean.length) {
-    formError.value = "Pekerjaan wajib diisi";
+    formError.value = 'Pekerjaan wajib diisi';
     return;
   }
   if (!form.value.pekerja.some((s) => s.trim())) {
-    formError.value = "Pekerja wajib diisi";
+    formError.value = 'Pekerja wajib diisi';
     return;
   }
 
-  if (modal.value.mode === "edit") {
+  if (modal.value.mode === 'edit') {
     showUpdateConfirm.value = true;
     return;
   }
@@ -2040,7 +2045,7 @@ async function doSave() {
       noPermit: form.value.statusPermit ? form.value.noPermit || null : null,
       jenisPekerjaan: form.value.jenisPekerjaan || null,
       jenisPekerjaanLainnya:
-        form.value.jenisPekerjaan === "Lainnya"
+        form.value.jenisPekerjaan === 'Lainnya'
           ? form.value.jenisPekerjaanLainnya || null
           : null,
       potensiBahaya: bulletsToJson(form.value.potensiBahaya),
@@ -2054,7 +2059,7 @@ async function doSave() {
       plantId: form.value.plantId,
     };
 
-    if (modal.value.mode === "edit") {
+    if (modal.value.mode === 'edit') {
       await hseDailyService.update(modal.value.record.id, payload);
     } else {
       await hseDailyService.create(payload);
@@ -2091,18 +2096,18 @@ async function doDelete() {
 
 // ── Export ─────────────────────────────────────────────────────────────────
 const MONTH_NAMES = [
-  "Januari",
-  "Februari",
-  "Maret",
-  "April",
-  "Mei",
-  "Juni",
-  "Juli",
-  "Agustus",
-  "September",
-  "Oktober",
-  "November",
-  "Desember",
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
 ];
 const showExportDropdown = ref(false);
 const showHseExportModal = ref(false);
@@ -2123,52 +2128,52 @@ function buildHseExport(source) {
   );
 
   const fotoCols = Array.from({ length: maxFotos }, (_, i) => ({
-    label: maxFotos === 1 ? "Dokumentasi" : `Dokumentasi ${i + 1}`,
+    label: maxFotos === 1 ? 'Dokumentasi' : `Dokumentasi ${i + 1}`,
     key: `foto_${i}`,
     image: true,
   }));
 
   const columns = [
-    { label: "No", key: "no" },
-    { label: "Tanggal", key: "tanggal" },
-    { label: "Pekerjaan", key: "pekerjaan" },
-    { label: "Pekerja", key: "pekerja" },
-    { label: "Department", key: "department" },
-    { label: "Plant", key: "plant" },
-    { label: "Business Unit", key: "businessUnit" },
-    { label: "Lokasi Pekerjaan", key: "lokasiPekerjaan" },
-    { label: "Status Permit", key: "statusPermit" },
-    { label: "No. Permit", key: "noPermit" },
-    { label: "Jenis Pekerjaan", key: "jenisPekerjaan" },
-    { label: "Potensi Bahaya", key: "potensiBahaya" },
-    { label: "Level Risiko", key: "levelRisiko" },
-    { label: "Pengendalian Bahaya", key: "pengendalianBahaya" },
-    { label: "Pengawas HSE", key: "pengawasHse" },
-    { label: "Saran/Masukan", key: "saranMasukan" },
+    { label: 'No', key: 'no' },
+    { label: 'Tanggal', key: 'tanggal' },
+    { label: 'Pekerjaan', key: 'pekerjaan' },
+    { label: 'Pekerja', key: 'pekerja' },
+    { label: 'Department', key: 'department' },
+    { label: 'Plant', key: 'plant' },
+    { label: 'Business Unit', key: 'businessUnit' },
+    { label: 'Lokasi Pekerjaan', key: 'lokasiPekerjaan' },
+    { label: 'Status Permit', key: 'statusPermit' },
+    { label: 'No. Permit', key: 'noPermit' },
+    { label: 'Jenis Pekerjaan', key: 'jenisPekerjaan' },
+    { label: 'Potensi Bahaya', key: 'potensiBahaya' },
+    { label: 'Level Risiko', key: 'levelRisiko' },
+    { label: 'Pengendalian Bahaya', key: 'pengendalianBahaya' },
+    { label: 'Pengawas HSE', key: 'pengawasHse' },
+    { label: 'Saran/Masukan', key: 'saranMasukan' },
     ...fotoCols,
   ];
 
   const rows = source.map((r, idx) => {
     const fotos = parsedFotos[idx];
     const fotoFields = {};
-    for (let i = 0; i < maxFotos; i++) fotoFields[`foto_${i}`] = fotos[i] || "";
+    for (let i = 0; i < maxFotos; i++) fotoFields[`foto_${i}`] = fotos[i] || '';
     return {
       no: idx + 1,
-      tanggal: r.tanggal || "",
-      pekerjaan: parseBullets(r.pekerjaan).join(", "),
-      pekerja: parseBullets(r.pekerja).join(", "),
-      department: r.departmentName || "",
-      plant: r.plantName || "",
-      businessUnit: r.businessUnitName || "",
-      lokasiPekerjaan: r.lokasiPekerjaan || "",
-      statusPermit: r.statusPermit ? "Ada" : "Tidak",
-      noPermit: r.noPermit || "",
+      tanggal: r.tanggal || '',
+      pekerjaan: parseBullets(r.pekerjaan).join(', '),
+      pekerja: parseBullets(r.pekerja).join(', '),
+      department: r.departmentName || '',
+      plant: r.plantName || '',
+      businessUnit: r.businessUnitName || '',
+      lokasiPekerjaan: r.lokasiPekerjaan || '',
+      statusPermit: r.statusPermit ? 'Ada' : 'Tidak',
+      noPermit: r.noPermit || '',
       jenisPekerjaan: displayJenis(r),
-      potensiBahaya: parseBullets(r.potensiBahaya).join(", "),
-      levelRisiko: r.levelRisiko || "",
-      pengendalianBahaya: parseBullets(r.pengendalianBahaya).join(", "),
-      pengawasHse: r.pengawasHse || "",
-      saranMasukan: parseBullets(r.saranMasukan).join(", "),
+      potensiBahaya: parseBullets(r.potensiBahaya).join(', '),
+      levelRisiko: r.levelRisiko || '',
+      pengendalianBahaya: parseBullets(r.pengendalianBahaya).join(', '),
+      pengawasHse: r.pengawasHse || '',
+      saranMasukan: parseBullets(r.saranMasukan).join(', '),
       ...fotoFields,
     };
   });
@@ -2196,7 +2201,7 @@ async function exportMonthlyCSV() {
   }
   const { columns, rows } = buildHseExport(filtered);
   await exportToCsv(
-    `hse-daily-${y}-${String(m).padStart(2, "0")}.xlsx`,
+    `hse-daily-${y}-${String(m).padStart(2, '0')}.xlsx`,
     columns,
     rows,
   );
@@ -2220,121 +2225,121 @@ async function downloadMonthlyPDF() {
   await nextTick();
   try {
     const doc = new jsPDF({
-      orientation: "landscape",
-      unit: "mm",
-      format: "a4",
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4',
     });
     const pageW = doc.internal.pageSize.getWidth();
     const dark = [30, 41, 59];
 
     // Header
     doc.setFillColor(30, 41, 59);
-    doc.rect(0, 0, pageW, 22, "F");
+    doc.rect(0, 0, pageW, 22, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("HSE DAILY REPORT", pageW / 2, 10, { align: "center" });
+    doc.setFont('helvetica', 'bold');
+    doc.text('HSE DAILY REPORT', pageW / 2, 10, { align: 'center' });
     doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
+    doc.setFont('helvetica', 'normal');
     doc.text(
       `PT Charoen Pokphand Indonesia  |  Periode: ${MONTH_NAMES[m - 1]} ${y}`,
       pageW / 2,
       17,
-      { align: "center" },
+      { align: 'center' },
     );
 
     // Summary stats
     const total = monthRows.length;
-    const minor = monthRows.filter((r) => r.levelRisiko === "Minor").length;
-    const major = monthRows.filter((r) => r.levelRisiko === "Major").length;
+    const minor = monthRows.filter((r) => r.levelRisiko === 'Minor').length;
+    const major = monthRows.filter((r) => r.levelRisiko === 'Major').length;
     const critical = monthRows.filter(
-      (r) => r.levelRisiko === "Critical",
+      (r) => r.levelRisiko === 'Critical',
     ).length;
     const withPermit = monthRows.filter((r) => r.statusPermit).length;
 
     const stats = [
-      { label: "Total Laporan", value: total },
-      { label: "Minor", value: minor },
-      { label: "Major", value: major },
-      { label: "Critical", value: critical },
-      { label: "Dengan Permit", value: withPermit },
+      { label: 'Total Laporan', value: total },
+      { label: 'Minor', value: minor },
+      { label: 'Major', value: major },
+      { label: 'Critical', value: critical },
+      { label: 'Dengan Permit', value: withPermit },
     ];
     const boxW = (pageW - 28) / stats.length;
     let bx = 14;
     stats.forEach((s) => {
       doc.setFillColor(241, 245, 249);
       doc.setDrawColor(203, 213, 225);
-      doc.roundedRect(bx, 26, boxW - 2, 14, 2, 2, "FD");
-      doc.setFont("helvetica", "bold");
+      doc.roundedRect(bx, 26, boxW - 2, 14, 2, 2, 'FD');
+      doc.setFont('helvetica', 'bold');
       doc.setFontSize(13);
       doc.setTextColor(...dark);
-      doc.text(String(s.value), bx + (boxW - 2) / 2, 31, { align: "center" });
-      doc.setFont("helvetica", "normal");
+      doc.text(String(s.value), bx + (boxW - 2) / 2, 31, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);
       doc.setTextColor(100, 116, 139);
-      doc.text(s.label, bx + (boxW - 2) / 2, 36.5, { align: "center" });
+      doc.text(s.label, bx + (boxW - 2) / 2, 36.5, { align: 'center' });
       bx += boxW;
     });
 
     // Main data table
     const tableRows = monthRows.map((r, i) => [
       i + 1,
-      r.tanggal || "",
-      r.lokasiPekerjaan || "-",
+      r.tanggal || '',
+      r.lokasiPekerjaan || '-',
       displayJenis(r),
-      r.levelRisiko || "-",
-      r.pengawasHse || "-",
-      r.statusPermit ? "Ada" : "Tidak",
-      parseBullets(r.pekerjaan).join("\n"),
-      parseBullets(r.potensiBahaya).join("\n"),
-      parseBullets(r.pengendalianBahaya).join("\n"),
+      r.levelRisiko || '-',
+      r.pengawasHse || '-',
+      r.statusPermit ? 'Ada' : 'Tidak',
+      parseBullets(r.pekerjaan).join('\n'),
+      parseBullets(r.potensiBahaya).join('\n'),
+      parseBullets(r.pengendalianBahaya).join('\n'),
     ]);
 
     autoTable(doc, {
       startY: 44,
       head: [
         [
-          "No",
-          "Tanggal",
-          "Lokasi",
-          "Jenis Pekerjaan",
-          "Level Risiko",
-          "Pengawas HSE",
-          "Permit",
-          "Pekerjaan",
-          "Potensi Bahaya",
-          "Pengendalian",
+          'No',
+          'Tanggal',
+          'Lokasi',
+          'Jenis Pekerjaan',
+          'Level Risiko',
+          'Pengawas HSE',
+          'Permit',
+          'Pekerjaan',
+          'Potensi Bahaya',
+          'Pengendalian',
         ],
       ],
       body: tableRows,
-      theme: "grid",
+      theme: 'grid',
       headStyles: {
         fillColor: [30, 41, 59],
         textColor: 255,
         fontSize: 7.5,
-        fontStyle: "bold",
-        halign: "center",
+        fontStyle: 'bold',
+        halign: 'center',
       },
-      bodyStyles: { fontSize: 7.5, textColor: dark, valign: "top" },
+      bodyStyles: { fontSize: 7.5, textColor: dark, valign: 'top' },
       columnStyles: {
-        0: { cellWidth: 8, halign: "center" },
-        1: { cellWidth: 20, halign: "center" },
+        0: { cellWidth: 8, halign: 'center' },
+        1: { cellWidth: 20, halign: 'center' },
         2: { cellWidth: 28 },
         3: { cellWidth: 28 },
-        4: { cellWidth: 20, halign: "center" },
+        4: { cellWidth: 20, halign: 'center' },
         5: { cellWidth: 28 },
-        6: { cellWidth: 15, halign: "center" },
+        6: { cellWidth: 15, halign: 'center' },
         7: { cellWidth: 42 },
         8: { cellWidth: 42 },
         9: { cellWidth: 42 },
       },
       margin: { left: 14, right: 14 },
       didParseCell(data) {
-        if (data.section === "body" && data.column.index === 4) {
+        if (data.section === 'body' && data.column.index === 4) {
           const v = data.cell.raw;
-          if (v === "Minor") data.cell.styles.textColor = [22, 163, 74];
-          else if (v === "Major") data.cell.styles.textColor = [217, 119, 6];
-          else if (v === "Critical") data.cell.styles.textColor = [220, 38, 38];
+          if (v === 'Minor') data.cell.styles.textColor = [22, 163, 74];
+          else if (v === 'Major') data.cell.styles.textColor = [217, 119, 6];
+          else if (v === 'Critical') data.cell.styles.textColor = [220, 38, 38];
         }
       },
     });
@@ -2343,37 +2348,37 @@ async function downloadMonthlyPDF() {
     const risikoY = doc.lastAutoTable.finalY + 8;
     doc.setTextColor(...dark);
     doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text("BREAKDOWN PER LEVEL RISIKO", 14, risikoY);
+    doc.setFont('helvetica', 'bold');
+    doc.text('BREAKDOWN PER LEVEL RISIKO', 14, risikoY);
 
-    const risikoRows = ["Minor", "Major", "Critical"].map((lv) => {
+    const risikoRows = ['Minor', 'Major', 'Critical'].map((lv) => {
       const rows = monthRows.filter((r) => r.levelRisiko === lv);
       const withP = rows.filter((r) => r.statusPermit).length;
       const pct =
-        rows.length > 0 ? `${Math.round((withP / rows.length) * 100)}%` : "-";
+        rows.length > 0 ? `${Math.round((withP / rows.length) * 100)}%` : '-';
       return [lv, rows.length, withP, rows.length - withP, pct];
     });
 
     autoTable(doc, {
       startY: risikoY + 3,
       head: [
-        ["Level Risiko", "Jumlah", "Dengan Permit", "Tanpa Permit", "% Permit"],
+        ['Level Risiko', 'Jumlah', 'Dengan Permit', 'Tanpa Permit', '% Permit'],
       ],
       body: risikoRows,
-      theme: "striped",
+      theme: 'striped',
       headStyles: {
         fillColor: [71, 85, 105],
         textColor: 255,
         fontSize: 8,
-        fontStyle: "bold",
-        halign: "center",
+        fontStyle: 'bold',
+        halign: 'center',
       },
-      bodyStyles: { fontSize: 9, halign: "center" },
-      columnStyles: { 0: { halign: "left", fontStyle: "bold" } },
+      bodyStyles: { fontSize: 9, halign: 'center' },
+      columnStyles: { 0: { halign: 'left', fontStyle: 'bold' } },
       margin: { left: 14, right: 14 },
     });
 
-    doc.save(`hse-daily-${y}-${String(m).padStart(2, "0")}.pdf`);
+    doc.save(`hse-daily-${y}-${String(m).padStart(2, '0')}.pdf`);
     showHseExportModal.value = false;
   } finally {
     pdfGenerating.value = false;
@@ -3042,7 +3047,7 @@ tbody tr.row-clickable:hover .btn-danger {
   transition: background 0.2s;
 }
 .toggle-slider::before {
-  content: "";
+  content: '';
   position: absolute;
   height: 16px;
   width: 16px;
