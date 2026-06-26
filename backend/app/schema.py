@@ -1286,10 +1286,8 @@ class Mutation:
 
     @strawberry.mutation
     def login(self, identifier: str, password: str) -> AuthPayload:
-        # gateway checks password + active account
-        result = auth.verify_employee(identifier, password)
-        if not result.ok:
-            return AuthPayload(success=False, message=result.message)
+        # Try employee gateway first; fall back to local DB password
+        gw = auth.verify_employee(identifier, password)
 
         db = _get_db()
         try:
@@ -1298,18 +1296,36 @@ class Mutation:
             else:
                 user = db.query(models.User).filter(models.User.username == identifier).first()
 
-            if not user:
-                # first login: create a local record, admin assigns role/BU later
-                user = models.User(
-                    email=identifier,
-                    username=None if "@" in identifier else identifier,
-                    hashed_password=auth.unusable_password_hash(),
-                    verified=True,
-                    is_active=True,
-                )
-                db.add(user)
-                db.commit()
-                db.refresh(user)
+            if gw.ok:
+                # Gateway auth success — auto-create local record on first login
+                if not user:
+                    name_part = identifier.split("@")[0] if "@" in identifier else identifier
+                    lowest_role = (
+                        db.query(models.Role)
+                        .order_by(models.Role.level.desc())
+                        .first()
+                    )
+                    user = models.User(
+                        email=identifier,
+                        username=name_part,
+                        full_name=name_part,
+                        hashed_password=auth.hash_password(password),
+                        verified=True,
+                        is_active=True,
+                        role_id=lowest_role.id if lowest_role else None,
+                        business_unit_id=None,
+                        plant_id=None,
+                        department_id=None,
+                    )
+                    db.add(user)
+                    db.commit()
+                    db.refresh(user)
+            else:
+                # Gateway failed — fallback: check local DB password
+                if not user or not auth.verify_password(password, user.hashed_password):
+                    return AuthPayload(success=False, message="Username/Password salah.")
+                if not user.is_active:
+                    return AuthPayload(success=False, message="Akun tidak aktif.")
 
             user.last_login = datetime.utcnow()
             db.commit()
