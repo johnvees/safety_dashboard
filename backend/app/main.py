@@ -256,12 +256,13 @@ app = FastAPI(title="Safety Dashboard API", lifespan=lifespan)
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
-_origins = list({FRONTEND_URL, "http://localhost:5173", "http://localhost:5174"})
+_extra_origins = [o.strip() for o in os.getenv("EXTRA_ORIGINS", "").split(",") if o.strip()]
+_origins = list({FRONTEND_URL, "http://localhost:5173", "http://localhost:5174", *_extra_origins})
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_origins,
-    allow_origin_regex=r"http://(localhost|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+):\d+",
+    allow_origin_regex=r"(http://(localhost|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+):\d+|https://[\w-]+-[\w-]+\.vercel\.app|https://[\w-]+\.vercel\.app)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
